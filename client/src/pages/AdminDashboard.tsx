@@ -2034,6 +2034,66 @@ export default function AdminDashboard() {
                 <> | 🔍 ID נבחר: <strong>{tournamentId}</strong></>
               )}
             </div>
+            
+            {/* כפתור מחיקת טורניר - רק למנהל העל */}
+            {isSuperAdmin && existingTournaments.length > 0 && (
+              <div style={{ marginTop: 12 }}>
+                <button
+                  onClick={async () => {
+                    if (!tournamentId) {
+                      alert("אנא בחר טורניר למחיקה");
+                      return;
+                    }
+                    
+                    const selectedTournament = existingTournaments.find(t => t.id === tournamentId);
+                    if (!selectedTournament) {
+                      alert("טורניר לא נמצא");
+                      return;
+                    }
+                    
+                    if (!confirm(`⚠️ אתה עומד למחוק את הטורניר "${selectedTournament.title}"!\n\nפעולה זו תמחק גם את כל המשחקים וההגשות של הטורניר ולא ניתן לבטל אותה!\n\nהאם אתה בטוח שברצונך להמשיך?`)) {
+                      return;
+                    }
+                    
+                    // אישור נוסף למניעת מחיקה בטעות
+                    if (!confirm(`אישור סופי: למחוק את הטורניר "${selectedTournament.title}"?`)) {
+                      return;
+                    }
+                    
+                    try {
+                      await deleteTournament(tournamentId, selectedTournament.title);
+                      setTournamentId(""); // נקה את הבחירה
+                    } catch (error: any) {
+                      alert(`❌ שגיאה במחיקת הטורניר: ${error.message}`);
+                    }
+                  }}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: 6,
+                    border: "none",
+                    background: "#f44336",
+                    color: "#fff",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    boxShadow: "0 2px 8px rgba(244, 67, 54, 0.3)",
+                    transition: "all 0.3s"
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.transform = "translateY(-1px)"}
+                  onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}
+                >
+                  🗑️ מחק טורניר נבחר
+                </button>
+                <div style={{
+                  marginTop: 4,
+                  fontSize: 10,
+                  color: "#f44336",
+                  fontWeight: 600
+                }}>
+                  👑 פעולה זו זמינה רק למנהל העל
+                </div>
+              </div>
+            )}
           </div>
           <div style={{
             display: "grid",
