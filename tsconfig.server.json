@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "server/dist",
+    "rootDir": "server/src",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "noEmitOnError": true
+  },
+  "include": ["server/src"]
+}
+
