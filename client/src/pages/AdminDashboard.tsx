@@ -857,15 +857,65 @@ export default function AdminDashboard() {
           </span>
         </div>
         
+        {/* כפתור רשימת טורנירים */}
+        <button
+          onClick={() => {
+            if (existingTournaments.length === 0) {
+              alert("אין טורנירים במערכת");
+              return;
+            }
+            
+            // יצירת רשימה של טורנירים לבחירה
+            const tournamentList = existingTournaments.map((t, index) => 
+              `${index + 1}. ${t.title} (${t.createdAt.split('T')[0]}) ${t.telegramLink ? '📱' : ''}`
+            ).join('\n');
+            
+            const selection = prompt(`רשימת טורנירים (${existingTournaments.length}):\n\n${tournamentList}\n\nהזן מספר הטורניר שברצונך לבחור:`, "");
+            
+            if (selection && !isNaN(Number(selection))) {
+              const index = Number(selection) - 1;
+              if (index >= 0 && index < existingTournaments.length) {
+                const selectedTournament = existingTournaments[index];
+                setTournamentId(selectedTournament.id);
+                alert(`✅ נבחר טורניר: "${selectedTournament.title}"`);
+              } else {
+                alert("מספר לא תקין");
+              }
+            }
+          }}
+          style={{
+            padding: "12px 20px",
+            borderRadius: 10,
+            border: "none",
+            background: "linear-gradient(135deg, #2196F3 0%, #1976D2 100%)",
+            color: "#fff",
+            fontSize: 14,
+            fontWeight: 700,
+            cursor: "pointer",
+            boxShadow: "0 4px 15px rgba(33, 150, 243, 0.4)",
+            transition: "all 0.3s",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            whiteSpace: "nowrap"
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.transform = "translateY(-2px)";
+            e.currentTarget.style.boxShadow = "0 6px 20px rgba(33, 150, 243, 0.6)";
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow = "0 4px 15px rgba(33, 150, 243, 0.4)";
+          }}
+          title="בחירת טורניר מרשימה"
+        >
+          🏆 בחר טורניר ({existingTournaments.length})
+        </button>
+
         {/* כפתור מחיקת טורניר - רק למנהל העל */}
-        {isSuperAdmin && existingTournaments.length > 0 && (
+        {isSuperAdmin && existingTournaments.length > 0 && tournamentId && (
           <button
             onClick={async () => {
-              if (!tournamentId) {
-                alert("אנא בחר טורניר למחיקה מהרשימה למטה");
-                return;
-              }
-              
               const selectedTournament = existingTournaments.find(t => t.id === tournamentId);
               if (!selectedTournament) {
                 alert("טורניר לא נמצא");
@@ -916,6 +966,25 @@ export default function AdminDashboard() {
           >
             🗑️ מחק טורניר נבחר
           </button>
+        )}
+        
+        {/* הצגת הטורניר הנבחר */}
+        {tournamentId && (
+          <div style={{
+            padding: "12px 20px",
+            borderRadius: 10,
+            background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            boxShadow: "0 4px 15px rgba(76, 175, 80, 0.4)",
+            color: "#fff"
+          }}>
+            <span style={{ fontSize: 14, fontWeight: 600 }}>טורניר נבחר:</span>
+            <span style={{ fontSize: 16, fontWeight: 700 }}>
+              {existingTournaments.find(t => t.id === tournamentId)?.title || "לא ידוע"}
+            </span>
+          </div>
         )}
       </div>
 
