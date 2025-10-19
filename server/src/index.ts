@@ -18,7 +18,7 @@ import { admin } from "./routes/admin.js";
 import { adminUsers } from "./routes/adminUsers.js";
 import { approvalRequests } from "./routes/approvalRequests.js";
 import { withCookies, requireAuth, requireSuperAdmin, seedAdminFromEnv } from "./auth.js";
-import { setupGoogleAuth } from "./googleAuth.js";
+// Google OAuth removed
 import { logger } from "./logger.js";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
@@ -34,7 +34,7 @@ const app = express();
 app.set('trust proxy', 1);
 
 // Setup Google OAuth
-setupGoogleAuth();
+// Google OAuth removed
 
 // Rate Limiting - prevent abuse
 // בפיתוח: מקל, בפרודקשן: חמור

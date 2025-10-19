@@ -283,47 +283,5 @@ auth.post("/change-password", limiter, async (req, res) => {
   res.json({ ok: true, message: "הסיסמה שונתה בהצלחה" });
 });
 
-// Google OAuth routes
-auth.get("/google", passport.authenticate("google", { 
-  scope: ["profile", "email"],
-  session: false 
-}));
-
-auth.get("/google/callback", 
-  passport.authenticate("google", { session: false, failureRedirect: "/login" }),
-  (req, res) => {
-    try {
-      const user = req.user as any;
-      if (!user) {
-        console.error("Google OAuth: No user in request");
-        return res.redirect("/login?error=auth_failed");
-      }
-      
-      console.log("Google OAuth: User authenticated:", user.email);
-      
-      // בדוק אם המשתמש מאושר
-      const userData = db.prepare(`SELECT status, approvalStatus, role FROM users WHERE email=?`).get(user.email) as any;
-      
-      if (!userData) {
-        console.error("Google OAuth: User not found in database");
-        return res.redirect("/login?error=user_not_found");
-      }
-      
-      // בדוק אם המשתמש מאושר
-      if (userData.approvalStatus !== 'approved' || userData.status !== 'active') {
-        console.log("Google OAuth: User not approved:", user.email, "Status:", userData.status, "Approval:", userData.approvalStatus);
-        return res.redirect("/login?error=pending_approval");
-      }
-      
-      const token = signToken({ uid: user.uid, email: user.email, role: userData.role });
-      setSessionCookie(res, token);
-      
-      console.log("Google OAuth: Token created, redirecting to /");
-      res.redirect("/");
-    } catch (error) {
-      console.error("Google OAuth callback error:", error);
-      res.redirect("/login?error=server_error");
-    }
-  }
-);
+// Google OAuth removed - using only regular registration
 
