@@ -84,7 +84,7 @@ app.use("/api/user", requireAuth, userSettings);
 app.use("/api/admin", requireAuth, admin);
 
 // Admin user approval routes (public - accessed via email links)
-app.use("/api/admin", adminUsers);
+app.use("/api/admin-approval", adminUsers);
 
 // Approval requests routes (requires auth)
 app.use("/api/approval-requests", requireAuth, approvalRequests);
