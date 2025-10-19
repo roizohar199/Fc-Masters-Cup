@@ -234,15 +234,19 @@ export default function AdminDashboard() {
 
   async function loadUsers() {
     try {
+      console.log("🔄 טוען משתמשים...");
       const usersData = await api("/api/admin/users");
+      console.log("📊 נתונים שהתקבלו מהשרת:", usersData);
       setUsers(usersData || []);
       
       // יצירת רשימת שחקנים זמינים (כל המשתמשים עם role = 'player', למעט חסומים)
       const players = (usersData || [])
-        .filter((user: User) => 
-          user.role === 'player' && 
-          user.status !== 'blocked'
-        )
+        .filter((user: User) => {
+          const isPlayer = user.role === 'player';
+          const notBlocked = user.status !== 'blocked';
+          console.log(`👤 ${user.email}: role=${user.role}, status=${user.status}, isPlayer=${isPlayer}, notBlocked=${notBlocked}`);
+          return isPlayer && notBlocked;
+        })
         .map((user: User) => ({
           id: user.id,
           psn: user.psnUsername || user.email.split('@')[0], // אם אין PSN, נשתמש בחלק הראשון של האימייל
@@ -251,9 +255,10 @@ export default function AdminDashboard() {
         }));
       
       console.log("⚽ שחקנים זמינים:", players);
+      console.log("📈 מספר שחקנים זמינים:", players.length);
       setAvailablePlayers(players);
     } catch (error) {
-      console.error("Failed to load users:", error);
+      console.error("❌ Failed to load users:", error);
     }
   }
 
