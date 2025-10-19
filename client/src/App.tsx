@@ -8,7 +8,17 @@ import { api } from "./api";
 export default function App() {
   const [me, setMe] = useState<{ ok: boolean; email?: string; role?: string; secondPrizeCredit?: number }>({ ok: false });
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const nav = useNavigate();
+
+  // זיהוי מובייל
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     // ניסיון רענון role מהדאטאבייס
@@ -72,7 +82,7 @@ export default function App() {
 
   return (
     <div style={{
-      padding: 24,
+      padding: isMobile ? 12 : 24,
       minHeight: "100vh"
     }}>
       <div style={{
@@ -81,11 +91,11 @@ export default function App() {
       }}>
         {/* Header */}
         <div style={{
-          marginBottom: 32,
+          marginBottom: isMobile ? 20 : 32,
           textAlign: "center"
         }}>
           <h1 style={{
-            fontSize: 48,
+            fontSize: isMobile ? 28 : 48,
             fontWeight: 800,
             background: "linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%)",
             WebkitBackgroundClip: "text",
@@ -93,12 +103,13 @@ export default function App() {
             backgroundClip: "text",
             marginBottom: 8,
             textShadow: "0 2px 20px rgba(0, 0, 0, 0.3)",
-            letterSpacing: "-0.5px"
+            letterSpacing: "-0.5px",
+            lineHeight: 1.2
           }}>
             ⚽ {isAdmin ? "מנהל טורנירים FC" : "FC Masters Cup"}
           </h1>
           <p style={{
-            fontSize: 16,
+            fontSize: isMobile ? 14 : 16,
             color: "rgba(255, 255, 255, 0.9)",
             fontWeight: 500,
             textShadow: "0 1px 3px rgba(0, 0, 0, 0.2)"
@@ -110,147 +121,160 @@ export default function App() {
         {/* Navigation */}
         <div style={{
           display: "flex",
-          gap: 12,
-          marginBottom: 24,
-          padding: "12px",
+          flexDirection: isMobile ? "column" : "row",
+          gap: isMobile ? 16 : 12,
+          marginBottom: isMobile ? 20 : 24,
+          padding: isMobile ? "16px" : "12px",
           backgroundColor: "rgba(255, 255, 255, 0.15)",
           backdropFilter: "blur(10px)",
-          borderRadius: 16,
+          borderRadius: isMobile ? 12 : 16,
           boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
           direction: "rtl",
           justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap"
+          alignItems: "center"
         }}>
           <div style={{ 
-            display: "flex", 
-            gap: 12,
-            flexWrap: "wrap",
+            display: "grid", 
+            gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(140px, 1fr))",
+            gap: isMobile ? 8 : 12,
+            width: "100%",
             justifyContent: "center"
           }}>
             <Link 
               to="/" 
               style={{
-                padding: "14px 24px",
+                padding: isMobile ? "12px 16px" : "14px 24px",
                 textDecoration: "none",
                 background: "linear-gradient(135deg, #667eea 0%, #764ba2dd 100%)",
                 color: "#fff",
-                borderRadius: 12,
+                borderRadius: isMobile ? 8 : 12,
                 fontWeight: 700,
-                fontSize: 15,
+                fontSize: isMobile ? 13 : 15,
                 transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                 boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
                 display: "flex",
                 alignItems: "center",
-                gap: 8
+                justifyContent: "center",
+                gap: isMobile ? 6 : 8,
+                textAlign: "center"
               }}
             >
-              <span style={{ fontSize: 18 }}>{isAdmin ? "⚙️" : "🏠"}</span>
-              {isAdmin ? "ניהול" : "דף הבית"}
+              <span style={{ fontSize: isMobile ? 16 : 18 }}>{isAdmin ? "⚙️" : "🏠"}</span>
+              {isMobile ? (isAdmin ? "ניהול" : "בית") : (isAdmin ? "ניהול" : "דף הבית")}
             </Link>
             <Link 
               to="/bracket" 
               style={{
-                padding: "14px 24px",
+                padding: isMobile ? "12px 16px" : "14px 24px",
                 textDecoration: "none",
                 background: "rgba(255, 255, 255, 0.9)",
                 color: "#333",
-                borderRadius: 12,
+                borderRadius: isMobile ? 8 : 12,
                 fontWeight: 500,
-                fontSize: 15,
+                fontSize: isMobile ? 13 : 15,
                 transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                 boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
                 display: "flex",
                 alignItems: "center",
-                gap: 8
+                justifyContent: "center",
+                gap: isMobile ? 6 : 8,
+                textAlign: "center"
               }}
             >
-              <span style={{ fontSize: 18 }}>📊</span>
-              צפה בתוצאות
+              <span style={{ fontSize: isMobile ? 16 : 18 }}>📊</span>
+              {isMobile ? "תוצאות" : "צפה בתוצאות"}
             </Link>
             {isAdmin && (
               <Link 
                 to="/admin" 
                 style={{
-                  padding: "14px 24px",
+                  padding: isMobile ? "12px 16px" : "14px 24px",
                   textDecoration: "none",
                   background: "rgba(255, 255, 255, 0.9)",
                   color: "#333",
-                  borderRadius: 12,
+                  borderRadius: isMobile ? 8 : 12,
                   fontWeight: 500,
-                  fontSize: 15,
+                  fontSize: isMobile ? 13 : 15,
                   transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                   boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
                   display: "flex",
                   alignItems: "center",
-                  gap: 8
+                  justifyContent: "center",
+                  gap: isMobile ? 6 : 8,
+                  textAlign: "center"
                 }}
               >
-                <span style={{ fontSize: 18 }}>👨‍💼</span>
-                פאנל ניהול
+                <span style={{ fontSize: isMobile ? 16 : 18 }}>👨‍💼</span>
+                {isMobile ? "פאנל" : "פאנל ניהול"}
               </Link>
             )}
             {isAdmin && (
               <Link 
                 to="/disputes" 
                 style={{
-                  padding: "14px 24px",
+                  padding: isMobile ? "12px 16px" : "14px 24px",
                   textDecoration: "none",
                   background: "rgba(255, 255, 255, 0.9)",
                   color: "#333",
-                  borderRadius: 12,
+                  borderRadius: isMobile ? 8 : 12,
                   fontWeight: 500,
-                  fontSize: 15,
+                  fontSize: isMobile ? 13 : 15,
                   transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                   boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
                   display: "flex",
                   alignItems: "center",
-                  gap: 8
+                  justifyContent: "center",
+                  gap: isMobile ? 6 : 8,
+                  textAlign: "center"
                 }}
               >
-                <span style={{ fontSize: 18 }}>⚠️</span>
+                <span style={{ fontSize: isMobile ? 16 : 18 }}>⚠️</span>
                 מחלוקות
               </Link>
             )}
             <Link 
               to="/rules" 
               style={{
-                padding: "14px 24px",
+                padding: isMobile ? "12px 16px" : "14px 24px",
                 textDecoration: "none",
                 background: "rgba(255, 255, 255, 0.9)",
                 color: "#333",
-                borderRadius: 12,
+                borderRadius: isMobile ? 8 : 12,
                 fontWeight: 500,
-                fontSize: 15,
+                fontSize: isMobile ? 13 : 15,
                 transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                 boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
                 display: "flex",
                 alignItems: "center",
-                gap: 8
+                justifyContent: "center",
+                gap: isMobile ? 6 : 8,
+                textAlign: "center"
               }}
             >
-              <span style={{ fontSize: 18 }}>📋</span>
+              <span style={{ fontSize: isMobile ? 16 : 18 }}>📋</span>
               תקנון
             </Link>
             {!isAdmin && (
               <Link 
                 to="/settings" 
                 style={{
-                  padding: "14px 24px",
+                  padding: isMobile ? "12px 16px" : "14px 24px",
                   textDecoration: "none",
                   background: "rgba(255, 255, 255, 0.9)",
                   color: "#333",
-                  borderRadius: 12,
+                  borderRadius: isMobile ? 8 : 12,
                   fontWeight: 500,
-                  fontSize: 15,
+                  fontSize: isMobile ? 13 : 15,
                   transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                   boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
                   display: "flex",
                   alignItems: "center",
-                  gap: 8
+                  justifyContent: "center",
+                  gap: isMobile ? 6 : 8,
+                  textAlign: "center"
                 }}
               >
-                <span style={{ fontSize: 18 }}>⚙️</span>
+                <span style={{ fontSize: isMobile ? 16 : 18 }}>⚙️</span>
                 הגדרות
               </Link>
             )}
@@ -258,35 +282,42 @@ export default function App() {
 
           <div style={{ 
             display: "flex", 
+            flexDirection: isMobile ? "column" : "row",
             alignItems: "center", 
-            gap: 12,
-            flexWrap: "wrap",
+            gap: isMobile ? 8 : 12,
             justifyContent: "center",
-            marginTop: "8px"
+            marginTop: isMobile ? 0 : "8px",
+            width: "100%"
           }}>
             <div style={{
-              padding: "8px 16px",
+              padding: isMobile ? "6px 12px" : "8px 16px",
               background: "rgba(255, 255, 255, 0.2)",
-              borderRadius: 20,
-              fontSize: 14,
+              borderRadius: isMobile ? 16 : 20,
+              fontSize: isMobile ? 12 : 14,
               fontWeight: 600,
-              color: "#fff"
+              color: "#fff",
+              textAlign: "center",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              maxWidth: isMobile ? "200px" : "none"
             }}>
               👤 {me.email}
             </div>
             <button
               onClick={logout}
               style={{
-                padding: "10px 20px",
+                padding: isMobile ? "8px 16px" : "10px 20px",
                 background: "rgba(255, 255, 255, 0.9)",
                 color: "#e91e63",
                 border: "none",
-                borderRadius: 10,
+                borderRadius: isMobile ? 8 : 10,
                 cursor: "pointer",
                 fontWeight: 700,
-                fontSize: 14,
+                fontSize: isMobile ? 12 : 14,
                 transition: "all 0.3s",
-                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)"
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+                width: isMobile ? "100%" : "auto"
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.transform = "translateY(-2px)";
@@ -305,8 +336,8 @@ export default function App() {
         {/* Main Content */}
         <div style={{
           backgroundColor: "rgba(255, 255, 255, 0.95)",
-          borderRadius: 20,
-          padding: 24,
+          borderRadius: isMobile ? 12 : 20,
+          padding: isMobile ? 16 : 24,
           boxShadow: "0 20px 60px rgba(0, 0, 0, 0.2)",
           backdropFilter: "blur(10px)",
           minHeight: 400
