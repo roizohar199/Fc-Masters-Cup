@@ -70,9 +70,12 @@ jobs:
           fi
           
           # Copy Nginx configuration
-          if [ -f deploy-config-nginx.txt ]; then
+          if [ -f nginx-config-k-rstudio.txt ]; then
+            cp nginx-config-k-rstudio.txt deploy_temp/nginx-config.txt
+            echo "✅ Nginx config for k-rstudio.com included"
+          elif [ -f deploy-config-nginx.txt ]; then
             cp deploy-config-nginx.txt deploy_temp/nginx-config.txt
-            echo "✅ Nginx config included"
+            echo "✅ Default Nginx config included"
           fi
 
           echo "✅ Deployment package ready"
@@ -150,20 +153,23 @@ jobs:
             # Update Nginx configuration if present
             cd /var/www/fcmasters
             if [ -f nginx-config.txt ]; then
-              echo "🔌 Updating Nginx configuration for WebSocket..."
+              echo "🔌 Updating Nginx configuration for k-rstudio.com..."
               # Backup current config
               if [ -f /etc/nginx/sites-available/fcmasters ]; then
                 sudo cp /etc/nginx/sites-available/fcmasters "/etc/nginx/sites-available/fcmasters.backup-$(date +%Y%m%d-%H%M%S)" || true
               fi
               # Update config
               sudo cp nginx-config.txt /etc/nginx/sites-available/fcmasters || true
+              # Enable site if not already enabled
+              sudo ln -sf /etc/nginx/sites-available/fcmasters /etc/nginx/sites-enabled/fcmasters || true
               # Test and reload
               if sudo nginx -t 2>&1 | grep -q "successful"; then
-                echo "✅ Nginx config validated"
+                echo "✅ Nginx config validated for k-rstudio.com"
                 sudo systemctl reload nginx || true
-                echo "✅ Nginx reloaded with WebSocket support"
+                echo "✅ Nginx reloaded with k-rstudio.com domain support"
               else
                 echo "⚠️ Nginx config test failed, keeping old config"
+                sudo nginx -t
               fi
             fi
 
