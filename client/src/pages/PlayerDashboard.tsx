@@ -208,15 +208,29 @@ export default function PlayerDashboard() {
       {/* כרטיס ברכה */}
       <div style={{
         background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-        padding: isMobile ? 20 : 32,
+        padding: isMobile ? 16 : 32,
         borderRadius: isMobile ? 12 : 16,
         color: "#fff",
-        boxShadow: "0 10px 30px rgba(102, 126, 234, 0.3)"
+        boxShadow: "0 10px 30px rgba(102, 126, 234, 0.3)",
+        overflow: "hidden"
       }}>
-        <h2 style={{ fontSize: isMobile ? 20 : 32, fontWeight: 700, marginBottom: isMobile ? 8 : 12, lineHeight: 1.3 }}>
+        <h2 style={{ 
+          fontSize: isMobile ? 18 : 32, 
+          fontWeight: 700, 
+          marginBottom: isMobile ? 8 : 12, 
+          lineHeight: 1.3,
+          wordBreak: "break-word",
+          overflow: "hidden",
+          textOverflow: "ellipsis"
+        }}>
           שלום, {playerInfo?.email}! ⚽
         </h2>
-        <p style={{ fontSize: isMobile ? 14 : 16, opacity: 0.9 }}>
+        <p style={{ 
+          fontSize: isMobile ? 13 : 16, 
+          opacity: 0.9,
+          lineHeight: 1.4,
+          wordBreak: "break-word"
+        }}>
           ברוך הבא לאזור השחקנים של FC Masters Cup
         </p>
       </div>
@@ -704,29 +718,40 @@ export default function PlayerDashboard() {
       {/* קישור להגשת תוצאות */}
       <div style={{
         backgroundColor: "#fff3e0",
-        padding: isMobile ? 16 : 20,
+        padding: isMobile ? 12 : 20,
         borderRadius: isMobile ? 12 : 16,
         border: "2px solid #ff9800",
-        textAlign: "center"
+        textAlign: "center",
+        overflow: "hidden"
       }}>
-        <p style={{ fontSize: isMobile ? 14 : 16, color: "#e65100", marginBottom: isMobile ? 12 : 16 }}>
+        <p style={{ 
+          fontSize: isMobile ? 13 : 16, 
+          color: "#e65100", 
+          marginBottom: isMobile ? 10 : 16,
+          lineHeight: 1.4,
+          wordBreak: "break-word"
+        }}>
           רוצה להגיש תוצאת משחק?
         </p>
         <Link
           to="/bracket"
           style={{
             display: "inline-block",
-            padding: isMobile ? "12px 24px" : "14px 32px",
+            padding: isMobile ? "10px 16px" : "14px 32px",
             background: "linear-gradient(135deg, #ff9800 0%, #f57c00 100%)",
             color: "#fff",
             textDecoration: "none",
-            borderRadius: isMobile ? 8 : 10,
+            borderRadius: isMobile ? 6 : 10,
             fontWeight: 700,
-            fontSize: isMobile ? 14 : 16,
-            boxShadow: "0 4px 15px rgba(255, 152, 0, 0.4)"
+            fontSize: isMobile ? 13 : 16,
+            boxShadow: "0 4px 15px rgba(255, 152, 0, 0.4)",
+            maxWidth: "100%",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap"
           }}
         >
-          צפה בתוצאות 📊
+          {isMobile ? "תוצאות 📊" : "צפה בתוצאות 📊"}
         </Link>
       </div>
     </div>
