@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { api } from "../api";
+import { getRoundName } from "../utils/rounds";
 import "../styles/championsLeague.css";
 
 interface ProofUploaderProps {
@@ -108,16 +109,6 @@ export default function ProofUploader({ matchId, match, onUploadSuccess, isMobil
       setError(err instanceof Error ? err.message : "שגיאה בהעלאת התמונה");
     } finally {
       setUploading(false);
-    }
-  };
-
-  const getRoundName = (round: string) => {
-    switch (round) {
-      case 'R16': return 'שמינית גמר';
-      case 'QF': return 'רבע גמר';
-      case 'SF': return 'חצי גמר';
-      case 'F': return 'גמר';
-      default: return round;
     }
   };
 

@@ -1,6 +1,7 @@
 import React from "react";
 import PlayerMatchCard from "./PlayerMatchCard";
 import ProofUploader from "./ProofUploader";
+import { getRoundName } from "../utils/rounds";
 import "../styles/championsLeague.css";
 
 interface PlayerDashboardChampionsProps {
@@ -12,7 +13,6 @@ interface PlayerDashboardChampionsProps {
   getMyOpponents: () => string[];
   getParallelMatches: () => any[];
   getMatchResult: (match: any) => { text: string; color: string };
-  getRoundName: (round: string) => string;
 }
 
 export default function PlayerDashboardChampions({
@@ -23,63 +23,8 @@ export default function PlayerDashboardChampions({
   isMobile,
   getMyOpponents,
   getParallelMatches,
-  getMatchResult,
-  getRoundName
+  getMatchResult
 }: PlayerDashboardChampionsProps) {
-  const getMyOpponents = () => {
-    const opponents = new Set<string>();
-    myMatches.forEach(match => {
-      if (match.homePsn && match.awayPsn) {
-        if (match.myRole === 'home') {
-          opponents.add(match.awayPsn);
-        } else if (match.myRole === 'away') {
-          opponents.add(match.homePsn);
-        }
-      }
-    });
-    return Array.from(opponents);
-  };
-
-  const getParallelMatches = () => {
-    if (!myMatches.length) return [];
-    
-    const myRounds = new Set(myMatches.map(m => m.round));
-    return allMatches.filter(match => 
-      myRounds.has(match.round) && 
-      !match.isMyMatch &&
-      match.homeScore !== null && 
-      match.awayScore !== null
-    );
-  };
-
-  const getMatchResult = (match: any) => {
-    if (match.homeScore === null || match.awayScore === null) {
-      return { text: "טרם שוחק", color: "#6c757d" };
-    }
-
-    const isHome = match.myRole === 'home';
-    const myScore = isHome ? match.homeScore : match.awayScore;
-    const opponentScore = isHome ? match.awayScore : match.homeScore;
-
-    if (myScore > opponentScore) {
-      return { text: "ניצחון", color: "#28a745" };
-    } else if (myScore < opponentScore) {
-      return { text: "הפסד", color: "#dc3545" };
-    } else {
-      return { text: "תיקו", color: "#ffc107" };
-    }
-  };
-
-  const getRoundName = (round: string) => {
-    switch (round) {
-      case 'R16': return 'שמינית גמר';
-      case 'QF': return 'רבע גמר';
-      case 'SF': return 'חצי גמר';
-      case 'F': return 'גמר';
-      default: return round;
-    }
-  };
-
   return (
     <div className="champions-league-container" style={{
       minHeight: "100vh",

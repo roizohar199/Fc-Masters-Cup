@@ -3,6 +3,7 @@ import { api } from "../api";
 import { Link } from "react-router-dom";
 import { useStore } from "../store";
 import PlayerDashboardChampions from "../components/PlayerDashboardChampions";
+import { getRoundName } from "../utils/rounds";
 import "../styles/championsLeague.css";
 
 interface PlayerInfo {
@@ -136,16 +137,6 @@ export default function PlayerDashboard() {
     }
   }
 
-  const getRoundName = (round: string) => {
-    switch (round) {
-      case "R16": return "שמינית גמר";
-      case "QF": return "רבע גמר";
-      case "SF": return "חצי גמר";
-      case "F": return "גמר";
-      default: return round;
-    }
-  };
-
   const getMatchResult = (match: Match) => {
     if (match.homeScore === null || match.awayScore === null) {
       return { text: "ממתין לתוצאה", color: "#999" };
@@ -217,7 +208,6 @@ export default function PlayerDashboard() {
         getMyOpponents={getMyOpponents}
         getParallelMatches={getParallelMatches}
         getMatchResult={getMatchResult}
-        getRoundName={getRoundName}
       />
       
       {/* הגרסה הישנה (מוסתרת) */}

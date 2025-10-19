@@ -1,5 +1,6 @@
 import React from "react";
 import PlayerLogo from "./PlayerLogo";
+import { getRoundName } from "../utils/rounds";
 import "../styles/championsLeague.css";
 
 interface PlayerMatchCardProps {
@@ -26,16 +27,6 @@ export default function PlayerMatchCard({ match, result, isMobile }: PlayerMatch
   const isLoss = result.text.includes('הפסד');
   const isDraw = result.text.includes('תיקו');
   const isCompleted = match.homeScore !== null && match.awayScore !== null;
-
-  const getRoundName = (round: string) => {
-    switch (round) {
-      case 'R16': return 'שמינית גמר';
-      case 'QF': return 'רבע גמר';
-      case 'SF': return 'חצי גמר';
-      case 'F': return 'גמר';
-      default: return round;
-    }
-  };
 
   return (
     <div className="champions-league-match-card" style={{
