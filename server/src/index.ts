@@ -40,32 +40,11 @@ setupGoogleAuth();
 // בפיתוח: מקל, בפרודקשן: חמור
 const isProduction = process.env.NODE_ENV === 'production';
 
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: isProduction ? 100 : 1000, // Production: 100, Development: 1000
-  message: { error: 'יותר מדי בקשות. נסה שוב בעוד מספר דקות.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => !isProduction, // Skip in development
-});
+// Rate limiting disabled - no limits
+const apiLimiter = (req: any, res: any, next: any) => next();
 
-// Stricter rate limit for auth endpoints
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: isProduction ? 20 : 1000, // Production: 20, Development: 1000 (increased from 5)
-  message: { error: 'יותר מדי ניסיונות התחברות. נסה שוב בעוד 15 דקות.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => {
-    // Skip in development
-    if (!isProduction) return true;
-
-    // Allow unlimited attempts for admin IPs (add your IP here)
-    const clientIP = req.ip || req.connection.remoteAddress;
-    const adminIPs = process.env.ADMIN_IPS?.split(',') || [];
-    return adminIPs.includes(clientIP || '');
-  },
-});
+// Rate limiting disabled - no limits
+const authLimiter = (req: any, res: any, next: any) => next();
 
 logger.info("server", `Rate Limiting: ${isProduction ? 'ENABLED (Production)' : 'DISABLED (Development)'}`);
 
