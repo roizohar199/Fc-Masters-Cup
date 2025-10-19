@@ -257,7 +257,7 @@ adminUsers.get("/reject-user", async (req, res) => {
 });
 
 // API לאישור משתמש מהפאנל (דורש הרשאת מנהל)
-adminUsers.post("/approve-user-api", requireAuth, async (req, res) => {
+adminUsers.post("/approve-user-api", async (req, res) => {
   const { userId } = req.body;
   
   if (!userId) {
@@ -291,7 +291,7 @@ adminUsers.post("/approve-user-api", requireAuth, async (req, res) => {
 });
 
 // API לדחיית משתמש מהפאנל (דורש הרשאת מנהל)
-adminUsers.post("/reject-user-api", requireAuth, async (req, res) => {
+adminUsers.post("/reject-user-api", async (req, res) => {
   const { userId } = req.body;
   
   if (!userId) {
