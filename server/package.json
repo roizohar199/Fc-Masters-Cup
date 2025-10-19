@@ -1,0 +1,46 @@
+{
+  "name": "fc-tournament-server",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k \"tsc -p ../tsconfig.server.json --watch\" \"wait-on dist/index.js && powershell -Command \\\"$env:DOTENV_CONFIG_PATH='../.env'; node --watch -r dotenv/config dist/index.js\\\"\"",
+    "build": "tsc -p ../tsconfig.server.json",
+    "start": "powershell -Command \"$env:DOTENV_CONFIG_PATH='../.env'; node -r dotenv/config dist/index.js\"",
+    "test": "vitest run",
+    "backup": "node backup-db.mjs"
+  },
+  "dependencies": {
+    "@types/cookie-parser": "^1.4.9",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/nodemailer": "^7.0.2",
+    "@types/passport": "^1.0.17",
+    "@types/passport-google-oauth20": "^2.0.16",
+    "argon2": "^0.44.0",
+    "better-sqlite3": "^11.1.2",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^4.19.2",
+    "express-rate-limit": "^8.1.0",
+    "fc-tournament-manager": "file:..",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^7.0.9",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "ws": "^8.18.3",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/multer": "^1.4.11",
+    "@types/node": "^20.14.11",
+    "@types/ws": "^8.18.1",
+    "concurrently": "^9.0.1",
+    "typescript": "^5.5.3",
+    "vitest": "^2.0.3",
+    "wait-on": "^7.2.0"
+  }
+}
