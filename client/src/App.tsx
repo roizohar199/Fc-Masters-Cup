@@ -136,75 +136,88 @@ export default function App() {
           <div style={{ 
             display: "grid", 
             gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(140px, 1fr))",
-            gap: isMobile ? 8 : 12,
+            gap: isMobile ? 6 : 12,
             width: "100%",
-            justifyContent: "center"
+            justifyContent: "center",
+            maxWidth: isMobile ? "100%" : "none"
           }}>
             <Link 
               to="/" 
               style={{
-                padding: isMobile ? "12px 16px" : "14px 24px",
+                padding: isMobile ? "10px 8px" : "14px 24px",
                 textDecoration: "none",
                 background: "linear-gradient(135deg, #667eea 0%, #764ba2dd 100%)",
                 color: "#fff",
-                borderRadius: isMobile ? 8 : 12,
+                borderRadius: isMobile ? 6 : 12,
                 fontWeight: 700,
-                fontSize: isMobile ? 13 : 15,
+                fontSize: isMobile ? 12 : 15,
                 transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                 boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: isMobile ? 6 : 8,
-                textAlign: "center"
+                gap: isMobile ? 4 : 8,
+                textAlign: "center",
+                minHeight: isMobile ? "44px" : "auto",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap"
               }}
             >
-              <span style={{ fontSize: isMobile ? 16 : 18 }}>{isAdmin ? "⚙️" : "🏠"}</span>
+              <span style={{ fontSize: isMobile ? 14 : 18 }}>{isAdmin ? "⚙️" : "🏠"}</span>
               {isMobile ? (isAdmin ? "ניהול" : "בית") : (isAdmin ? "ניהול" : "דף הבית")}
             </Link>
             <Link 
               to="/bracket" 
               style={{
-                padding: isMobile ? "12px 16px" : "14px 24px",
+                padding: isMobile ? "10px 8px" : "14px 24px",
                 textDecoration: "none",
                 background: "rgba(255, 255, 255, 0.9)",
                 color: "#333",
-                borderRadius: isMobile ? 8 : 12,
+                borderRadius: isMobile ? 6 : 12,
                 fontWeight: 500,
-                fontSize: isMobile ? 13 : 15,
+                fontSize: isMobile ? 12 : 15,
                 transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                 boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: isMobile ? 6 : 8,
-                textAlign: "center"
+                gap: isMobile ? 4 : 8,
+                textAlign: "center",
+                minHeight: isMobile ? "44px" : "auto",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap"
               }}
             >
-              <span style={{ fontSize: isMobile ? 16 : 18 }}>📊</span>
+              <span style={{ fontSize: isMobile ? 14 : 18 }}>📊</span>
               {isMobile ? "תוצאות" : "צפה בתוצאות"}
             </Link>
             {isAdmin && (
               <Link 
                 to="/admin" 
                 style={{
-                  padding: isMobile ? "12px 16px" : "14px 24px",
+                  padding: isMobile ? "10px 8px" : "14px 24px",
                   textDecoration: "none",
                   background: "rgba(255, 255, 255, 0.9)",
                   color: "#333",
-                  borderRadius: isMobile ? 8 : 12,
+                  borderRadius: isMobile ? 6 : 12,
                   fontWeight: 500,
-                  fontSize: isMobile ? 13 : 15,
+                  fontSize: isMobile ? 12 : 15,
                   transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                   boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: isMobile ? 6 : 8,
-                  textAlign: "center"
+                  gap: isMobile ? 4 : 8,
+                  textAlign: "center",
+                  minHeight: isMobile ? "44px" : "auto",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap"
                 }}
               >
-                <span style={{ fontSize: isMobile ? 16 : 18 }}>👨‍💼</span>
+                <span style={{ fontSize: isMobile ? 14 : 18 }}>👨‍💼</span>
                 {isMobile ? "פאנל" : "פאנל ניהול"}
               </Link>
             )}
@@ -212,69 +225,81 @@ export default function App() {
               <Link 
                 to="/disputes" 
                 style={{
-                  padding: isMobile ? "12px 16px" : "14px 24px",
+                  padding: isMobile ? "10px 8px" : "14px 24px",
                   textDecoration: "none",
                   background: "rgba(255, 255, 255, 0.9)",
                   color: "#333",
-                  borderRadius: isMobile ? 8 : 12,
+                  borderRadius: isMobile ? 6 : 12,
                   fontWeight: 500,
-                  fontSize: isMobile ? 13 : 15,
+                  fontSize: isMobile ? 12 : 15,
                   transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                   boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: isMobile ? 6 : 8,
-                  textAlign: "center"
+                  gap: isMobile ? 4 : 8,
+                  textAlign: "center",
+                  minHeight: isMobile ? "44px" : "auto",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap"
                 }}
               >
-                <span style={{ fontSize: isMobile ? 16 : 18 }}>⚠️</span>
+                <span style={{ fontSize: isMobile ? 14 : 18 }}>⚠️</span>
                 מחלוקות
               </Link>
             )}
             <Link 
               to="/rules" 
               style={{
-                padding: isMobile ? "12px 16px" : "14px 24px",
+                padding: isMobile ? "10px 8px" : "14px 24px",
                 textDecoration: "none",
                 background: "rgba(255, 255, 255, 0.9)",
                 color: "#333",
-                borderRadius: isMobile ? 8 : 12,
+                borderRadius: isMobile ? 6 : 12,
                 fontWeight: 500,
-                fontSize: isMobile ? 13 : 15,
+                fontSize: isMobile ? 12 : 15,
                 transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                 boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: isMobile ? 6 : 8,
-                textAlign: "center"
+                gap: isMobile ? 4 : 8,
+                textAlign: "center",
+                minHeight: isMobile ? "44px" : "auto",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap"
               }}
             >
-              <span style={{ fontSize: isMobile ? 16 : 18 }}>📋</span>
+              <span style={{ fontSize: isMobile ? 14 : 18 }}>📋</span>
               תקנון
             </Link>
             {!isAdmin && (
               <Link 
                 to="/settings" 
                 style={{
-                  padding: isMobile ? "12px 16px" : "14px 24px",
+                  padding: isMobile ? "10px 8px" : "14px 24px",
                   textDecoration: "none",
                   background: "rgba(255, 255, 255, 0.9)",
                   color: "#333",
-                  borderRadius: isMobile ? 8 : 12,
+                  borderRadius: isMobile ? 6 : 12,
                   fontWeight: 500,
-                  fontSize: isMobile ? 13 : 15,
+                  fontSize: isMobile ? 12 : 15,
                   transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                   boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: isMobile ? 6 : 8,
-                  textAlign: "center"
+                  gap: isMobile ? 4 : 8,
+                  textAlign: "center",
+                  minHeight: isMobile ? "44px" : "auto",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap"
                 }}
               >
-                <span style={{ fontSize: isMobile ? 16 : 18 }}>⚙️</span>
+                <span style={{ fontSize: isMobile ? 14 : 18 }}>⚙️</span>
                 הגדרות
               </Link>
             )}
