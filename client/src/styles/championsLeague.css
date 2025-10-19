@@ -1,0 +1,352 @@
+/* Champions League Style Fonts and Effects */
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+
+/* Global Champions League Styles */
+.champions-league-container {
+  font-family: 'Rajdhani', 'Arial', sans-serif;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+  color: #ffffff;
+}
+
+.champions-league-title {
+  font-family: 'Orbitron', 'Arial Black', sans-serif;
+  font-weight: 900;
+  color: #FFD700;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 215, 0, 0.4);
+  letter-spacing: 2px;
+}
+
+.champions-league-subtitle {
+  font-family: 'Rajdhani', 'Arial', sans-serif;
+  font-weight: 700;
+  color: #FFD700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+  letter-spacing: 1px;
+}
+
+.champions-league-match-card {
+  font-family: 'Rajdhani', 'Arial', sans-serif;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 240, 240, 0.95) 100%);
+  border: 3px solid #FFD700;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 123, 255, 0.2);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.champions-league-match-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(0, 123, 255, 0.3);
+}
+
+.champions-league-player-name {
+  font-family: 'Rajdhani', 'Arial', sans-serif;
+  font-weight: 700;
+  color: #333;
+}
+
+.champions-league-score {
+  font-family: 'Orbitron', 'Arial Black', sans-serif;
+  font-weight: 900;
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+}
+
+.champions-league-round-badge {
+  font-family: 'Rajdhani', 'Arial', sans-serif;
+  font-weight: 800;
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  color: #000;
+  border: 2px solid #FFD700;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+}
+
+.champions-league-refresh-button {
+  font-family: 'Rajdhani', 'Arial', sans-serif;
+  font-weight: 800;
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  color: #000;
+  border: 2px solid #FFD700;
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+  transition: all 0.3s ease;
+}
+
+.champions-league-refresh-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(255, 215, 0, 0.6);
+}
+
+.champions-league-player-badge {
+  font-family: 'Orbitron', 'Arial Black', sans-serif;
+  font-weight: 700;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.champions-league-home-badge {
+  background: linear-gradient(135deg, #007BFF 0%, #0056b3 100%);
+}
+
+.champions-league-away-badge {
+  background: linear-gradient(135deg, #DC3545 0%, #a71e2a 100%);
+}
+
+.champions-league-vs-text {
+  font-family: 'Orbitron', 'Arial Black', sans-serif;
+  font-weight: 900;
+  color: #FFD700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.champions-league-status-completed {
+  color: #28a745;
+  font-weight: 600;
+}
+
+.champions-league-status-pending {
+  color: #6c757d;
+  font-weight: 600;
+}
+
+.champions-league-hashtag {
+  font-family: 'Rajdhani', 'Arial', sans-serif;
+  font-weight: 600;
+  color: #FFD700;
+}
+
+.champions-league-website {
+  font-family: 'Rajdhani', 'Arial', sans-serif;
+  font-weight: 600;
+  color: #FFFFFF;
+  opacity: 0.8;
+}
+
+/* Dragon background effect */
+.champions-league-dragon-bg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(0, 123, 255, 0.15) 0%, rgba(0, 123, 255, 0.05) 50%, transparent 70%);
+  border-radius: 50%;
+  z-index: 1;
+  animation: dragonPulse 4s ease-in-out infinite;
+}
+
+@keyframes dragonPulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+}
+
+/* Floating particles effect */
+.champions-league-particles {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.champions-league-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: rgba(255, 215, 0, 0.6);
+  border-radius: 50%;
+  animation: floatParticle 8s linear infinite;
+}
+
+@keyframes floatParticle {
+  0% {
+    transform: translateY(100vh) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100px) translateX(100px);
+    opacity: 0;
+  }
+}
+
+/* Match card entrance animation */
+.champions-league-match-card {
+  animation: matchCardEntrance 0.6s ease-out;
+}
+
+@keyframes matchCardEntrance {
+  0% {
+    opacity: 0;
+    transform: translateY(50px) scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Glow effect for completed matches */
+.champions-league-match-card.completed {
+  animation: completedGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes completedGlow {
+  0% {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 123, 255, 0.2);
+  }
+  100% {
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(40, 167, 69, 0.4);
+  }
+}
+
+/* Score animation */
+.champions-league-score {
+  animation: scoreGlow 3s ease-in-out infinite;
+}
+
+@keyframes scoreGlow {
+  0%, 100% {
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+  }
+  50% {
+    text-shadow: 0 0 25px rgba(255, 215, 0, 0.8), 0 0 35px rgba(255, 215, 0, 0.4);
+  }
+}
+
+/* Title animation */
+.champions-league-title {
+  animation: titleShimmer 4s ease-in-out infinite;
+}
+
+@keyframes titleShimmer {
+  0%, 100% {
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 215, 0, 0.4);
+  }
+  50% {
+    text-shadow: 0 0 30px rgba(255, 215, 0, 1), 0 0 60px rgba(255, 215, 0, 0.6), 0 0 80px rgba(255, 215, 0, 0.3);
+  }
+}
+
+/* Round badge animation */
+.champions-league-round-badge {
+  animation: badgeFloat 3s ease-in-out infinite;
+}
+
+@keyframes badgeFloat {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-5px);
+  }
+}
+
+/* Player logo hover effect */
+.champions-league-player-logo {
+  transition: all 0.3s ease;
+}
+
+.champions-league-player-logo:hover {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Background gradient animation */
+.champions-league-container {
+  animation: backgroundShift 10s ease-in-out infinite;
+}
+
+@keyframes backgroundShift {
+  0%, 100% {
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+  }
+  50% {
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a3e 50%, #16214e 100%);
+  }
+}
+
+/* Round container styles */
+.champions-league-round-container {
+  background: rgba(0, 123, 255, 0.1);
+  border: 2px solid rgba(0, 123, 255, 0.3);
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+}
+
+/* Trophy icon animation */
+.champions-league-trophy {
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
+  animation: trophyGlow 3s ease-in-out infinite;
+}
+
+@keyframes trophyGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.8));
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .champions-league-title {
+    font-size: 28px;
+    letter-spacing: 1px;
+  }
+  
+  .champions-league-subtitle {
+    font-size: 14px;
+  }
+  
+  .champions-league-match-card {
+    width: 280px;
+    height: 120px;
+  }
+  
+  .champions-league-player-name {
+    font-size: 14px;
+  }
+  
+  .champions-league-score {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .champions-league-title {
+    font-size: 24px;
+  }
+  
+  .champions-league-match-card {
+    width: 240px;
+    height: 100px;
+  }
+  
+  .champions-league-player-name {
+    font-size: 12px;
+  }
+  
+  .champions-league-score {
+    font-size: 18px;
+  }
+}

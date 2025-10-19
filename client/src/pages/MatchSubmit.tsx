@@ -36,20 +36,20 @@ export default function MatchSubmit() {
     }
 
     if (!file) {
-      setError("חובה להעלות וידאו של המחצית השנייה! ללא הוכחה תודח מהמשחק ללא החזר כספי!");
+      setError("חובה להעלות תמונה של תוצאת המשחק! ללא הוכחה תודח מהמשחק ללא החזר כספי!");
       return;
     }
     
-    // בדיקה שהקובץ הוא וידאו או תמונה
-    if (!file.type.startsWith("video/") && !file.type.startsWith("image/")) {
-      setError("יש להעלות קובץ וידאו (MP4, MOV, AVI) או תמונה בלבד");
+    // בדיקה שהקובץ הוא תמונה
+    if (!file.type.startsWith("image/")) {
+      setError("יש להעלות קובץ תמונה (JPG, PNG, WEBP) בלבד");
       return;
     }
     
-    // בדיקת גודל קובץ (מקסימום 500MB)
-    const maxSize = 500 * 1024 * 1024; // 500MB in bytes
+    // בדיקת גודל קובץ (מקסימום 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
     if (file.size > maxSize) {
-      setError("גודל הקובץ חורג מ-500MB. אנא הקטן את הקובץ ונסה שנית.");
+      setError("גודל הקובץ חורג מ-10MB. אנא הקטן את הקובץ ונסה שנית.");
       return;
     }
 
@@ -330,7 +330,7 @@ export default function MatchSubmit() {
                 gap: 8
               }}>
                 <span style={{ fontSize: 24 }}>⚠️</span>
-                חובה להעלות וידאו!
+                חובה להעלות תמונה!
               </div>
               <ul style={{
                 fontSize: 14,
@@ -339,8 +339,8 @@ export default function MatchSubmit() {
                 paddingRight: 20,
                 lineHeight: 1.6
               }}>
-                <li>יש להעלות וידאו של <strong>המחצית השנייה</strong> של המשחק</li>
-                <li>הוידאו חייב להיות <strong>רציף וללא עריכה</strong></li>
+                <li>יש להעלות תמונה של <strong>תוצאת המשחק</strong></li>
+                <li>התמונה חייבת להיות <strong>ברורה וקריאה</strong></li>
                 <li>חובה להראות את <strong>התוצאה הסופית</strong> בבירור</li>
                 <li style={{ color: "#c62828", fontWeight: 700 }}>
                   ללא הוכחה - הדחה מהטורניר ללא החזר כספי!
@@ -350,8 +350,8 @@ export default function MatchSubmit() {
             
             <Uploader
               onFileSelect={setFile}
-              label="וידאו של המחצית השנייה (חובה!) או צילום מסך"
-              accept="video/*,image/*"
+              label="תמונה של תוצאת המשחק (חובה!)"
+              accept="image/*"
               required
             />
 

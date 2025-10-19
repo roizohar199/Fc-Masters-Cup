@@ -64,6 +64,64 @@ matches.get("/:id/submissions", (req,res)=>{
   res.json(rows);
 });
 
+// Upload proof image for a match
+matches.post("/proof", upload.single("proof"), (req,res)=>{
+  try {
+    const { matchId, playerRole } = req.body;
+    
+    if (!matchId || !playerRole) {
+      return res.status(400).json({error: "Missing matchId or playerRole"});
+    }
+    
+    if (!req.file) {
+      return res.status(400).json({error: "No image file uploaded"});
+    }
+    
+    // בדיקה שהמשחק קיים
+    const match = db.prepare(`SELECT id, homeId, awayId FROM matches WHERE id=?`).get(matchId);
+    if (!match) {
+      return res.status(404).json({error: "Match not found"});
+    }
+    
+    // עדכון הנתיב של התמונה בהתאם לתפקיד השחקן
+    const filePath = req.file.path;
+    const evidenceField = playerRole === 'home' ? 'evidenceHome' : 'evidenceAway';
+    
+    db.prepare(`UPDATE matches SET ${evidenceField}=? WHERE id=?`)
+      .run(filePath, matchId);
+    
+    res.json({ 
+      success: true, 
+      message: "Proof image uploaded successfully",
+      filePath: filePath
+    });
+    
+  } catch (error) {
+    console.error("Error uploading proof:", error);
+    res.status(500).json({error: "Failed to upload proof image"});
+  }
+});
+
+// Get proof images for a match (admin only)
+matches.get("/:id/proofs", (req,res)=>{
+  try {
+    const match = db.prepare(`SELECT id, evidenceHome, evidenceAway FROM matches WHERE id=?`).get(req.params.id);
+    if (!match) {
+      return res.status(404).json({error: "Match not found"});
+    }
+    
+    res.json({
+      matchId: match.id,
+      evidenceHome: match.evidenceHome,
+      evidenceAway: match.evidenceAway
+    });
+    
+  } catch (error) {
+    console.error("Error getting proofs:", error);
+    res.status(500).json({error: "Failed to get proof images"});
+  }
+});
+
 // Admin override
 matches.post("/:id/override", (req,res)=>{
   const { homeScore, awayScore } = req.body || {};

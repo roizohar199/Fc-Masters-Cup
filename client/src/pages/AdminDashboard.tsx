@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api";
 import { useStore } from "../store";
+import AdvanceWinners from "../components/AdvanceWinners";
 import { startPresence, onPresenceUpdate } from "../presence";
 
 interface User {
@@ -2977,61 +2978,89 @@ export default function AdminDashboard() {
         <h3 style={{ fontSize: 22, fontWeight: 700, marginBottom: 16, color: "#333" }}>
           🏆 העלאת מנצחים לשלב הבא
         </h3>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
-          <button
-            onClick={() => advance("R16")}
-            disabled={!tournamentId || stagesActivated.QF}
-            style={{
-              padding: 16,
-              borderRadius: 12,
-              border: "none",
-              fontSize: 15,
-              fontWeight: 600,
-              background: tournamentId && !stagesActivated.QF ? "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)" : "#e0e0e0",
-              color: tournamentId && !stagesActivated.QF ? "#fff" : "#999",
-              cursor: tournamentId && !stagesActivated.QF ? "pointer" : "not-allowed",
-              boxShadow: tournamentId && !stagesActivated.QF ? "0 4px 15px rgba(67, 233, 123, 0.3)" : "none",
-              transition: "all 0.3s"
-            }}
-          >
-            {stagesActivated.QF ? "✓ R16 → QF הופעל" : "R16 → QF"}
-          </button>
-          <button
-            onClick={() => advance("QF")}
-            disabled={!tournamentId || stagesActivated.SF}
-            style={{
-              padding: 16,
-              borderRadius: 12,
-              border: "none",
-              fontSize: 15,
-              fontWeight: 600,
-              background: tournamentId && !stagesActivated.SF ? "linear-gradient(135deg, #fa709a 0%, #fee140 100%)" : "#e0e0e0",
-              color: tournamentId && !stagesActivated.SF ? "#fff" : "#999",
-              cursor: tournamentId && !stagesActivated.SF ? "pointer" : "not-allowed",
-              boxShadow: tournamentId && !stagesActivated.SF ? "0 4px 15px rgba(250, 112, 154, 0.3)" : "none",
-              transition: "all 0.3s"
-            }}
-          >
-            {stagesActivated.SF ? "✓ QF → SF הופעל" : "QF → SF"}
-          </button>
-          <button
-            onClick={() => advance("SF")}
-            disabled={!tournamentId || stagesActivated.F}
-            style={{
-              padding: 16,
-              borderRadius: 12,
-              border: "none",
-              fontSize: 15,
-              fontWeight: 600,
-              background: tournamentId && !stagesActivated.F ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : "#e0e0e0",
-              color: tournamentId && !stagesActivated.F ? "#fff" : "#999",
-              cursor: tournamentId && !stagesActivated.F ? "pointer" : "not-allowed",
-              boxShadow: tournamentId && !stagesActivated.F ? "0 4px 15px rgba(102, 126, 234, 0.3)" : "none",
-              transition: "all 0.3s"
-            }}
-          >
-            {stagesActivated.F ? "✓ SF → גמר הופעל" : "SF → גמר"}
-          </button>
+        
+        {/* R16 → QF */}
+        {!stagesActivated.QF && tournamentId && (
+          <div style={{ marginBottom: 24 }}>
+            <h4 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12, color: "#555" }}>
+              R16 → QF (שמינית גמר → רבע גמר)
+            </h4>
+            <AdvanceWinners
+              tournamentId={tournamentId}
+              round="R16"
+              onAdvanceComplete={() => setStagesActivated(prev => ({ ...prev, QF: true }))}
+              isDisabled={stagesActivated.QF}
+            />
+          </div>
+        )}
+        
+        {/* QF → SF */}
+        {stagesActivated.QF && !stagesActivated.SF && tournamentId && (
+          <div style={{ marginBottom: 24 }}>
+            <h4 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12, color: "#555" }}>
+              QF → SF (רבע גמר → חצי גמר)
+            </h4>
+            <AdvanceWinners
+              tournamentId={tournamentId}
+              round="QF"
+              onAdvanceComplete={() => setStagesActivated(prev => ({ ...prev, SF: true }))}
+              isDisabled={stagesActivated.SF}
+            />
+          </div>
+        )}
+        
+        {/* SF → F */}
+        {stagesActivated.SF && !stagesActivated.F && tournamentId && (
+          <div style={{ marginBottom: 24 }}>
+            <h4 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12, color: "#555" }}>
+              SF → F (חצי גמר → גמר)
+            </h4>
+            <AdvanceWinners
+              tournamentId={tournamentId}
+              round="SF"
+              onAdvanceComplete={() => setStagesActivated(prev => ({ ...prev, F: true }))}
+              isDisabled={stagesActivated.F}
+            />
+          </div>
+        )}
+        
+        {/* Status indicators */}
+        <div style={{ marginTop: 20, padding: 16, backgroundColor: "#f8f9fa", borderRadius: 12 }}>
+          <h5 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: "#333" }}>
+            סטטוס שלבים:
+          </h5>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <span style={{
+              padding: "6px 12px",
+              borderRadius: 20,
+              fontSize: 14,
+              backgroundColor: stagesActivated.QF ? "#d4edda" : "#f8d7da",
+              color: stagesActivated.QF ? "#155724" : "#721c24",
+              fontWeight: 500
+            }}>
+              {stagesActivated.QF ? "✓ QF הופעל" : "○ QF ממתין"}
+            </span>
+            <span style={{
+              padding: "6px 12px",
+              borderRadius: 20,
+              fontSize: 14,
+              backgroundColor: stagesActivated.SF ? "#d4edda" : "#f8d7da",
+              color: stagesActivated.SF ? "#155724" : "#721c24",
+              fontWeight: 500
+            }}>
+              {stagesActivated.SF ? "✓ SF הופעל" : "○ SF ממתין"}
+            </span>
+            <span style={{
+              padding: "6px 12px",
+              borderRadius: 20,
+              fontSize: 14,
+              backgroundColor: stagesActivated.F ? "#d4edda" : "#f8d7da",
+              color: stagesActivated.F ? "#155724" : "#721c24",
+              fontWeight: 500
+            }}>
+              {stagesActivated.F ? "✓ גמר הופעל" : "○ גמר ממתין"}
+            </span>
+          </div>
         </div>
       </div>
         </>

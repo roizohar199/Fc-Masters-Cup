@@ -4,6 +4,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import PlayerDashboard from "./pages/PlayerDashboard";
 import TawkTo from "./components/TawkTo";
 import { api } from "./api";
+import { Toaster } from "react-hot-toast";
 
 export default function App() {
   const [me, setMe] = useState<{ ok: boolean; email?: string; role?: string; secondPrizeCredit?: number }>({ ok: false });
@@ -379,6 +380,32 @@ export default function App() {
       
       {/* Tawk.to Chat Widget */}
       {!isAdmin && <TawkTo />}
+      
+      {/* Toast notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#4ade80',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 5000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
     </div>
   );
 }

@@ -110,6 +110,24 @@ CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets(token);
 CREATE INDEX IF NOT EXISTS idx_password_resets_email ON password_resets(email);
 CREATE INDEX IF NOT EXISTS idx_approval_requests_status ON approval_requests(status);
 CREATE INDEX IF NOT EXISTS idx_approval_requests_target ON approval_requests(targetUserId);
+
+-- Advance operations table for tracking advance operations with idempotency
+CREATE TABLE IF NOT EXISTS advance_operations (
+  id TEXT PRIMARY KEY,
+  tournamentId TEXT NOT NULL,
+  round TEXT NOT NULL,
+  winners TEXT NOT NULL, -- JSON array of winner IDs
+  seeds TEXT, -- JSON array of seed information
+  idempotencyKey TEXT NOT NULL,
+  createdAt TEXT NOT NULL,
+  revertedAt TEXT,
+  reverted BOOLEAN DEFAULT FALSE,
+  FOREIGN KEY (tournamentId) REFERENCES tournaments(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_advance_operations_tournament ON advance_operations(tournamentId);
+CREATE INDEX IF NOT EXISTS idx_advance_operations_round ON advance_operations(round);
+CREATE INDEX IF NOT EXISTS idx_advance_operations_key ON advance_operations(idempotencyKey);
 `);
 
 export default db;

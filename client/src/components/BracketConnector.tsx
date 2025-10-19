@@ -9,14 +9,14 @@ interface BracketConnectorProps {
 }
 
 export default function BracketConnector({ fromX, fromY, toX, toY, round }: BracketConnectorProps) {
-  // צבעי החיבור לפי שלב
+  // צבעי החיבור לפי שלב - עכשיו עם זהב
   const getConnectorColor = (round: string) => {
     switch (round) {
-      case 'R16': return '#667eea';
-      case 'QF': return '#f093fb';
-      case 'SF': return '#4facfe';
-      case 'F': return '#43e97b';
-      default: return '#667eea';
+      case 'R16': return '#FFD700';
+      case 'QF': return '#FFA500';
+      case 'SF': return '#FFD700';
+      case 'F': return '#FFD700';
+      default: return '#FFD700';
     }
   };
 
@@ -44,39 +44,77 @@ export default function BracketConnector({ fromX, fromY, toX, toY, round }: Brac
     >
       <defs>
         <linearGradient id={`gradient-${round}`} x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor={getConnectorColor(round)} stopOpacity="0.8" />
-          <stop offset="50%" stopColor={getConnectorColor(round)} stopOpacity="0.6" />
-          <stop offset="100%" stopColor={getConnectorColor(round)} stopOpacity="0.8" />
+          <stop offset="0%" stopColor={getConnectorColor(round)} stopOpacity="0.9" />
+          <stop offset="50%" stopColor={getConnectorColor(round)} stopOpacity="0.7" />
+          <stop offset="100%" stopColor={getConnectorColor(round)} stopOpacity="0.9" />
         </linearGradient>
+        <filter id={`glow-${round}`}>
+          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+          <feMerge> 
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
       </defs>
       
       {/* הקו הראשי */}
       <path
         d={pathData}
         stroke={`url(#gradient-${round})`}
-        strokeWidth="3"
+        strokeWidth="4"
         fill="none"
         strokeLinecap="round"
         strokeLinejoin="round"
+        filter={`url(#glow-${round})`}
+        style={{
+          animation: `connectorFlow 2s ease-in-out infinite`
+        }}
       />
       
       {/* חץ בקצה */}
       <polygon
-        points={`${toX-8},${toY-4} ${toX},${toY} ${toX-8},${toY+4}`}
+        points={`${toX-10},${toY-5} ${toX},${toY} ${toX-10},${toY+5}`}
         fill={getConnectorColor(round)}
-        stroke={getConnectorColor(round)}
-        strokeWidth="1"
+        stroke="#fff"
+        strokeWidth="2"
+        filter={`url(#glow-${round})`}
       />
       
       {/* נקודה במרכז */}
       <circle
         cx={midX}
         cy={(fromY + toY) / 2}
-        r="4"
+        r="6"
         fill={getConnectorColor(round)}
         stroke="#fff"
-        strokeWidth="2"
+        strokeWidth="3"
+        filter={`url(#glow-${round})`}
+        style={{
+          animation: `connectorPulse 3s ease-in-out infinite`
+        }}
       />
+      
+      <style jsx>{`
+        @keyframes connectorFlow {
+          0%, 100% {
+            stroke-dasharray: 0, 100;
+          }
+          50% {
+            stroke-dasharray: 20, 80;
+          }
+        }
+        
+        @keyframes connectorPulse {
+          0%, 100% {
+            r: 6;
+            opacity: 0.8;
+          }
+          50% {
+            r: 8;
+            opacity: 1;
+          }
+        }
+      `}</style>
     </svg>
   );
 }

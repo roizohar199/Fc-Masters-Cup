@@ -97,6 +97,176 @@ tournaments.post("/:id/advance/:round", (req,res)=>{
   res.json({ nextMatchIds: ids, disabledPlayers: Array.from(loserIds) });
 });
 
+// Preview advance winners (dry-run)
+tournaments.post("/:id/advance/preview", (req, res) => {
+  const tournamentId = req.params.id;
+  const { round, winners, seeds } = req.body;
+  
+  if (!round || !winners || !Array.isArray(winners)) {
+    return res.status(400).json({ error: "Missing required fields: round, winners" });
+  }
+  
+  if (winners.length % 2 !== 0) {
+    return res.status(400).json({ error: "Number of winners must be even" });
+  }
+  
+  try {
+    // Generate preview matches without saving to database
+    const nextRound = getNextRound(round);
+    if (!nextRound) {
+      return res.status(400).json({ error: "Invalid round or no next round available" });
+    }
+    
+    // Create preview matches based on seeds
+    const previewMatches = [];
+    for (let i = 0; i < winners.length; i += 2) {
+      const homePlayer = winners[i];
+      const awayPlayer = winners[i + 1];
+      
+      previewMatches.push({
+        id: `preview-${i/2 + 1}`,
+        homeId: homePlayer,
+        awayId: awayPlayer,
+        round: nextRound,
+        homeSeed: seeds ? seeds.find((s: any) => s.id === homePlayer)?.seed : i + 1,
+        awaySeed: seeds ? seeds.find((s: any) => s.id === awayPlayer)?.seed : i + 2
+      });
+    }
+    
+    res.json({ 
+      success: true,
+      nextRound,
+      matches: previewMatches,
+      winnerCount: winners.length
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Confirm advance winners with idempotency
+tournaments.post("/:id/advance/confirm", (req, res) => {
+  const tournamentId = req.params.id;
+  const { round, winners, seeds, idempotencyKey } = req.body;
+  
+  if (!round || !winners || !Array.isArray(winners) || !idempotencyKey) {
+    return res.status(400).json({ error: "Missing required fields: round, winners, idempotencyKey" });
+  }
+  
+  if (winners.length % 2 !== 0) {
+    return res.status(400).json({ error: "Number of winners must be even" });
+  }
+  
+  // Check if this operation was already performed (idempotency)
+  const existingOperation = db.prepare(`
+    SELECT id FROM advance_operations 
+    WHERE tournamentId=? AND round=? AND idempotencyKey=?
+  `).get(tournamentId, round, idempotencyKey);
+  
+  if (existingOperation) {
+    return res.json({ 
+      success: true, 
+      message: "Operation already performed",
+      idempotencyKey 
+    });
+  }
+  
+  try {
+    // Start transaction
+    db.exec("BEGIN TRANSACTION");
+    
+    // Record the operation
+    const operationId = uuid();
+    db.prepare(`
+      INSERT INTO advance_operations (id, tournamentId, round, winners, seeds, idempotencyKey, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      operationId, 
+      tournamentId, 
+      round, 
+      JSON.stringify(winners),
+      JSON.stringify(seeds || []),
+      idempotencyKey,
+      nowISO()
+    );
+    
+    // Generate actual matches
+    const matchIds = generateNextRoundMatches(tournamentId, round, winners, seeds);
+    
+    db.exec("COMMIT");
+    
+    res.json({ 
+      success: true,
+      matchIds,
+      operationId,
+      idempotencyKey
+    });
+  } catch (error: any) {
+    db.exec("ROLLBACK");
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Revert advance operation
+tournaments.post("/:id/advance/revert", (req, res) => {
+  const tournamentId = req.params.id;
+  const { idempotencyKey } = req.body;
+  
+  if (!idempotencyKey) {
+    return res.status(400).json({ error: "Missing idempotencyKey" });
+  }
+  
+  try {
+    // Find the operation
+    const operation = db.prepare(`
+      SELECT * FROM advance_operations 
+      WHERE tournamentId=? AND idempotencyKey=?
+    `).get(tournamentId, idempotencyKey);
+    
+    if (!operation) {
+      return res.status(404).json({ error: "Operation not found" });
+    }
+    
+    // Check if it's within 30 seconds
+    const operationTime = new Date(operation.createdAt).getTime();
+    const now = Date.now();
+    const timeDiff = now - operationTime;
+    
+    if (timeDiff > 30000) { // 30 seconds
+      return res.status(400).json({ error: "Revert window expired (30 seconds)" });
+    }
+    
+    // Start transaction
+    db.exec("BEGIN TRANSACTION");
+    
+    // Delete generated matches for the next round
+    const nextRound = getNextRound(operation.round);
+    if (nextRound) {
+      db.prepare(`
+        DELETE FROM matches 
+        WHERE tournamentId=? AND round=? AND createdAt > ?
+      `).run(tournamentId, nextRound, operation.createdAt);
+    }
+    
+    // Mark operation as reverted
+    db.prepare(`
+      UPDATE advance_operations 
+      SET revertedAt=?, reverted=true 
+      WHERE id=?
+    `).run(nowISO(), operation.id);
+    
+    db.exec("COMMIT");
+    
+    res.json({ 
+      success: true,
+      message: "Operation reverted successfully"
+    });
+  } catch (error: any) {
+    db.exec("ROLLBACK");
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Bracket
 tournaments.get("/:id/bracket", (req,res)=>{
   const rows = db.prepare(`SELECT * FROM matches WHERE tournamentId=? ORDER BY createdAt ASC`).all(req.params.id);
@@ -180,4 +350,37 @@ tournaments.delete("/:id", (req, res) => {
     res.status(500).json({ error: "שגיאה במחיקת הטורניר" });
   }
 });
+
+// Helper functions
+function getNextRound(round: string): string | null {
+  const order = ["R16", "QF", "SF", "F"];
+  const index = order.indexOf(round);
+  return index < order.length - 1 ? order[index + 1] : null;
+}
+
+function generateNextRoundMatches(tournamentId: string, currentRound: string, winners: string[], seeds: any[]) {
+  const nextRound = getNextRound(currentRound);
+  if (!nextRound) throw new Error("No next round available");
+  
+  const matchIds: string[] = [];
+  const insert = db.prepare(`
+    INSERT INTO matches (id, tournamentId, round, homeId, awayId, homeScore, awayScore, status, token, pin, evidenceHome, evidenceAway, createdAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  
+  for (let i = 0; i < winners.length; i += 2) {
+    const homeId = winners[i];
+    const awayId = winners[i + 1];
+    const matchId = uuid();
+    
+    insert.run(
+      matchId, tournamentId, nextRound, homeId, awayId, 
+      null, null, "PENDING", genToken(), genPin(), null, null, nowISO()
+    );
+    
+    matchIds.push(matchId);
+  }
+  
+  return matchIds;
+}
 

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { api } from "../api";
 import { Link } from "react-router-dom";
 import { useStore } from "../store";
+import PlayerDashboardChampions from "../components/PlayerDashboardChampions";
+import "../styles/championsLeague.css";
 
 interface PlayerInfo {
   email: string;
@@ -204,7 +206,23 @@ export default function PlayerDashboard() {
   }
 
   return (
-    <div style={{ display: "grid", gap: isMobile ? 16 : 24, direction: "rtl", padding: isMobile ? "0 12px" : 0 }}>
+    <div>
+      {/* רכיב חדש בסגנון ליגת האלופות */}
+      <PlayerDashboardChampions
+        playerInfo={playerInfo}
+        tournament={tournament}
+        myMatches={myMatches}
+        allMatches={allMatches}
+        isMobile={isMobile}
+        getMyOpponents={getMyOpponents}
+        getParallelMatches={getParallelMatches}
+        getMatchResult={getMatchResult}
+        getRoundName={getRoundName}
+      />
+      
+      {/* הגרסה הישנה (מוסתרת) */}
+      <div style={{ display: "none" }}>
+        <div style={{ display: "grid", gap: isMobile ? 16 : 24, direction: "rtl", padding: isMobile ? "0 12px" : 0 }}>
       {/* כרטיס ברכה */}
       <div style={{
         background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
@@ -764,6 +782,8 @@ export default function PlayerDashboard() {
         >
           {isMobile ? "תוצאות 📊" : "צפה בתוצאות 📊"}
         </Link>
+      </div>
+    </div>
       </div>
     </div>
   );

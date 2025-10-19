@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
+import ProofViewer from "../components/ProofViewer";
 
 interface Dispute {
   id: string;
@@ -434,6 +435,13 @@ export default function DisputesView() {
                           </div>
                         ))}
                       </div>
+
+                      {/* תמונות proof */}
+                      <ProofViewer
+                        matchId={selectedMatch}
+                        homePlayer={disputes.find(d => d.id === selectedMatch)?.homePsn || "שחקן בית"}
+                        awayPlayer={disputes.find(d => d.id === selectedMatch)?.awayPsn || "שחקן אורח"}
+                      />
 
                       <div style={{
                         padding: 20,

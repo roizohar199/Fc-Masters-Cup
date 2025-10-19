@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
 import { useStore } from "../store";
-import Bracket from "../components/Bracket";
+import ChampionsLeagueBracket from "../components/ChampionsLeagueBracket";
 
 export default function BracketView() {
   const { tournamentId } = useStore();
@@ -237,7 +237,7 @@ export default function BracketView() {
           )}
 
           {tournamentId && matches.length > 0 && (
-            <Bracket matches={matches} players={players} onRefresh={loadBracket} />
+            <ChampionsLeagueBracket matches={matches} players={players} onRefresh={loadBracket} />
           )}
         </div>
       </div>
