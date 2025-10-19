@@ -64,6 +64,32 @@ cd "$PROJECT_DIR/server"
 npm install --production
 print_success "Server dependencies installed"
 
+# Update Nginx configuration for WebSocket support
+print_status "Updating Nginx configuration..."
+if [ -f "$PROJECT_DIR/deploy-config-nginx.txt" ]; then
+    # Backup current Nginx config
+    if [ -f "/etc/nginx/sites-available/fcmasters" ]; then
+        sudo cp /etc/nginx/sites-available/fcmasters "/etc/nginx/sites-available/fcmasters.backup-$(date +%Y%m%d-%H%M%S)"
+        print_success "Nginx config backed up"
+    fi
+    
+    # Copy new config
+    sudo cp "$PROJECT_DIR/deploy-config-nginx.txt" /etc/nginx/sites-available/fcmasters
+    
+    # Test Nginx config
+    if sudo nginx -t 2>&1 | grep -q "successful"; then
+        print_success "Nginx configuration updated and validated"
+        sudo systemctl reload nginx
+        print_success "Nginx reloaded"
+    else
+        print_error "Nginx configuration test failed, reverting..."
+        sudo cp "/etc/nginx/sites-available/fcmasters.backup-$(date +%Y%m%d-%H%M%S)" /etc/nginx/sites-available/fcmasters
+        exit 1
+    fi
+else
+    print_status "No Nginx config file found, skipping Nginx update"
+fi
+
 # Restart PM2
 print_status "Restarting application..."
 pm2 restart fc-masters || pm2 start dist/index.js --name fc-masters

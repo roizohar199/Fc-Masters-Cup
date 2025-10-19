@@ -68,6 +68,12 @@ jobs:
           if [ -f server/package-lock.json ]; then
             cp server/package-lock.json deploy_temp/server_package-lock.json
           fi
+          
+          # Copy Nginx configuration
+          if [ -f deploy-config-nginx.txt ]; then
+            cp deploy-config-nginx.txt deploy_temp/nginx-config.txt
+            echo "✅ Nginx config included"
+          fi
 
           echo "✅ Deployment package ready"
 
@@ -106,6 +112,18 @@ jobs:
           target: "/var/www/fcmasters/server/"
           strip_components: 1
           rm: false
+      
+      - name: 🔌 Deploy Nginx Configuration
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          source: "deploy_temp/nginx-config.txt"
+          target: "/var/www/fcmasters/"
+          strip_components: 1
+          rm: false
 
       - name: 🔄 Install dependencies and restart server
         uses: appleboy/ssh-action@v1.0.3
@@ -128,8 +146,29 @@ jobs:
             else
               npm install --production
             fi
+            
+            # Update Nginx configuration if present
+            cd /var/www/fcmasters
+            if [ -f nginx-config.txt ]; then
+              echo "🔌 Updating Nginx configuration for WebSocket..."
+              # Backup current config
+              if [ -f /etc/nginx/sites-available/fcmasters ]; then
+                sudo cp /etc/nginx/sites-available/fcmasters "/etc/nginx/sites-available/fcmasters.backup-$(date +%Y%m%d-%H%M%S)" || true
+              fi
+              # Update config
+              sudo cp nginx-config.txt /etc/nginx/sites-available/fcmasters || true
+              # Test and reload
+              if sudo nginx -t 2>&1 | grep -q "successful"; then
+                echo "✅ Nginx config validated"
+                sudo systemctl reload nginx || true
+                echo "✅ Nginx reloaded with WebSocket support"
+              else
+                echo "⚠️ Nginx config test failed, keeping old config"
+              fi
+            fi
 
             echo "🔄 Restarting application..."
+            cd /var/www/fcmasters/server
             pm2 restart fc-masters || pm2 start dist/index.js --name fc-masters
             pm2 save
             pm2 status

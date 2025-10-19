@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔌 בדיקת WebSocket - FC Masters Cup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-connect {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-connect:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-connect:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-disconnect {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-disconnect:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-disconnect:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status-box {
+            background: #f3f4f6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            color: #555;
+            font-weight: bold;
+        }
+
+        .status-value {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .status-disconnected {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .status-connecting {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .status-connected {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .log-box {
+            background: #1f2937;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            color: #e5e7eb;
+            line-height: 1.5;
+        }
+
+        .log-time {
+            color: #9ca3af;
+            margin-left: 8px;
+        }
+
+        .log-info {
+            color: #60a5fa;
+        }
+
+        .log-success {
+            color: #34d399;
+        }
+
+        .log-error {
+            color: #f87171;
+        }
+
+        .log-warning {
+            color: #fbbf24;
+        }
+
+        h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #e5e7eb;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 בדיקת WebSocket</h1>
+        <p class="subtitle">FC Masters Cup - Presence System</p>
+
+        <div class="input-group">
+            <label for="wsUrl">כתובת WebSocket:</label>
+            <input type="text" id="wsUrl" placeholder="wss://fcmasters.yourdomain.com/presence" />
+        </div>
+
+        <div class="buttons">
+            <button class="btn-connect" id="connectBtn">התחבר</button>
+            <button class="btn-disconnect" id="disconnectBtn" disabled>התנתק</button>
+        </div>
+
+        <div class="status-box">
+            <div class="status-item">
+                <span class="status-label">סטטוס:</span>
+                <span class="status-value status-disconnected" id="statusText">מנותק</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">URL:</span>
+                <span id="currentUrl">-</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">זמן חיבור:</span>
+                <span id="connectedTime">-</span>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="msgReceived">0</div>
+                <div class="stat-label">הודעות התקבלו</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="msgSent">0</div>
+                <div class="stat-label">הודעות נשלחו</div>
+            </div>
+        </div>
+
+        <h3 style="margin-top: 30px;">📋 לוג אירועים:</h3>
+        <div class="log-box" id="logBox">
+            <div class="log-entry log-info">
+                💡 הזן כתובת WebSocket ולחץ "התחבר"
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let connectTime = null;
+        let msgReceivedCount = 0;
+        let msgSentCount = 0;
+        let heartbeatInterval = null;
+
+        const wsUrlInput = document.getElementById('wsUrl');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const statusText = document.getElementById('statusText');
+        const currentUrl = document.getElementById('currentUrl');
+        const connectedTime = document.getElementById('connectedTime');
+        const logBox = document.getElementById('logBox');
+        const msgReceivedEl = document.getElementById('msgReceived');
+        const msgSentEl = document.getElementById('msgSent');
+
+        // זיהוי אוטומטי של URL
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.hostname;
+        const suggestedUrl = `${protocol}//${host}/presence`;
+        wsUrlInput.value = suggestedUrl;
+
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            const time = new Date().toLocaleTimeString('he-IL');
+            entry.innerHTML = `${message} <span class="log-time">${time}</span>`;
+            logBox.appendChild(entry);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        function updateStatus(status, cssClass) {
+            statusText.textContent = status;
+            statusText.className = `status-value ${cssClass}`;
+        }
+
+        function connect() {
+            const url = wsUrlInput.value.trim();
+            if (!url) {
+                log('❌ אנא הזן כתובת WebSocket', 'error');
+                return;
+            }
+
+            if (ws) {
+                log('⚠️ כבר מחובר', 'warning');
+                return;
+            }
+
+            log(`🔌 מנסה להתחבר ל-${url}...`, 'info');
+            updateStatus('מתחבר...', 'status-connecting');
+            currentUrl.textContent = url;
+
+            try {
+                ws = new WebSocket(url);
+
+                ws.onopen = () => {
+                    connectTime = Date.now();
+                    updateStatus('מחובר ✅', 'status-connected');
+                    log('✅ התחברות הצליחה!', 'success');
+                    connectBtn.disabled = true;
+                    disconnectBtn.disabled = false;
+                    wsUrlInput.disabled = true;
+
+                    // התחל שליחת heartbeats
+                    startHeartbeat();
+                };
+
+                ws.onmessage = (event) => {
+                    msgReceivedCount++;
+                    msgReceivedEl.textContent = msgReceivedCount;
+
+                    try {
+                        const data = JSON.parse(event.data);
+                        log(`📨 התקבל: ${data.type || 'unknown'}`, 'success');
+                        
+                        if (data.type === 'presence:hello') {
+                            log(`👋 Hello! משתמשים אונליין: ${data.users?.length || 0}`, 'info');
+                        } else if (data.type === 'presence:update') {
+                            log(`👥 עדכון נוכחות: ${data.users?.length || 0} משתמשים`, 'info');
+                        }
+                    } catch (e) {
+                        log(`📨 התקבל: ${event.data}`, 'success');
+                    }
+                };
+
+                ws.onerror = (error) => {
+                    log(`❌ שגיאה: ${error.message || 'Connection error'}`, 'error');
+                };
+
+                ws.onclose = (event) => {
+                    log(`🔌 החיבור נסגר: Code ${event.code} - ${event.reason || 'Unknown reason'}`, 'warning');
+                    updateStatus('מנותק', 'status-disconnected');
+                    connectBtn.disabled = false;
+                    disconnectBtn.disabled = true;
+                    wsUrlInput.disabled = false;
+                    currentUrl.textContent = '-';
+                    connectedTime.textContent = '-';
+                    ws = null;
+                    stopHeartbeat();
+                };
+
+            } catch (error) {
+                log(`❌ שגיאה ביצירת החיבור: ${error.message}`, 'error');
+                updateStatus('מנותק', 'status-disconnected');
+                ws = null;
+            }
+        }
+
+        function disconnect() {
+            if (ws) {
+                log('🔌 מתנתק...', 'info');
+                ws.close(1000, 'User disconnect');
+            }
+        }
+
+        function startHeartbeat() {
+            heartbeatInterval = setInterval(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    const heartbeat = JSON.stringify({ type: 'heartbeat', activity: true });
+                    ws.send(heartbeat);
+                    msgSentCount++;
+                    msgSentEl.textContent = msgSentCount;
+                    log('❤️ Heartbeat נשלח', 'info');
+                }
+            }, 20000); // כל 20 שניות
+        }
+
+        function stopHeartbeat() {
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+                heartbeatInterval = null;
+            }
+        }
+
+        // עדכון זמן חיבור
+        setInterval(() => {
+            if (connectTime) {
+                const duration = Math.floor((Date.now() - connectTime) / 1000);
+                const minutes = Math.floor(duration / 60);
+                const seconds = duration % 60;
+                connectedTime.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }, 1000);
+
+        connectBtn.addEventListener('click', connect);
+        disconnectBtn.addEventListener('click', disconnect);
+
+        // התחבר עם Enter
+        wsUrlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !connectBtn.disabled) {
+                connect();
+            }
+        });
+
+        log('🎯 מוכן לבדיקה!', 'success');
+    </script>
+</body>
+</html>
+
