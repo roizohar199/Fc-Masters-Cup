@@ -3,139 +3,147 @@ name: Deploy to Hostinger VPS
 on:
   push:
     branches: [ main, master ]
-  workflow_dispatch:  # אפשרות להפעלה ידנית מ-GitHub UI
+  workflow_dispatch:
 
 jobs:
   deploy:
     name: Build and Deploy
     runs-on: ubuntu-latest
-    
-    steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-    
-    - name: 🟢 Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
-    
-    - name: 📦 Install root dependencies
-      run: |
-        if [ -f package.json ]; then
-          npm ci || npm install
-        else
-          echo "No root package.json found, skipping..."
-        fi
-    
-    - name: 📦 Install server dependencies
-      run: |
-        cd server
-        npm ci || npm install
-    
-    - name: 📦 Install client dependencies
-      run: |
-        cd client
-        npm ci || npm install
-    
-    - name: 🔨 Build server
-      run: |
-        cd server
-        npm run build
-    
-    - name: 🔨 Build client
-      run: |
-        cd client
-        npm run build
-    
-    - name: 📋 Prepare deployment files
-      run: |
-        echo "Creating deployment package..."
-        mkdir -p deploy_temp
-        
-        # Copy built files
-        cp -r server/dist deploy_temp/server_dist
-        cp -r client/dist deploy_temp/client_dist
-        
-        # Copy package files for production install
-        cp server/package.json deploy_temp/server_package.json
-        cp server/package-lock.json deploy_temp/server_package-lock.json
-        
-        echo "✅ Deployment package ready"
-    
-    - name: 🚀 Deploy to VPS - Server dist
-      uses: appleboy/scp-action@v0.1.7
-      with:
-        host: ${{ secrets.VPS_HOST }}
-        username: ${{ secrets.VPS_USER }}
-        key: ${{ secrets.VPS_SSH_KEY }}
-        port: ${{ secrets.VPS_PORT || 22 }}
-        source: "deploy_temp/server_dist/*"
-        target: "/var/www/fcmasters/server/"
-        strip_components: 2
-        rm: false
-    
-    - name: 🚀 Deploy to VPS - Client dist
-      uses: appleboy/scp-action@v0.1.7
-      with:
-        host: ${{ secrets.VPS_HOST }}
-        username: ${{ secrets.VPS_USER }}
-        key: ${{ secrets.VPS_SSH_KEY }}
-        port: ${{ secrets.VPS_PORT || 22 }}
-        source: "deploy_temp/client_dist/*"
-        target: "/var/www/fcmasters/client/"
-        strip_components: 2
-        rm: false
-    
-    - name: 🚀 Deploy to VPS - Package files
-      uses: appleboy/scp-action@v0.1.7
-      with:
-        host: ${{ secrets.VPS_HOST }}
-        username: ${{ secrets.VPS_USER }}
-        key: ${{ secrets.VPS_SSH_KEY }}
-        port: ${{ secrets.VPS_PORT || 22 }}
-        source: "deploy_temp/server_package.json,deploy_temp/server_package-lock.json"
-        target: "/var/www/fcmasters/server/"
-        strip_components: 1
-        rm: false
-    
-    - name: 🔄 Install dependencies and restart server
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.VPS_HOST }}
-        username: ${{ secrets.VPS_USER }}
-        key: ${{ secrets.VPS_SSH_KEY }}
-        port: ${{ secrets.VPS_PORT || 22 }}
-        script: |
-          cd /var/www/fcmasters/server
-          
-          # Rename package files
-          mv server_package.json package.json 2>/dev/null || true
-          mv server_package-lock.json package-lock.json 2>/dev/null || true
-          
-          # Install production dependencies
-          echo "📦 Installing production dependencies..."
-          npm install --production
-          
-          # Restart PM2
-          echo "🔄 Restarting application..."
-          pm2 restart fc-masters || pm2 start dist/index.js --name fc-masters
-          pm2 save
-          
-          echo "✅ Deployment completed successfully!"
-          pm2 status
-    
-    - name: 🎉 Deployment Summary
-      if: success()
-      run: |
-        echo "✅ Deployment completed successfully!"
-        echo "🌐 Your site should be live at your configured domain"
-        echo "📊 Check PM2 status on your VPS with: pm2 status"
-    
-    - name: ❌ Deployment Failed
-      if: failure()
-      run: |
-        echo "❌ Deployment failed!"
-        echo "Please check the logs above for errors"
-        echo "You can also SSH to your VPS and check: pm2 logs fc-masters"
 
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # DEBUG: נראה מה ירד בפועל
+      - name: 🧪 Debug – list files
+        run: |
+          pwd
+          ls -la
+          echo "---- server ----"
+          ls -la server || true
+          echo "---- client ----"
+          ls -la client || true
+
+      # במידה ואין package.json בשורש — נדלג (כדי לא להפיל את ה-job)
+      - name: 📦 Install root dependencies (optional)
+        run: |
+          if [ -f package.json ]; then
+            npm ci || npm install
+          else
+            echo "No root package.json found, skipping..."
+          fi
+
+      # SERVER: התקנות ובילד ללא cd — רק --prefix
+      - name: 📦 Install server dependencies
+        run: npm ci --prefix server || npm install --prefix server
+
+      - name: 🔨 Build server
+        run: npm run build --prefix server
+
+      # CLIENT: התקנות ובילד ללא cd — רק --prefix
+      - name: 📦 Install client dependencies
+        run: npm ci --prefix client || npm install --prefix client
+
+      - name: 🔨 Build client
+        run: npm run build --prefix client
+
+      - name: 📋 Prepare deployment files
+        run: |
+          echo "Creating deployment package..."
+          rm -rf deploy_temp
+          mkdir -p deploy_temp
+
+          # Copy built files
+          cp -r server/dist deploy_temp/server_dist
+          cp -r client/dist deploy_temp/client_dist
+
+          # Copy package files for production install on VPS
+          cp server/package.json deploy_temp/server_package.json
+          if [ -f server/package-lock.json ]; then
+            cp server/package-lock.json deploy_temp/server_package-lock.json
+          fi
+
+          echo "✅ Deployment package ready"
+
+      - name: 🚀 Deploy to VPS - Server dist
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          source: "deploy_temp/server_dist/*"
+          target: "/var/www/fcmasters/server/"
+          strip_components: 2
+          rm: false
+
+      - name: 🚀 Deploy to VPS - Client dist
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          source: "deploy_temp/client_dist/*"
+          target: "/var/www/fcmasters/client/"
+          strip_components: 2
+          rm: false
+
+      - name: 🚀 Deploy to VPS - Package files
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          source: "deploy_temp/server_package.json,deploy_temp/server_package-lock.json"
+          target: "/var/www/fcmasters/server/"
+          strip_components: 1
+          rm: false
+
+      - name: 🔄 Install dependencies and restart server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            set -e
+            cd /var/www/fcmasters/server
+
+            # Rename package files if needed
+            [ -f server_package.json ] && mv server_package.json package.json || true
+            [ -f server_package-lock.json ] && mv server_package-lock.json package-lock.json || true
+
+            echo "📦 Installing production dependencies..."
+            if [ -f package-lock.json ]; then
+              npm ci --omit=dev
+            else
+              npm install --production
+            fi
+
+            echo "🔄 Restarting application..."
+            pm2 restart fc-masters || pm2 start dist/index.js --name fc-masters
+            pm2 save
+            pm2 status
+
+      - name: 🎉 Deployment Summary
+        if: success()
+        run: |
+          echo "✅ Deployment completed successfully!"
+          echo "🌐 Your site should be live at your configured domain"
+          echo "📊 Check PM2 status on your VPS with: pm2 status"
+
+      - name: ❌ Deployment Failed
+        if: failure()
+        run: |
+          echo "❌ Deployment failed!"
+          echo "Please check the logs above for errors"
+          echo "You can also SSH to your VPS and check: pm2 logs fc-masters"
