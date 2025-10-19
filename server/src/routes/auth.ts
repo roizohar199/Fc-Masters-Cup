@@ -10,21 +10,9 @@ export const auth = Router();
 
 const isProduction = process.env.NODE_ENV === 'production';
 
-const limiter = rateLimit({ 
-  windowMs: 60_000, 
-  max: 10,
-  skip: (req) => !isProduction // Skip in development
-});
-
-// Rate limiting מיוחד למיילים - מאוזן בין אבטחה לנוחות
-const emailLimiter = rateLimit({ 
-  windowMs: 10 * 60 * 1000, // 10 דקות
-  max: isProduction ? 5 : 1000, // Production: 5, Development: 1000
-  message: { error: 'יותר מדי בקשות איפוס סיסמה. נסה שוב בעוד 10 דקות.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => !isProduction // Skip in development
-});
+// Rate limiting disabled - no limits
+const limiter = (req: any, res: any, next: any) => next();
+const emailLimiter = (req: any, res: any, next: any) => next();
 
 auth.post("/login", limiter, async (req, res) => {
   try {

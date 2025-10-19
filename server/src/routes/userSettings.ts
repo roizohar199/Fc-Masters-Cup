@@ -7,7 +7,8 @@ import { z } from "zod";
 
 export const userSettings = Router();
 
-const limiter = rateLimit({ windowMs: 60_000, max: 5 });
+// Rate limiting disabled - no limits
+const limiter = (req: any, res: any, next: any) => next();
 
 const ChangePasswordDTO = z.object({
   currentPassword: z.string().min(1),
