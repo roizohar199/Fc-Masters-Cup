@@ -113,7 +113,7 @@ export default function Login() {
   }
 
   const getTitle = () => {
-    if (mode === "login") return "התחברות";
+    if (mode === "login") return "התחברות 🚀";
     if (mode === "register") return "הרשמה";
     return "שחזור סיסמה";
   };
