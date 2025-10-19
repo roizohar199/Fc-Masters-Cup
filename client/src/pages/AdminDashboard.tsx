@@ -62,6 +62,9 @@ export default function AdminDashboard() {
   // שחקנים אמיתיים (משתמשים עם role = 'player')
   const [availablePlayers, setAvailablePlayers] = useState<Array<{id: string, psn: string, displayName: string, email: string}>>([]);
   
+  // חיפוש שחקנים
+  const [playerSearchQuery, setPlayerSearchQuery] = useState("");
+  
   // טורנירים קיימים
   const [existingTournaments, setExistingTournaments] = useState<Array<{id: string, title: string, createdAt: string, telegramLink?: string}>>([]);
   
@@ -234,12 +237,11 @@ export default function AdminDashboard() {
       const usersData = await api("/api/admin/users");
       setUsers(usersData || []);
       
-      // יצירת רשימת שחקנים זמינים (רק משתמשים עם role = 'player' שאושרו)
+      // יצירת רשימת שחקנים זמינים (כל המשתמשים עם role = 'player', למעט חסומים)
       const players = (usersData || [])
         .filter((user: User) => 
           user.role === 'player' && 
-          user.status !== 'blocked' && 
-          user.approvalStatus === 'approved'
+          user.status !== 'blocked'
         )
         .map((user: User) => ({
           id: user.id,
@@ -977,6 +979,20 @@ export default function AdminDashboard() {
 
   function clearSelection() {
     setSelectedPlayers([]);
+  }
+
+  // סינון שחקנים לפי חיפוש
+  function getFilteredPlayers() {
+    if (!playerSearchQuery.trim()) {
+      return availablePlayers;
+    }
+    
+    const query = playerSearchQuery.toLowerCase();
+    return availablePlayers.filter(player => 
+      player.psn.toLowerCase().includes(query) ||
+      player.displayName.toLowerCase().includes(query) ||
+      player.email.toLowerCase().includes(query)
+    );
   }
 
   // מיקום השחקן ב-seeding
@@ -2790,12 +2806,61 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        {/* שדה חיפוש */}
+        <div style={{ marginBottom: 16 }}>
+          <input
+            type="text"
+            placeholder="🔍 חפש לפי שם PS5 או מייל..."
+            value={playerSearchQuery}
+            onChange={(e) => setPlayerSearchQuery(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "12px 16px",
+              fontSize: 15,
+              borderRadius: 10,
+              border: "2px solid #e0e0e0",
+              outline: "none",
+              transition: "border-color 0.3s",
+              fontFamily: "inherit"
+            }}
+            onFocus={(e) => e.currentTarget.style.borderColor = "#667eea"}
+            onBlur={(e) => e.currentTarget.style.borderColor = "#e0e0e0"}
+          />
+          {playerSearchQuery && (
+            <div style={{
+              marginTop: 8,
+              fontSize: 13,
+              color: "#666",
+              display: "flex",
+              alignItems: "center",
+              gap: 8
+            }}>
+              <span>נמצאו {getFilteredPlayers().length} שחקנים</span>
+              <button
+                onClick={() => setPlayerSearchQuery("")}
+                style={{
+                  padding: "4px 12px",
+                  borderRadius: 6,
+                  border: "1px solid #ddd",
+                  background: "#fff",
+                  color: "#666",
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 600
+                }}
+              >
+                נקה חיפוש
+              </button>
+            </div>
+          )}
+        </div>
+
         <div style={{ 
           display: "grid", 
           gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", 
           gap: 12 
         }}>
-          {availablePlayers.map((player) => {
+          {getFilteredPlayers().map((player) => {
             const isSelected = selectedPlayers.includes(player.id);
             const seed = getPlayerSeed(player.id);
 
