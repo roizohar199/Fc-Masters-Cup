@@ -1,3 +1,6 @@
+# IMPORTANT:
+# Do NOT overwrite /etc/nginx or /var/www/fcmasters/.env
+# Deploy only dist files, not server configuration.
 name: Deploy to Hostinger VPS
 
 on:
@@ -59,7 +62,7 @@ jobs:
           rm -rf deploy_temp
           mkdir -p deploy_temp
 
-          # Copy built files
+          # Copy built files only (no config files!)
           cp -r server/dist deploy_temp/server_dist
           cp -r client/dist deploy_temp/client_dist
 
@@ -68,17 +71,8 @@ jobs:
           if [ -f server/package-lock.json ]; then
             cp server/package-lock.json deploy_temp/server_package-lock.json
           fi
-          
-          # Copy Nginx configuration
-          if [ -f nginx-config-k-rstudio.txt ]; then
-            cp nginx-config-k-rstudio.txt deploy_temp/nginx-config.txt
-            echo "✅ Nginx config for k-rstudio.com included"
-          elif [ -f deploy-config-nginx.txt ]; then
-            cp deploy-config-nginx.txt deploy_temp/nginx-config.txt
-            echo "✅ Default Nginx config included"
-          fi
 
-          echo "✅ Deployment package ready"
+          echo "✅ Deployment package ready (code only, no configs)"
 
       - name: 🚀 Deploy to VPS - Server dist
         uses: appleboy/scp-action@v0.1.7
@@ -115,18 +109,6 @@ jobs:
           target: "/var/www/fcmasters/server/"
           strip_components: 1
           rm: false
-      
-      - name: 🔌 Deploy Nginx Configuration
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT || 22 }}
-          source: "deploy_temp/nginx-config.txt"
-          target: "/var/www/fcmasters/"
-          strip_components: 1
-          rm: false
 
       - name: 🔄 Install dependencies and restart server
         uses: appleboy/ssh-action@v1.0.3
@@ -150,42 +132,11 @@ jobs:
               npm install --production
             fi
             
-            # Update Nginx configuration if present
-            cd /var/www/fcmasters
-            if [ -f nginx-config.txt ]; then
-              echo "🔌 Updating Nginx configuration for k-rstudio.com..."
-              # Backup current config
-              if [ -f /etc/nginx/sites-available/fcmasters ]; then
-                sudo cp /etc/nginx/sites-available/fcmasters "/etc/nginx/sites-available/fcmasters.backup-$(date +%Y%m%d-%H%M%S)" || true
-              fi
-              # Update config
-              sudo cp nginx-config.txt /etc/nginx/sites-available/fcmasters || true
-              # Enable site if not already enabled
-              sudo ln -sf /etc/nginx/sites-available/fcmasters /etc/nginx/sites-enabled/fcmasters || true
-              # Test and reload
-              if sudo nginx -t 2>&1 | grep -q "successful"; then
-                echo "✅ Nginx config validated for k-rstudio.com"
-                sudo systemctl reload nginx || true
-                echo "✅ Nginx reloaded with k-rstudio.com domain support"
-              else
-                echo "⚠️ Nginx config test failed, keeping old config"
-                sudo nginx -t
-              fi
-            fi
+            echo "⚠️ Skipping Nginx config update (preserving existing config)"
+            echo "⚠️ Skipping .env update (preserving existing environment)"
 
             echo "🔄 Restarting application..."
             cd /var/www/fcmasters/server
-            
-            # Fix port configuration
-            if ! grep -q "PORT=" .env; then
-              echo "➕ Adding PORT=8787 to .env"
-              echo "PORT=8787" >> .env
-            fi
-            
-            if ! grep -q "HOST=" .env; then
-              echo "➕ Adding HOST=0.0.0.0 to .env"
-              echo "HOST=0.0.0.0" >> .env
-            fi
             
             # Restart PM2
             pm2 restart fc-masters || pm2 start dist/index.js --name fc-masters

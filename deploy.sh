@@ -1,16 +1,18 @@
 #!/bin/bash
 
-# 🚀 FC Masters Cup - Deployment Script
-# סקריפט זה מיועד לרוץ על השרת (VPS) לעדכון ידני
+# 🚀 FC Masters Cup - Code Deployment Script
+# סקריפט זה מפרוס רק את קבצי הקוד (server/dist ו-client/dist)
+# ⚠️ לא משכתב קונפיגורציות מערכת או קבצי .env
 
 set -e  # Exit on error
 
-echo "🚀 Starting deployment..."
+echo "🚀 Starting code deployment..."
 
 # Colors for output
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 RED='\033[0;31m'
+YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 PROJECT_DIR="/var/www/fcmasters"
@@ -27,6 +29,10 @@ print_success() {
 
 print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
 }
 
 # Check if we're in the right directory
@@ -58,40 +64,41 @@ else
     print_status "Please upload files manually via SCP/SFTP"
 fi
 
-# Install server dependencies
-print_status "Installing server dependencies..."
+# Build server code
+print_status "Building server code..."
 cd "$PROJECT_DIR/server"
-npm install --production
+# Install dependencies for build (if needed)
+if [ ! -d "node_modules" ]; then
+    npm install
+else
+    print_status "Dependencies already installed"
+fi
+# Build TypeScript to dist
+npm run build
+print_success "Server code built successfully"
+
+# Install production dependencies only
+print_status "Installing server production dependencies..."
+npm install --production --omit=dev
 print_success "Server dependencies installed"
 
-# Update Nginx configuration for WebSocket support
-print_status "Updating Nginx configuration..."
-if [ -f "$PROJECT_DIR/deploy-config-nginx.txt" ]; then
-    # Backup current Nginx config
-    if [ -f "/etc/nginx/sites-available/fcmasters" ]; then
-        sudo cp /etc/nginx/sites-available/fcmasters "/etc/nginx/sites-available/fcmasters.backup-$(date +%Y%m%d-%H%M%S)"
-        print_success "Nginx config backed up"
-    fi
-    
-    # Copy new config
-    sudo cp "$PROJECT_DIR/deploy-config-nginx.txt" /etc/nginx/sites-available/fcmasters
-    
-    # Test Nginx config
-    if sudo nginx -t 2>&1 | grep -q "successful"; then
-        print_success "Nginx configuration updated and validated"
-        sudo systemctl reload nginx
-        print_success "Nginx reloaded"
-    else
-        print_error "Nginx configuration test failed, reverting..."
-        sudo cp "/etc/nginx/sites-available/fcmasters.backup-$(date +%Y%m%d-%H%M%S)" /etc/nginx/sites-available/fcmasters
-        exit 1
-    fi
+# Build client code
+print_status "Building client code..."
+cd "$PROJECT_DIR/client"
+if [ ! -d "node_modules" ]; then
+    npm install
 else
-    print_status "No Nginx config file found, skipping Nginx update"
+    print_status "Client dependencies already installed"
 fi
+npm run build
+print_success "Client code built successfully"
+
+print_warning "⚠️  Skipping Nginx configuration update (manual config preserved)"
+print_warning "⚠️  Skipping .env file update (existing environment preserved)"
 
 # Restart PM2
 print_status "Restarting application..."
+cd "$PROJECT_DIR/server"
 pm2 restart fc-masters || pm2 start dist/index.js --name fc-masters
 pm2 save
 print_success "Application restarted"
@@ -107,7 +114,15 @@ ls -t backup-*.sqlite 2>/dev/null | tail -n +11 | xargs -r rm
 print_success "Old backups cleaned"
 
 echo ""
-print_success "🎉 Deployment completed successfully!"
+print_success "🎉 Code deployment completed successfully!"
+echo ""
+print_status "Deployed components:"
+echo "  ✅ Server code (server/dist)"
+echo "  ✅ Client code (client/dist)"
+echo ""
+print_status "Preserved configurations:"
+echo "  🔒 Nginx configuration (/etc/nginx)"
+echo "  🔒 Environment file (.env)"
 echo ""
 print_status "Useful commands:"
 echo "  - View logs: pm2 logs fc-masters"
