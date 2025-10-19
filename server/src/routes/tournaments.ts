@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { CreateTournamentDTO, SeedPlayersDTO } from "../models.js";
 import db from "../db.js";
-import { uuid } from "../db.js";
+import { uuid, genToken, genPin } from "../utils/ids.js";
 import { nowISO } from "../lib/util.js";
 import { generateRoundOf16, advanceWinners } from "../lib/bracket.js";
+import type { AdvancePreviewBody, AdvanceConfirmBody, AdvanceRevertBody } from "../types/dtos.js";
 
 export const tournaments = Router();
 
@@ -100,7 +101,7 @@ tournaments.post("/:id/advance/:round", (req,res)=>{
 // Preview advance winners (dry-run)
 tournaments.post("/:id/advance/preview", (req, res) => {
   const tournamentId = req.params.id;
-  const { round, winners, seeds } = req.body;
+  const { round, winners, seeds } = req.body as AdvancePreviewBody;
   
   if (!round || !winners || !Array.isArray(winners)) {
     return res.status(400).json({ error: "Missing required fields: round, winners" });
@@ -147,7 +148,7 @@ tournaments.post("/:id/advance/preview", (req, res) => {
 // Confirm advance winners with idempotency
 tournaments.post("/:id/advance/confirm", (req, res) => {
   const tournamentId = req.params.id;
-  const { round, winners, seeds, idempotencyKey } = req.body;
+  const { round, winners, seeds, idempotencyKey } = req.body as AdvanceConfirmBody;
   
   if (!round || !winners || !Array.isArray(winners) || !idempotencyKey) {
     return res.status(400).json({ error: "Missing required fields: round, winners, idempotencyKey" });
@@ -161,7 +162,7 @@ tournaments.post("/:id/advance/confirm", (req, res) => {
   const existingOperation = db.prepare(`
     SELECT id FROM advance_operations 
     WHERE tournamentId=? AND round=? AND idempotencyKey=?
-  `).get(tournamentId, round, idempotencyKey);
+  `).get(tournamentId, round, idempotencyKey) as { id: string } | undefined;
   
   if (existingOperation) {
     return res.json({ 
@@ -191,7 +192,7 @@ tournaments.post("/:id/advance/confirm", (req, res) => {
     );
     
     // Generate actual matches
-    const matchIds = generateNextRoundMatches(tournamentId, round, winners, seeds);
+    const matchIds = generateNextRoundMatches(tournamentId, round, winners, seeds || []);
     
     db.exec("COMMIT");
     
@@ -210,7 +211,7 @@ tournaments.post("/:id/advance/confirm", (req, res) => {
 // Revert advance operation
 tournaments.post("/:id/advance/revert", (req, res) => {
   const tournamentId = req.params.id;
-  const { idempotencyKey } = req.body;
+  const { idempotencyKey } = req.body as AdvanceRevertBody;
   
   if (!idempotencyKey) {
     return res.status(400).json({ error: "Missing idempotencyKey" });
@@ -221,7 +222,7 @@ tournaments.post("/:id/advance/revert", (req, res) => {
     const operation = db.prepare(`
       SELECT * FROM advance_operations 
       WHERE tournamentId=? AND idempotencyKey=?
-    `).get(tournamentId, idempotencyKey);
+    `).get(tournamentId, idempotencyKey) as { id: string; round: string; createdAt: string } | undefined;
     
     if (!operation) {
       return res.status(404).json({ error: "Operation not found" });

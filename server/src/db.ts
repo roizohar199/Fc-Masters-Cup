@@ -131,7 +131,6 @@ CREATE INDEX IF NOT EXISTS idx_advance_operations_key ON advance_operations(idem
 `);
 
 export default db;
-export function uuid() { return randomUUID(); }
 
 // --- Lightweight migrations: ensure new columns exist on old databases ---
 try {

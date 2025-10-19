@@ -3,9 +3,10 @@ import multer from "multer";
 import path from "node:path";
 import { SubmitResultDTO } from "../models.js";
 import db from "../db.js";
-import { uuid } from "../db.js";
+import { uuid } from "../utils/ids.js";
 import { nowISO } from "../lib/util.js";
 import { applySubmission } from "../lib/consensus.js";
+import type { ProofUploadBody, MatchOverrideBody } from "../types/dtos.js";
 
 export const matches = Router();
 
@@ -67,7 +68,7 @@ matches.get("/:id/submissions", (req,res)=>{
 // Upload proof image for a match
 matches.post("/proof", upload.single("proof"), (req,res)=>{
   try {
-    const { matchId, playerRole } = req.body;
+    const { matchId, playerRole } = req.body as ProofUploadBody;
     
     if (!matchId || !playerRole) {
       return res.status(400).json({error: "Missing matchId or playerRole"});
@@ -105,7 +106,7 @@ matches.post("/proof", upload.single("proof"), (req,res)=>{
 // Get proof images for a match (admin only)
 matches.get("/:id/proofs", (req,res)=>{
   try {
-    const match = db.prepare(`SELECT id, evidenceHome, evidenceAway FROM matches WHERE id=?`).get(req.params.id);
+    const match = db.prepare(`SELECT id, evidenceHome, evidenceAway FROM matches WHERE id=?`).get(req.params.id) as { id: string; evidenceHome: string | null; evidenceAway: string | null } | undefined;
     if (!match) {
       return res.status(404).json({error: "Match not found"});
     }
@@ -124,7 +125,7 @@ matches.get("/:id/proofs", (req,res)=>{
 
 // Admin override
 matches.post("/:id/override", (req,res)=>{
-  const { homeScore, awayScore } = req.body || {};
+  const { homeScore, awayScore } = req.body as MatchOverrideBody;
   if (typeof homeScore!=="number" || typeof awayScore!=="number") return res.status(400).json({error:"need scores"});
   db.prepare(`UPDATE matches SET homeScore=?, awayScore=?, status='CONFIRMED' WHERE id=?`).run(homeScore, awayScore, req.params.id);
   res.json({ status: "CONFIRMED" });

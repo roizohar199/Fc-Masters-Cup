@@ -1,6 +1,6 @@
 import db from "../db.js";
-import { uuid } from "../db.js";
-import { genToken, genPin, nowISO } from "./util.js";
+import { uuid, genToken, genPin } from "../utils/ids.js";
+import { nowISO } from "./util.js";
 
 export type Round = "R16"|"QF"|"SF"|"F";
 
