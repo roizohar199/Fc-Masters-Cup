@@ -50,11 +50,22 @@ export function startPresence() {
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const host = window.location.hostname;
   const port = import.meta.env.DEV ? "8787" : window.location.port;
-  const wsUrl = port ? `${protocol}//${host}:${port}/presence` : `${protocol}//${host}/presence`;
+  
+  // תיקון: אם אנחנו ב-production, לא נוסיף פורט
+  let wsUrl;
+  if (import.meta.env.DEV) {
+    wsUrl = `${protocol}//${host}:${port}/presence`;
+  } else {
+    // ב-production, השתמש באותו host ללא פורט
+    wsUrl = `${protocol}//${host}/presence`;
+  }
+  
+  console.log(`🔌 Connecting to WebSocket: ${wsUrl}`);
   
   ws = new WebSocket(wsUrl);
 
   ws.onopen = () => {
+    console.log("✅ WebSocket connected successfully");
     clearInterval(hbIv);
     // heartbeat תקופתי - רק חיבור, ללא פעילות
     hbIv = setInterval(() => sendHeartbeat(), 20000);
@@ -68,17 +79,31 @@ export function startPresence() {
   ws.onmessage = ev => {
     try {
       const m = JSON.parse(String(ev.data));
-      if (m?.type === "presence:update") emit(m.users || []);
-      if (m?.type === "presence:hello") emit(m.users || []);
-    } catch {}
+      console.log("📨 WebSocket message received:", m);
+      if (m?.type === "presence:update") {
+        console.log("👥 Presence update:", m.users?.length || 0, "users");
+        emit(m.users || []);
+      }
+      if (m?.type === "presence:hello") {
+        console.log("👋 Presence hello:", m.users?.length || 0, "users");
+        emit(m.users || []);
+      }
+    } catch (e) {
+      console.error("❌ Error parsing WebSocket message:", e);
+    }
   };
 
-  ws.onclose = () => { 
+  ws.onclose = (event) => { 
+    console.log("❌ WebSocket closed:", event.code, event.reason);
     clearInterval(hbIv); 
     hbIv = null; 
     clearTimeout(activityTimeout);
     activityTimeout = null;
     setTimeout(startPresence, 3000); 
+  };
+
+  ws.onerror = (error) => {
+    console.error("❌ WebSocket error:", error);
   };
 }
 
