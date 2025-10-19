@@ -175,9 +175,26 @@ jobs:
 
             echo "🔄 Restarting application..."
             cd /var/www/fcmasters/server
+            
+            # Fix port configuration
+            if ! grep -q "PORT=" .env; then
+              echo "➕ Adding PORT=8787 to .env"
+              echo "PORT=8787" >> .env
+            fi
+            
+            if ! grep -q "HOST=" .env; then
+              echo "➕ Adding HOST=0.0.0.0 to .env"
+              echo "HOST=0.0.0.0" >> .env
+            fi
+            
+            # Restart PM2
             pm2 restart fc-masters || pm2 start dist/index.js --name fc-masters
             pm2 save
             pm2 status
+            
+            # Check if port is listening
+            echo "🔍 Checking if port 8787 is listening:"
+            sudo netstat -tuln | grep :8787 || echo "❌ Port 8787 not listening"
 
       - name: 🎉 Deployment Summary
         if: success()
