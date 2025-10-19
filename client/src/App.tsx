@@ -122,12 +122,12 @@ export default function App() {
         <div style={{
           display: "flex",
           flexDirection: isMobile ? "column" : "row",
-          gap: isMobile ? 16 : 12,
-          marginBottom: isMobile ? 20 : 24,
-          padding: isMobile ? "16px" : "12px",
+          gap: isMobile ? 12 : 12,
+          marginBottom: isMobile ? 16 : 24,
+          padding: isMobile ? "12px" : "12px",
           backgroundColor: "rgba(255, 255, 255, 0.15)",
           backdropFilter: "blur(10px)",
-          borderRadius: isMobile ? 12 : 16,
+          borderRadius: isMobile ? 8 : 16,
           boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
           direction: "rtl",
           justifyContent: "space-between",
@@ -136,7 +136,7 @@ export default function App() {
           <div style={{ 
             display: "grid", 
             gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(140px, 1fr))",
-            gap: isMobile ? 6 : 12,
+            gap: isMobile ? 4 : 12,
             width: "100%",
             justifyContent: "center",
             maxWidth: isMobile ? "100%" : "none"
@@ -144,80 +144,83 @@ export default function App() {
             <Link 
               to="/" 
               style={{
-                padding: isMobile ? "10px 8px" : "14px 24px",
+                padding: isMobile ? "8px 4px" : "14px 24px",
                 textDecoration: "none",
                 background: "linear-gradient(135deg, #667eea 0%, #764ba2dd 100%)",
                 color: "#fff",
-                borderRadius: isMobile ? 6 : 12,
+                borderRadius: isMobile ? 4 : 12,
                 fontWeight: 700,
-                fontSize: isMobile ? 12 : 15,
+                fontSize: isMobile ? 11 : 15,
                 transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                 boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: isMobile ? 4 : 8,
+                gap: isMobile ? 2 : 8,
                 textAlign: "center",
-                minHeight: isMobile ? "44px" : "auto",
+                minHeight: isMobile ? "40px" : "auto",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
-                whiteSpace: "nowrap"
+                whiteSpace: "nowrap",
+                flex: "1 1 auto"
               }}
             >
-              <span style={{ fontSize: isMobile ? 14 : 18 }}>{isAdmin ? "⚙️" : "🏠"}</span>
+              <span style={{ fontSize: isMobile ? 12 : 18 }}>{isAdmin ? "⚙️" : "🏠"}</span>
               {isMobile ? (isAdmin ? "ניהול" : "בית") : (isAdmin ? "ניהול" : "דף הבית")}
             </Link>
             <Link 
               to="/bracket" 
               style={{
-                padding: isMobile ? "10px 8px" : "14px 24px",
+                padding: isMobile ? "8px 4px" : "14px 24px",
                 textDecoration: "none",
                 background: "rgba(255, 255, 255, 0.9)",
                 color: "#333",
-                borderRadius: isMobile ? 6 : 12,
+                borderRadius: isMobile ? 4 : 12,
                 fontWeight: 500,
-                fontSize: isMobile ? 12 : 15,
+                fontSize: isMobile ? 11 : 15,
                 transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                 boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: isMobile ? 4 : 8,
+                gap: isMobile ? 2 : 8,
                 textAlign: "center",
-                minHeight: isMobile ? "44px" : "auto",
+                minHeight: isMobile ? "40px" : "auto",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
-                whiteSpace: "nowrap"
+                whiteSpace: "nowrap",
+                flex: "1 1 auto"
               }}
             >
-              <span style={{ fontSize: isMobile ? 14 : 18 }}>📊</span>
+              <span style={{ fontSize: isMobile ? 12 : 18 }}>📊</span>
               {isMobile ? "תוצאות" : "צפה בתוצאות"}
             </Link>
             {isAdmin && (
               <Link 
                 to="/admin" 
                 style={{
-                  padding: isMobile ? "10px 8px" : "14px 24px",
+                  padding: isMobile ? "8px 4px" : "14px 24px",
                   textDecoration: "none",
                   background: "rgba(255, 255, 255, 0.9)",
                   color: "#333",
-                  borderRadius: isMobile ? 6 : 12,
+                  borderRadius: isMobile ? 4 : 12,
                   fontWeight: 500,
-                  fontSize: isMobile ? 12 : 15,
+                  fontSize: isMobile ? 11 : 15,
                   transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                   boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: isMobile ? 4 : 8,
+                  gap: isMobile ? 2 : 8,
                   textAlign: "center",
-                  minHeight: isMobile ? "44px" : "auto",
+                  minHeight: isMobile ? "40px" : "auto",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
-                  whiteSpace: "nowrap"
+                  whiteSpace: "nowrap",
+                  flex: "1 1 auto"
                 }}
               >
-                <span style={{ fontSize: isMobile ? 14 : 18 }}>👨‍💼</span>
+                <span style={{ fontSize: isMobile ? 12 : 18 }}>👨‍💼</span>
                 {isMobile ? "פאנל" : "פאנל ניהול"}
               </Link>
             )}
@@ -225,81 +228,84 @@ export default function App() {
               <Link 
                 to="/disputes" 
                 style={{
-                  padding: isMobile ? "10px 8px" : "14px 24px",
+                  padding: isMobile ? "8px 4px" : "14px 24px",
                   textDecoration: "none",
                   background: "rgba(255, 255, 255, 0.9)",
                   color: "#333",
-                  borderRadius: isMobile ? 6 : 12,
+                  borderRadius: isMobile ? 4 : 12,
                   fontWeight: 500,
-                  fontSize: isMobile ? 12 : 15,
+                  fontSize: isMobile ? 11 : 15,
                   transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                   boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: isMobile ? 4 : 8,
+                  gap: isMobile ? 2 : 8,
                   textAlign: "center",
-                  minHeight: isMobile ? "44px" : "auto",
+                  minHeight: isMobile ? "40px" : "auto",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
-                  whiteSpace: "nowrap"
+                  whiteSpace: "nowrap",
+                  flex: "1 1 auto"
                 }}
               >
-                <span style={{ fontSize: isMobile ? 14 : 18 }}>⚠️</span>
+                <span style={{ fontSize: isMobile ? 12 : 18 }}>⚠️</span>
                 מחלוקות
               </Link>
             )}
             <Link 
               to="/rules" 
               style={{
-                padding: isMobile ? "10px 8px" : "14px 24px",
+                padding: isMobile ? "8px 4px" : "14px 24px",
                 textDecoration: "none",
                 background: "rgba(255, 255, 255, 0.9)",
                 color: "#333",
-                borderRadius: isMobile ? 6 : 12,
+                borderRadius: isMobile ? 4 : 12,
                 fontWeight: 500,
-                fontSize: isMobile ? 12 : 15,
+                fontSize: isMobile ? 11 : 15,
                 transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                 boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: isMobile ? 4 : 8,
+                gap: isMobile ? 2 : 8,
                 textAlign: "center",
-                minHeight: isMobile ? "44px" : "auto",
+                minHeight: isMobile ? "40px" : "auto",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
-                whiteSpace: "nowrap"
+                whiteSpace: "nowrap",
+                flex: "1 1 auto"
               }}
             >
-              <span style={{ fontSize: isMobile ? 14 : 18 }}>📋</span>
+              <span style={{ fontSize: isMobile ? 12 : 18 }}>📋</span>
               תקנון
             </Link>
             {!isAdmin && (
               <Link 
                 to="/settings" 
                 style={{
-                  padding: isMobile ? "10px 8px" : "14px 24px",
+                  padding: isMobile ? "8px 4px" : "14px 24px",
                   textDecoration: "none",
                   background: "rgba(255, 255, 255, 0.9)",
                   color: "#333",
-                  borderRadius: isMobile ? 6 : 12,
+                  borderRadius: isMobile ? 4 : 12,
                   fontWeight: 500,
-                  fontSize: isMobile ? 12 : 15,
+                  fontSize: isMobile ? 11 : 15,
                   transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                   boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: isMobile ? 4 : 8,
+                  gap: isMobile ? 2 : 8,
                   textAlign: "center",
-                  minHeight: isMobile ? "44px" : "auto",
+                  minHeight: isMobile ? "40px" : "auto",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
-                  whiteSpace: "nowrap"
+                  whiteSpace: "nowrap",
+                  flex: "1 1 auto"
                 }}
               >
-                <span style={{ fontSize: isMobile ? 14 : 18 }}>⚙️</span>
+                <span style={{ fontSize: isMobile ? 12 : 18 }}>⚙️</span>
                 הגדרות
               </Link>
             )}
