@@ -38,7 +38,17 @@ export default function PlayerDashboard() {
   const [myMatches, setMyMatches] = useState<Match[]>([]);
   const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const { tournamentId } = useStore();
+
+  // זיהוי מובייל
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -194,19 +204,19 @@ export default function PlayerDashboard() {
   }
 
   return (
-    <div style={{ display: "grid", gap: 24, direction: "rtl" }}>
+    <div style={{ display: "grid", gap: isMobile ? 16 : 24, direction: "rtl", padding: isMobile ? "0 12px" : 0 }}>
       {/* כרטיס ברכה */}
       <div style={{
         background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-        padding: 32,
-        borderRadius: 16,
+        padding: isMobile ? 20 : 32,
+        borderRadius: isMobile ? 12 : 16,
         color: "#fff",
         boxShadow: "0 10px 30px rgba(102, 126, 234, 0.3)"
       }}>
-        <h2 style={{ fontSize: 32, fontWeight: 700, marginBottom: 12 }}>
+        <h2 style={{ fontSize: isMobile ? 20 : 32, fontWeight: 700, marginBottom: isMobile ? 8 : 12, lineHeight: 1.3 }}>
           שלום, {playerInfo?.email}! ⚽
         </h2>
-        <p style={{ fontSize: 16, opacity: 0.9 }}>
+        <p style={{ fontSize: isMobile ? 14 : 16, opacity: 0.9 }}>
           ברוך הבא לאזור השחקנים של FC Masters Cup
         </p>
       </div>
@@ -215,18 +225,18 @@ export default function PlayerDashboard() {
       {playerInfo && playerInfo.secondPrizeCredit > 0 && (
         <div style={{
           background: "linear-gradient(135deg, #ffd700 0%, #ffed4e 100%)",
-          padding: 24,
-          borderRadius: 16,
+          padding: isMobile ? 16 : 24,
+          borderRadius: isMobile ? 12 : 16,
           boxShadow: "0 8px 24px rgba(255, 215, 0, 0.3)",
-          border: "3px solid #ffa000"
+          border: isMobile ? "2px solid #ffa000" : "3px solid #ffa000"
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ fontSize: 48 }}>🎁</div>
+          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 12 : 16 }}>
+            <div style={{ fontSize: isMobile ? 36 : 48 }}>🎁</div>
             <div>
-              <h3 style={{ fontSize: 24, fontWeight: 700, color: "#d84315", margin: 0 }}>
+              <h3 style={{ fontSize: isMobile ? 18 : 24, fontWeight: 700, color: "#d84315", margin: 0 }}>
                 יש לך זיכוי פרס שני!
               </h3>
-              <p style={{ fontSize: 18, color: "#5d4037", margin: "8px 0 0 0" }}>
+              <p style={{ fontSize: isMobile ? 14 : 18, color: "#5d4037", margin: "8px 0 0 0" }}>
                 סכום הזיכוי: <strong>{playerInfo.secondPrizeCredit} ₪</strong> לטורניר הקרוב
               </p>
             </div>
@@ -238,17 +248,17 @@ export default function PlayerDashboard() {
       {tournament?.nextTournamentDate && (
         <div style={{
           backgroundColor: "#e3f2fd",
-          padding: 20,
-          borderRadius: 16,
+          padding: isMobile ? 16 : 20,
+          borderRadius: isMobile ? 12 : 16,
           border: "2px solid #2196F3"
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ fontSize: 36 }}>⏰</div>
+          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 12 }}>
+            <div style={{ fontSize: isMobile ? 28 : 36 }}>⏰</div>
             <div>
-              <h3 style={{ fontSize: 20, fontWeight: 700, color: "#1976D2", margin: 0 }}>
+              <h3 style={{ fontSize: isMobile ? 16 : 20, fontWeight: 700, color: "#1976D2", margin: 0 }}>
                 הטורניר הבא
               </h3>
-              <p style={{ fontSize: 16, color: "#1565C0", margin: "8px 0 0 0" }}>
+              <p style={{ fontSize: isMobile ? 14 : 16, color: "#1565C0", margin: "8px 0 0 0" }}>
                 {tournament.nextTournamentDate}
               </p>
             </div>
@@ -268,18 +278,24 @@ export default function PlayerDashboard() {
       {tournament?.telegramLink && (
         <div style={{
           backgroundColor: "#e1f5fe",
-          padding: 20,
-          borderRadius: 16,
+          padding: isMobile ? 16 : 20,
+          borderRadius: isMobile ? 12 : 16,
           border: "2px solid #0288d1"
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "space-between" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ fontSize: 36 }}>💬</div>
+          <div style={{ 
+            display: "flex", 
+            flexDirection: isMobile ? "column" : "row",
+            alignItems: isMobile ? "stretch" : "center", 
+            gap: isMobile ? 16 : 12, 
+            justifyContent: "space-between" 
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 12 }}>
+              <div style={{ fontSize: isMobile ? 28 : 36 }}>💬</div>
               <div>
-                <h3 style={{ fontSize: 20, fontWeight: 700, color: "#01579b", margin: 0 }}>
+                <h3 style={{ fontSize: isMobile ? 16 : 20, fontWeight: 700, color: "#01579b", margin: 0 }}>
                   הצטרף לקבוצת הטלגרם
                 </h3>
-                <p style={{ fontSize: 14, color: "#0277bd", margin: "4px 0 0 0" }}>
+                <p style={{ fontSize: isMobile ? 12 : 14, color: "#0277bd", margin: "4px 0 0 0" }}>
                   קבל עדכונים ושוחח עם שחקנים אחרים
                 </p>
               </div>
@@ -289,13 +305,14 @@ export default function PlayerDashboard() {
               target="_blank"
               rel="noopener noreferrer"
               style={{
-                padding: "12px 24px",
+                padding: isMobile ? "12px 20px" : "12px 24px",
                 background: "#0288d1",
                 color: "#fff",
                 textDecoration: "none",
                 borderRadius: 10,
                 fontWeight: 700,
-                fontSize: 15
+                fontSize: isMobile ? 14 : 15,
+                textAlign: "center"
               }}
             >
               הצטרף 📱
@@ -308,18 +325,18 @@ export default function PlayerDashboard() {
       {getCurrentRound() && (
         <div style={{
           background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-          padding: 24,
-          borderRadius: 16,
+          padding: isMobile ? 16 : 24,
+          borderRadius: isMobile ? 12 : 16,
           color: "#fff",
           boxShadow: "0 8px 24px rgba(102, 126, 234, 0.3)"
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
-            <div style={{ fontSize: 48 }}>🎯</div>
+          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 12 : 16, marginBottom: isMobile ? 12 : 16 }}>
+            <div style={{ fontSize: isMobile ? 36 : 48 }}>🎯</div>
             <div>
-              <h3 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>
+              <h3 style={{ fontSize: isMobile ? 18 : 24, fontWeight: 700, margin: 0 }}>
                 השלב הנוכחי שלך
               </h3>
-              <p style={{ fontSize: 16, opacity: 0.9, margin: "4px 0 0 0" }}>
+              <p style={{ fontSize: isMobile ? 14 : 16, opacity: 0.9, margin: "4px 0 0 0" }}>
                 {getCurrentRound()}
               </p>
             </div>
@@ -328,39 +345,39 @@ export default function PlayerDashboard() {
           {/* סטטיסטיקות מהירות */}
           <div style={{ 
             display: "grid", 
-            gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", 
-            gap: 16,
-            marginTop: 20
+            gridTemplateColumns: isMobile ? "repeat(3, 1fr)" : "repeat(auto-fit, minmax(120px, 1fr))", 
+            gap: isMobile ? 10 : 16,
+            marginTop: isMobile ? 12 : 20
           }}>
             <div style={{
               background: "rgba(255, 255, 255, 0.15)",
-              padding: 16,
-              borderRadius: 12,
+              padding: isMobile ? 12 : 16,
+              borderRadius: isMobile ? 8 : 12,
               textAlign: "center",
               backdropFilter: "blur(10px)"
             }}>
-              <div style={{ fontSize: 24, fontWeight: 700 }}>{myMatches.length}</div>
-              <div style={{ fontSize: 12, opacity: 0.8 }}>משחקים שלי</div>
+              <div style={{ fontSize: isMobile ? 18 : 24, fontWeight: 700 }}>{myMatches.length}</div>
+              <div style={{ fontSize: isMobile ? 10 : 12, opacity: 0.8 }}>משחקים שלי</div>
             </div>
             <div style={{
               background: "rgba(255, 255, 255, 0.15)",
-              padding: 16,
-              borderRadius: 12,
+              padding: isMobile ? 12 : 16,
+              borderRadius: isMobile ? 8 : 12,
               textAlign: "center",
               backdropFilter: "blur(10px)"
             }}>
-              <div style={{ fontSize: 24, fontWeight: 700 }}>{getMyOpponents().length}</div>
-              <div style={{ fontSize: 12, opacity: 0.8 }}>יריבים</div>
+              <div style={{ fontSize: isMobile ? 18 : 24, fontWeight: 700 }}>{getMyOpponents().length}</div>
+              <div style={{ fontSize: isMobile ? 10 : 12, opacity: 0.8 }}>יריבים</div>
             </div>
             <div style={{
               background: "rgba(255, 255, 255, 0.15)",
-              padding: 16,
-              borderRadius: 12,
+              padding: isMobile ? 12 : 16,
+              borderRadius: isMobile ? 8 : 12,
               textAlign: "center",
               backdropFilter: "blur(10px)"
             }}>
-              <div style={{ fontSize: 24, fontWeight: 700 }}>{getParallelMatches().length}</div>
-              <div style={{ fontSize: 12, opacity: 0.8 }}>משחקים מקבילים</div>
+              <div style={{ fontSize: isMobile ? 18 : 24, fontWeight: 700 }}>{getParallelMatches().length}</div>
+              <div style={{ fontSize: isMobile ? 10 : 12, opacity: 0.8 }}>משחקים מקבילים</div>
             </div>
           </div>
         </div>
@@ -370,23 +387,23 @@ export default function PlayerDashboard() {
       {getMyOpponents().length > 0 && (
         <div style={{
           backgroundColor: "#fff",
-          padding: 24,
-          borderRadius: 16,
+          padding: isMobile ? 16 : 24,
+          borderRadius: isMobile ? 12 : 16,
           boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)"
         }}>
-          <h3 style={{ fontSize: 22, fontWeight: 700, marginBottom: 16, color: "#333" }}>
+          <h3 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, marginBottom: isMobile ? 12 : 16, color: "#333" }}>
             ⚔️ היריבים שלך בטורניר
           </h3>
-          <div style={{ display: "grid", gap: 12 }}>
+          <div style={{ display: "grid", gap: isMobile ? 10 : 12 }}>
             {getMyOpponents().map((opponent, idx) => (
               <div
                 key={idx}
                 style={{
-                  padding: 16,
+                  padding: isMobile ? 12 : 16,
                   background: "linear-gradient(135deg, #fafafa 0%, #fff 100%)",
-                  borderRadius: 10,
+                  borderRadius: isMobile ? 8 : 10,
                   border: "2px solid #f0f0f0",
-                  fontSize: 16,
+                  fontSize: isMobile ? 14 : 16,
                   fontWeight: 600,
                   color: "#333"
                 }}
@@ -402,14 +419,14 @@ export default function PlayerDashboard() {
       {myMatches.length > 0 && (
         <div style={{
           background: "linear-gradient(135deg, #fff 0%, #f8f9fa 100%)",
-          padding: 24,
-          borderRadius: 16,
+          padding: isMobile ? 16 : 24,
+          borderRadius: isMobile ? 12 : 16,
           boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
-          border: "3px solid #667eea"
+          border: isMobile ? "2px solid #667eea" : "3px solid #667eea"
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-            <div style={{ fontSize: 32 }}>🏆</div>
-            <h3 style={{ fontSize: 24, fontWeight: 700, margin: 0, color: "#333" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 12, marginBottom: isMobile ? 16 : 20 }}>
+            <div style={{ fontSize: isMobile ? 24 : 32 }}>🏆</div>
+            <h3 style={{ fontSize: isMobile ? 18 : 24, fontWeight: 700, margin: 0, color: "#333" }}>
               המשחקים שלי בטורניר
             </h3>
           </div>
@@ -425,26 +442,26 @@ export default function PlayerDashboard() {
             const roundOrder = ['R16', 'QF', 'SF', 'F'];
             
             return (
-              <div style={{ display: "grid", gap: 20 }}>
+              <div style={{ display: "grid", gap: isMobile ? 16 : 20 }}>
                 {roundOrder.filter(round => matchesByRound[round]).map(round => (
                   <div key={round}>
                     <div style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 8,
-                      marginBottom: 12,
-                      padding: "8px 16px",
+                      gap: isMobile ? 6 : 8,
+                      marginBottom: isMobile ? 10 : 12,
+                      padding: isMobile ? "6px 12px" : "8px 16px",
                       background: "linear-gradient(135deg, #667eea15 0%, #764ba215 100%)",
-                      borderRadius: 8,
+                      borderRadius: isMobile ? 6 : 8,
                       border: "1px solid #667eea30"
                     }}>
-                      <div style={{ fontSize: 16 }}>🎯</div>
-                      <h4 style={{ fontSize: 16, fontWeight: 600, margin: 0, color: "#667eea" }}>
+                      <div style={{ fontSize: isMobile ? 14 : 16 }}>🎯</div>
+                      <h4 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 600, margin: 0, color: "#667eea" }}>
                         {getRoundName(round)}
                       </h4>
                     </div>
                     
-                    <div style={{ display: "grid", gap: 12 }}>
+                    <div style={{ display: "grid", gap: isMobile ? 10 : 12 }}>
                       {matchesByRound[round].map((match) => {
                         const result = getMatchResult(match);
                         const isWinner = result.text.includes('ניצחון');
@@ -455,19 +472,21 @@ export default function PlayerDashboard() {
                           <div
                             key={match.id}
                             style={{
-                              padding: 20,
+                              padding: isMobile ? 14 : 20,
                               background: isWinner 
                                 ? "linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)"
                                 : isLoss 
                                   ? "linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%)"
                                   : "linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%)",
-                              borderRadius: 12,
+                              borderRadius: isMobile ? 10 : 12,
                               border: `2px solid ${
                                 isWinner ? "#28a745" : isLoss ? "#dc3545" : "#ffc107"
                               }`,
                               display: "flex",
+                              flexDirection: isMobile ? "column" : "row",
                               justifyContent: "space-between",
-                              alignItems: "center",
+                              alignItems: isMobile ? "stretch" : "center",
+                              gap: isMobile ? 12 : 0,
                               position: "relative",
                               overflow: "hidden"
                             }}
@@ -488,7 +507,7 @@ export default function PlayerDashboard() {
                             
                             <div>
                               <div style={{ 
-                                fontSize: 18, 
+                                fontSize: isMobile ? 15 : 18, 
                                 fontWeight: 600, 
                                 color: "#333",
                                 marginBottom: 4
@@ -496,7 +515,7 @@ export default function PlayerDashboard() {
                                 {match.homePsn} vs {match.awayPsn}
                               </div>
                               <div style={{ 
-                                fontSize: 12, 
+                                fontSize: isMobile ? 11 : 12, 
                                 color: "#666",
                                 display: "flex",
                                 alignItems: "center",
@@ -511,27 +530,28 @@ export default function PlayerDashboard() {
                             <div style={{
                               display: "flex",
                               alignItems: "center",
-                              gap: 12
+                              justifyContent: isMobile ? "space-between" : "flex-end",
+                              gap: isMobile ? 8 : 12
                             }}>
                               {match.homeScore !== null && match.awayScore !== null && (
                                 <div style={{
-                                  fontSize: 20,
+                                  fontSize: isMobile ? 16 : 20,
                                   fontWeight: 700,
                                   color: "#333",
-                                  padding: "8px 16px",
+                                  padding: isMobile ? "6px 12px" : "8px 16px",
                                   background: "rgba(255, 255, 255, 0.8)",
-                                  borderRadius: 8
+                                  borderRadius: isMobile ? 6 : 8
                                 }}>
                                   {match.homeScore}:{match.awayScore}
                                 </div>
                               )}
                               <div style={{
-                                fontSize: 16,
+                                fontSize: isMobile ? 14 : 16,
                                 fontWeight: 700,
                                 color: result.color,
                                 display: "flex",
                                 alignItems: "center",
-                                gap: 6
+                                gap: isMobile ? 4 : 6
                               }}>
                                 {isWinner && <span>🏆</span>}
                                 {isLoss && <span>💔</span>}
@@ -555,13 +575,13 @@ export default function PlayerDashboard() {
       {getParallelMatches().length > 0 && (
         <div style={{
           backgroundColor: "#f8f9fa",
-          padding: 20,
-          borderRadius: 12,
+          padding: isMobile ? 16 : 20,
+          borderRadius: isMobile ? 10 : 12,
           border: "1px solid #e9ecef"
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-            <div style={{ fontSize: 20 }}>📊</div>
-            <h3 style={{ fontSize: 18, fontWeight: 600, margin: 0, color: "#666" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 8, marginBottom: isMobile ? 12 : 16 }}>
+            <div style={{ fontSize: isMobile ? 18 : 20 }}>📊</div>
+            <h3 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 600, margin: 0, color: "#666" }}>
               משחקים מקבילים באותו שלב
             </h3>
           </div>
@@ -577,45 +597,47 @@ export default function PlayerDashboard() {
             const roundOrder = ['R16', 'QF', 'SF', 'F'];
             
             return (
-              <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ display: "grid", gap: isMobile ? 10 : 12 }}>
                 {roundOrder.filter(round => parallelMatchesByRound[round]).map(round => (
                   <div key={round}>
                     <div style={{
-                      fontSize: 14,
+                      fontSize: isMobile ? 12 : 14,
                       fontWeight: 600,
                       color: "#999",
-                      marginBottom: 8,
-                      padding: "4px 8px",
+                      marginBottom: isMobile ? 6 : 8,
+                      padding: isMobile ? "3px 6px" : "4px 8px",
                       background: "#fff",
-                      borderRadius: 6,
+                      borderRadius: isMobile ? 4 : 6,
                       border: "1px solid #dee2e6",
                       display: "inline-block"
                     }}>
                       {getRoundName(round)} ({parallelMatchesByRound[round].length} משחקים)
                     </div>
                     
-                    <div style={{ display: "grid", gap: 8 }}>
+                    <div style={{ display: "grid", gap: isMobile ? 6 : 8 }}>
                       {parallelMatchesByRound[round].map((match) => {
                         const result = getMatchResult(match);
                         return (
                           <div
                             key={match.id}
                             style={{
-                              padding: 12,
+                              padding: isMobile ? 10 : 12,
                               background: "#fff",
-                              borderRadius: 8,
+                              borderRadius: isMobile ? 6 : 8,
                               border: "1px solid #e0e0e0",
                               display: "flex",
+                              flexDirection: isMobile ? "column" : "row",
                               justifyContent: "space-between",
-                              alignItems: "center",
-                              fontSize: 14
+                              alignItems: isMobile ? "flex-start" : "center",
+                              gap: isMobile ? 6 : 0,
+                              fontSize: isMobile ? 13 : 14
                             }}
                           >
                             <div style={{ color: "#666" }}>
                               {match.homePsn} vs {match.awayPsn}
                             </div>
                             <div style={{
-                              fontSize: 14,
+                              fontSize: isMobile ? 13 : 14,
                               fontWeight: 600,
                               color: result.color
                             }}>
@@ -637,41 +659,41 @@ export default function PlayerDashboard() {
       {tournament && (
         <div style={{
           backgroundColor: "#fff",
-          padding: 24,
-          borderRadius: 16,
+          padding: isMobile ? 16 : 24,
+          borderRadius: isMobile ? 12 : 16,
           boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)"
         }}>
-          <h3 style={{ fontSize: 22, fontWeight: 700, marginBottom: 16, color: "#333" }}>
+          <h3 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, marginBottom: isMobile ? 12 : 16, color: "#333" }}>
             💰 פרסי הטורניר
           </h3>
           <div style={{ 
             display: "grid", 
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", 
-            gap: 16 
+            gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(200px, 1fr))", 
+            gap: isMobile ? 12 : 16 
           }}>
             <div style={{
-              padding: 20,
+              padding: isMobile ? 16 : 20,
               background: "linear-gradient(135deg, #ffd700 0%, #ffed4e 100%)",
-              borderRadius: 12,
+              borderRadius: isMobile ? 10 : 12,
               textAlign: "center",
               boxShadow: "0 4px 15px rgba(255, 215, 0, 0.3)"
             }}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>🥇</div>
-              <div style={{ fontSize: 14, color: "#d84315", marginBottom: 4 }}>פרס ראשון</div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: "#d84315" }}>
+              <div style={{ fontSize: isMobile ? 24 : 32, marginBottom: isMobile ? 6 : 8 }}>🥇</div>
+              <div style={{ fontSize: isMobile ? 12 : 14, color: "#d84315", marginBottom: 4 }}>פרס ראשון</div>
+              <div style={{ fontSize: isMobile ? 20 : 28, fontWeight: 700, color: "#d84315" }}>
                 {tournament.prizeFirst} ₪
               </div>
             </div>
             <div style={{
-              padding: 20,
+              padding: isMobile ? 16 : 20,
               background: "linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%)",
-              borderRadius: 12,
+              borderRadius: isMobile ? 10 : 12,
               textAlign: "center",
               boxShadow: "0 4px 15px rgba(0, 0, 0, 0.1)"
             }}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>🥈</div>
-              <div style={{ fontSize: 14, color: "#666", marginBottom: 4 }}>פרס שני</div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: "#666" }}>
+              <div style={{ fontSize: isMobile ? 24 : 32, marginBottom: isMobile ? 6 : 8 }}>🥈</div>
+              <div style={{ fontSize: isMobile ? 12 : 14, color: "#666", marginBottom: 4 }}>פרס שני</div>
+              <div style={{ fontSize: isMobile ? 20 : 28, fontWeight: 700, color: "#666" }}>
                 {tournament.prizeSecond} ₪
               </div>
             </div>
@@ -682,25 +704,25 @@ export default function PlayerDashboard() {
       {/* קישור להגשת תוצאות */}
       <div style={{
         backgroundColor: "#fff3e0",
-        padding: 20,
-        borderRadius: 16,
+        padding: isMobile ? 16 : 20,
+        borderRadius: isMobile ? 12 : 16,
         border: "2px solid #ff9800",
         textAlign: "center"
       }}>
-        <p style={{ fontSize: 16, color: "#e65100", marginBottom: 16 }}>
+        <p style={{ fontSize: isMobile ? 14 : 16, color: "#e65100", marginBottom: isMobile ? 12 : 16 }}>
           רוצה להגיש תוצאת משחק?
         </p>
         <Link
           to="/bracket"
           style={{
             display: "inline-block",
-            padding: "14px 32px",
+            padding: isMobile ? "12px 24px" : "14px 32px",
             background: "linear-gradient(135deg, #ff9800 0%, #f57c00 100%)",
             color: "#fff",
             textDecoration: "none",
-            borderRadius: 10,
+            borderRadius: isMobile ? 8 : 10,
             fontWeight: 700,
-            fontSize: 16,
+            fontSize: isMobile ? 14 : 16,
             boxShadow: "0 4px 15px rgba(255, 152, 0, 0.4)"
           }}
         >
