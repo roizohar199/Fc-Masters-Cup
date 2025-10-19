@@ -70,7 +70,10 @@ jobs:
           fi
           
           # Copy Nginx configuration
-          if [ -f nginx-config-k-rstudio.txt ]; then
+          if [ -f nginx-config-fixed.txt ]; then
+            cp nginx-config-fixed.txt deploy_temp/nginx-config.txt
+            echo "✅ Fixed Nginx config for k-rstudio.com included"
+          elif [ -f nginx-config-k-rstudio.txt ]; then
             cp nginx-config-k-rstudio.txt deploy_temp/nginx-config.txt
             echo "✅ Nginx config for k-rstudio.com included"
           elif [ -f deploy-config-nginx.txt ]; then
@@ -158,10 +161,18 @@ jobs:
               if [ -f /etc/nginx/sites-available/fcmasters ]; then
                 sudo cp /etc/nginx/sites-available/fcmasters "/etc/nginx/sites-available/fcmasters.backup-$(date +%Y%m%d-%H%M%S)" || true
               fi
+              
+              # Remove old conflicting configs
+              echo "🧹 Removing old conflicting Nginx configs..."
+              sudo rm -f /etc/nginx/sites-enabled/default || true
+              sudo rm -f /etc/nginx/sites-enabled/*k-rstudio* || true
+              sudo rm -f /etc/nginx/sites-available/*k-rstudio* || true
+              
               # Update config
               sudo cp nginx-config.txt /etc/nginx/sites-available/fcmasters || true
               # Enable site if not already enabled
               sudo ln -sf /etc/nginx/sites-available/fcmasters /etc/nginx/sites-enabled/fcmasters || true
+              
               # Test and reload
               if sudo nginx -t 2>&1 | grep -q "successful"; then
                 echo "✅ Nginx config validated for k-rstudio.com"
