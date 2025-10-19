@@ -55,6 +55,10 @@ export default function AdminDashboard() {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState("");
   
+  // בחירה מרובה
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+  const [bulkActionMode, setBulkActionMode] = useState(false);
+  
   // שחקנים אמיתיים (משתמשים עם role = 'player')
   const [availablePlayers, setAvailablePlayers] = useState<Array<{id: string, psn: string, displayName: string, email: string}>>([]);
   
@@ -572,6 +576,262 @@ export default function AdminDashboard() {
       loadUsers();
     } catch (error: any) {
       alert(`שגיאה: ${error.message}`);
+    }
+  }
+
+  // פונקציות לבחירה מרובה
+  function toggleUserSelection(userId: string) {
+    const newSelected = new Set(selectedUsers);
+    if (newSelected.has(userId)) {
+      newSelected.delete(userId);
+    } else {
+      newSelected.add(userId);
+    }
+    setSelectedUsers(newSelected);
+  }
+
+  function selectAllUsers() {
+    const allUserIds = users.map(user => user.id);
+    setSelectedUsers(new Set(allUserIds));
+  }
+
+  function clearSelection() {
+    setSelectedUsers(new Set());
+  }
+
+  async function bulkApproveUsers() {
+    if (selectedUsers.size === 0) return;
+    
+    const selectedUserNames = users
+      .filter(user => selectedUsers.has(user.id))
+      .map(user => user.email)
+      .join(", ");
+    
+    if (!confirm(`האם אתה בטוח שברצונך לאשר ${selectedUsers.size} משתמשים?\n\n${selectedUserNames}`)) {
+      return;
+    }
+
+    try {
+      for (const userId of selectedUsers) {
+        await api("/api/admin/approve-user-api", {
+          method: "POST",
+          body: JSON.stringify({ userId })
+        });
+      }
+      alert(`✅ ${selectedUsers.size} משתמשים אושרו בהצלחה!`);
+      clearSelection();
+      await loadUsers();
+    } catch (error: any) {
+      alert(`❌ שגיאה באישור המשתמשים: ${error.message}`);
+    }
+  }
+
+  async function bulkRejectUsers() {
+    if (selectedUsers.size === 0) return;
+    
+    const selectedUserNames = users
+      .filter(user => selectedUsers.has(user.id))
+      .map(user => user.email)
+      .join(", ");
+    
+    if (!confirm(`האם אתה בטוח שברצונך לדחות ${selectedUsers.size} משתמשים?\n\n${selectedUserNames}`)) {
+      return;
+    }
+
+    try {
+      for (const userId of selectedUsers) {
+        await api("/api/admin/reject-user-api", {
+          method: "POST",
+          body: JSON.stringify({ userId })
+        });
+      }
+      alert(`❌ ${selectedUsers.size} משתמשים נדחו!`);
+      clearSelection();
+      await loadUsers();
+    } catch (error: any) {
+      alert(`❌ שגיאה בדחיית המשתמשים: ${error.message}`);
+    }
+  }
+
+  async function bulkDeleteUsers() {
+    if (selectedUsers.size === 0) return;
+    
+    const selectedUserNames = users
+      .filter(user => selectedUsers.has(user.id))
+      .map(user => user.email)
+      .join(", ");
+    
+    if (!confirm(`⚠️ האם אתה בטוח שברצונך למחוק ${selectedUsers.size} משתמשים?\n\n${selectedUserNames}\n\nפעולה זו תמחק את המשתמשים לצמיתות ולא ניתן לבטל אותה!`)) {
+      return;
+    }
+
+    if (!confirm(`אישור סופי: למחוק ${selectedUsers.size} משתמשים?`)) {
+      return;
+    }
+
+    try {
+      for (const userId of selectedUsers) {
+        const user = users.find(u => u.id === userId);
+        if (user) {
+          if (isSuperAdmin) {
+            await api(`/api/admin/users/${userId}`, { method: "DELETE" });
+          } else {
+            await api("/api/approval-requests/create", {
+              method: "POST",
+              body: JSON.stringify({
+                actionType: "delete",
+                targetUserId: userId,
+                actionData: {}
+              })
+            });
+          }
+        }
+      }
+      alert(`✅ ${selectedUsers.size} משתמשים נמחקו בהצלחה!`);
+      clearSelection();
+      await loadUsers();
+    } catch (error: any) {
+      alert(`❌ שגיאה במחיקת המשתמשים: ${error.message}`);
+    }
+  }
+
+  async function bulkPromoteUsers() {
+    if (selectedUsers.size === 0) return;
+    
+    const selectedUserNames = users
+      .filter(user => selectedUsers.has(user.id))
+      .map(user => user.email)
+      .join(", ");
+    
+    if (!confirm(`האם אתה בטוח שברצונך להפוך ${selectedUsers.size} משתמשים למנהלים?\n\n${selectedUserNames}`)) {
+      return;
+    }
+
+    try {
+      for (const userId of selectedUsers) {
+        if (isSuperAdmin) {
+          await api(`/api/admin/users/${userId}/promote`, { method: "POST" });
+        } else {
+          await api("/api/approval-requests/create", {
+            method: "POST",
+            body: JSON.stringify({
+              actionType: "promote",
+              targetUserId: userId,
+              actionData: {}
+            })
+          });
+        }
+      }
+      alert(`✅ ${selectedUsers.size} משתמשים הועלו לדרגת מנהל!`);
+      clearSelection();
+      await loadUsers();
+    } catch (error: any) {
+      alert(`❌ שגיאה בקידום המשתמשים: ${error.message}`);
+    }
+  }
+
+  async function bulkDemoteUsers() {
+    if (selectedUsers.size === 0) return;
+    
+    const selectedUserNames = users
+      .filter(user => selectedUsers.has(user.id))
+      .map(user => user.email)
+      .join(", ");
+    
+    if (!confirm(`האם אתה בטוח שברצונך להוריד ${selectedUsers.size} משתמשים לדרגת שחקן?\n\n${selectedUserNames}`)) {
+      return;
+    }
+
+    try {
+      for (const userId of selectedUsers) {
+        if (isSuperAdmin) {
+          await api(`/api/admin/users/${userId}/demote`, { method: "POST" });
+        } else {
+          await api("/api/approval-requests/create", {
+            method: "POST",
+            body: JSON.stringify({
+              actionType: "demote",
+              targetUserId: userId,
+              actionData: {}
+            })
+          });
+        }
+      }
+      alert(`✅ ${selectedUsers.size} משתמשים הורדו לדרגת שחקן!`);
+      clearSelection();
+      await loadUsers();
+    } catch (error: any) {
+      alert(`❌ שגיאה בהורדת המשתמשים: ${error.message}`);
+    }
+  }
+
+  async function bulkBlockUsers() {
+    if (selectedUsers.size === 0) return;
+    
+    const selectedUserNames = users
+      .filter(user => selectedUsers.has(user.id))
+      .map(user => user.email)
+      .join(", ");
+    
+    if (!confirm(`האם אתה בטוח שברצונך לחסום ${selectedUsers.size} משתמשים?\n\n${selectedUserNames}`)) {
+      return;
+    }
+
+    try {
+      for (const userId of selectedUsers) {
+        if (isSuperAdmin) {
+          await api(`/api/admin/users/${userId}/block`, { method: "POST" });
+        } else {
+          await api("/api/approval-requests/create", {
+            method: "POST",
+            body: JSON.stringify({
+              actionType: "block",
+              targetUserId: userId,
+              actionData: {}
+            })
+          });
+        }
+      }
+      alert(`🚫 ${selectedUsers.size} משתמשים נחסמו!`);
+      clearSelection();
+      await loadUsers();
+    } catch (error: any) {
+      alert(`❌ שגיאה בחסימת המשתמשים: ${error.message}`);
+    }
+  }
+
+  async function bulkUnblockUsers() {
+    if (selectedUsers.size === 0) return;
+    
+    const selectedUserNames = users
+      .filter(user => selectedUsers.has(user.id))
+      .map(user => user.email)
+      .join(", ");
+    
+    if (!confirm(`האם אתה בטוח שברצונך לשחרר ${selectedUsers.size} משתמשים?\n\n${selectedUserNames}`)) {
+      return;
+    }
+
+    try {
+      for (const userId of selectedUsers) {
+        if (isSuperAdmin) {
+          await api(`/api/admin/users/${userId}/unblock`, { method: "POST" });
+        } else {
+          await api("/api/approval-requests/create", {
+            method: "POST",
+            body: JSON.stringify({
+              actionType: "unblock",
+              targetUserId: userId,
+              actionData: {}
+            })
+          });
+        }
+      }
+      alert(`✅ ${selectedUsers.size} משתמשים שוחררו!`);
+      clearSelection();
+      await loadUsers();
+    } catch (error: any) {
+      alert(`❌ שגיאה בשחרור המשתמשים: ${error.message}`);
     }
   }
 
@@ -1156,6 +1416,202 @@ export default function AdminDashboard() {
                </div>
              </div>
           
+          {/* כפתורי בחירה מרובה */}
+          <div style={{ 
+            display: "flex", 
+            gap: 12, 
+            marginBottom: 16, 
+            padding: 16, 
+            background: "#f8f9fa", 
+            borderRadius: 8, 
+            border: "1px solid #e9ecef",
+            flexWrap: "wrap",
+            alignItems: "center"
+          }}>
+            <button
+              onClick={() => setBulkActionMode(!bulkActionMode)}
+              style={{
+                padding: "8px 16px",
+                borderRadius: 6,
+                border: "none",
+                background: bulkActionMode ? "#dc3545" : "#007bff",
+                color: "#fff",
+                cursor: "pointer",
+                fontWeight: 600,
+                fontSize: 14
+              }}
+            >
+              {bulkActionMode ? "❌ ביטול בחירה מרובה" : "☑️ בחירה מרובה"}
+            </button>
+            
+            {bulkActionMode && (
+              <>
+                <button
+                  onClick={selectAllUsers}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: 6,
+                    border: "1px solid #6c757d",
+                    background: "#fff",
+                    color: "#6c757d",
+                    cursor: "pointer",
+                    fontWeight: 600,
+                    fontSize: 14
+                  }}
+                >
+                  ☑️ בחר הכל
+                </button>
+                
+                <button
+                  onClick={clearSelection}
+                  disabled={selectedUsers.size === 0}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: 6,
+                    border: "1px solid #6c757d",
+                    background: selectedUsers.size === 0 ? "#f8f9fa" : "#fff",
+                    color: selectedUsers.size === 0 ? "#adb5bd" : "#6c757d",
+                    cursor: selectedUsers.size === 0 ? "not-allowed" : "pointer",
+                    fontWeight: 600,
+                    fontSize: 14
+                  }}
+                >
+                  🗑️ נקה בחירה
+                </button>
+                
+                {selectedUsers.size > 0 && (
+                  <div style={{ 
+                    marginLeft: "auto", 
+                    display: "flex", 
+                    gap: 8, 
+                    flexWrap: "wrap",
+                    alignItems: "center"
+                  }}>
+                    <span style={{ 
+                      fontSize: 14, 
+                      fontWeight: 600, 
+                      color: "#495057" 
+                    }}>
+                      {selectedUsers.size} נבחרו
+                    </span>
+                    
+                    <button
+                      onClick={bulkApproveUsers}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: 4,
+                        border: "none",
+                        background: "#28a745",
+                        color: "#fff",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        fontSize: 12
+                      }}
+                    >
+                      ✅ אשר
+                    </button>
+                    
+                    <button
+                      onClick={bulkRejectUsers}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: 4,
+                        border: "none",
+                        background: "#ffc107",
+                        color: "#000",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        fontSize: 12
+                      }}
+                    >
+                      ❌ דחה
+                    </button>
+                    
+                    <button
+                      onClick={bulkPromoteUsers}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: 4,
+                        border: "none",
+                        background: "#6f42c1",
+                        color: "#fff",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        fontSize: 12
+                      }}
+                    >
+                      👑 הפוך למנהל
+                    </button>
+                    
+                    <button
+                      onClick={bulkDemoteUsers}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: 4,
+                        border: "none",
+                        background: "#fd7e14",
+                        color: "#fff",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        fontSize: 12
+                      }}
+                    >
+                      ⬇️ הפוך לשחקן
+                    </button>
+                    
+                    <button
+                      onClick={bulkBlockUsers}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: 4,
+                        border: "none",
+                        background: "#dc3545",
+                        color: "#fff",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        fontSize: 12
+                      }}
+                    >
+                      🚫 חסום
+                    </button>
+                    
+                    <button
+                      onClick={bulkUnblockUsers}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: 4,
+                        border: "none",
+                        background: "#20c997",
+                        color: "#fff",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        fontSize: 12
+                      }}
+                    >
+                      ✅ שחרר
+                    </button>
+                    
+                    <button
+                      onClick={bulkDeleteUsers}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: 4,
+                        border: "none",
+                        background: "#343a40",
+                        color: "#fff",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        fontSize: 12
+                      }}
+                    >
+                      🗑️ מחק
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          
           <div style={{ overflowX: "auto" }}>
             <table style={{
               width: "100%",
@@ -1164,6 +1620,11 @@ export default function AdminDashboard() {
             }}>
               <thead>
                 <tr style={{ background: "#f5f5f5", borderBottom: "2px solid #e0e0e0" }}>
+                  {bulkActionMode && (
+                    <th style={{ padding: 12, textAlign: "center", fontWeight: 700, width: "50px" }}>
+                      ☑️
+                    </th>
+                  )}
                   <th style={{ padding: 12, textAlign: "right", fontWeight: 700 }}>אימייל</th>
                   <th style={{ padding: 12, textAlign: "center", fontWeight: 700 }}>תפקיד</th>
                   <th style={{ padding: 12, textAlign: "center", fontWeight: 700 }}>זיכוי (₪)</th>
@@ -1177,8 +1638,23 @@ export default function AdminDashboard() {
                 {users.map((user, idx) => (
                   <tr key={user.id} style={{
                     borderBottom: "1px solid #f0f0f0",
-                    background: idx % 2 === 0 ? "#fff" : "#fafafa"
+                    background: idx % 2 === 0 ? "#fff" : "#fafafa",
+                    opacity: selectedUsers.has(user.id) ? 0.7 : 1
                   }}>
+                    {bulkActionMode && (
+                      <td style={{ padding: 12, textAlign: "center" }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedUsers.has(user.id)}
+                          onChange={() => toggleUserSelection(user.id)}
+                          style={{
+                            width: 18,
+                            height: 18,
+                            cursor: "pointer"
+                          }}
+                        />
+                      </td>
+                    )}
                     <td style={{ padding: 12, fontWeight: 600 }}>{user.email}</td>
                     <td style={{ padding: 12, textAlign: "center" }}>
                       <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
