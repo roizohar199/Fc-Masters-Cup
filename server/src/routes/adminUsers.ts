@@ -2,6 +2,7 @@ import { Router } from "express";
 import db from "../db.js";
 import { sendUserApprovedEmail } from "../email.js";
 import { logger } from "../logger.js";
+import { requireAuth } from "../auth.js";
 
 export const adminUsers = Router();
 
@@ -256,7 +257,7 @@ adminUsers.get("/reject-user", async (req, res) => {
 });
 
 // API לאישור משתמש מהפאנל (דורש הרשאת מנהל)
-adminUsers.post("/approve-user-api", async (req, res) => {
+adminUsers.post("/approve-user-api", requireAuth, async (req, res) => {
   const { userId } = req.body;
   
   if (!userId) {
@@ -290,7 +291,7 @@ adminUsers.post("/approve-user-api", async (req, res) => {
 });
 
 // API לדחיית משתמש מהפאנל (דורש הרשאת מנהל)
-adminUsers.post("/reject-user-api", async (req, res) => {
+adminUsers.post("/reject-user-api", requireAuth, async (req, res) => {
   const { userId } = req.body;
   
   if (!userId) {

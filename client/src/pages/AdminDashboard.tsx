@@ -266,7 +266,7 @@ export default function AdminDashboard() {
     if (!confirm("האם אתה בטוח שברצונך לאשר משתמש זה?")) return;
     
     try {
-      await api("/api/admin/approve-user-api", {
+      await api("/api/admin-approval/approve-user-api", {
         method: "POST",
         body: JSON.stringify({ userId })
       });
@@ -281,7 +281,7 @@ export default function AdminDashboard() {
     if (!confirm("האם אתה בטוח שברצונך לדחות משתמש זה?")) return;
     
     try {
-      await api("/api/admin/reject-user-api", {
+      await api("/api/admin-approval/reject-user-api", {
         method: "POST",
         body: JSON.stringify({ userId })
       });
@@ -620,7 +620,7 @@ export default function AdminDashboard() {
 
     try {
       for (const userId of selectedUsers) {
-        await api("/api/admin/approve-user-api", {
+        await api("/api/admin-approval/approve-user-api", {
           method: "POST",
           body: JSON.stringify({ userId })
         });
@@ -647,7 +647,7 @@ export default function AdminDashboard() {
 
     try {
       for (const userId of selectedUsers) {
-        await api("/api/admin/reject-user-api", {
+        await api("/api/admin-approval/reject-user-api", {
           method: "POST",
           body: JSON.stringify({ userId })
         });
