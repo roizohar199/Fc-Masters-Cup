@@ -49,6 +49,10 @@ export default function AdminPanel() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"users" | "online" | "tournaments" | "players">("users");
+  
+  // בחירה מרובה
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+  const [bulkActionMode, setBulkActionMode] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -133,6 +137,138 @@ export default function AdminPanel() {
       loadData();
     } catch (error: any) {
       alert(`שגיאה: ${error.message}`);
+    }
+  }
+
+  // פונקציות לבחירה מרובה
+  function toggleUserSelection(userId: string) {
+    const newSelected = new Set(selectedUsers);
+    if (newSelected.has(userId)) {
+      newSelected.delete(userId);
+    } else {
+      newSelected.add(userId);
+    }
+    setSelectedUsers(newSelected);
+  }
+
+  function selectAllUsers() {
+    const allUserIds = users.map(user => user.id);
+    setSelectedUsers(new Set(allUserIds));
+  }
+
+  function clearSelection() {
+    setSelectedUsers(new Set());
+  }
+
+  async function bulkBlockUsers() {
+    if (selectedUsers.size === 0) return;
+    
+    const selectedUserNames = users
+      .filter(user => selectedUsers.has(user.id))
+      .map(user => user.email)
+      .join(", ");
+    
+    if (!confirm(`האם אתה בטוח שברצונך לחסום ${selectedUsers.size} משתמשים?\n\n${selectedUserNames}`)) {
+      return;
+    }
+
+    try {
+      for (const userId of selectedUsers) {
+        await api(`/api/admin/users/${userId}/block`, { method: "POST" });
+      }
+      alert(`🚫 ${selectedUsers.size} משתמשים נחסמו!`);
+      clearSelection();
+      await loadData();
+    } catch (error: any) {
+      alert(`❌ שגיאה בחסימת המשתמשים: ${error.message}`);
+    }
+  }
+
+  async function bulkUnblockUsers() {
+    if (selectedUsers.size === 0) return;
+    
+    const selectedUserNames = users
+      .filter(user => selectedUsers.has(user.id))
+      .map(user => user.email)
+      .join(", ");
+    
+    if (!confirm(`האם אתה בטוח שברצונך לשחרר ${selectedUsers.size} משתמשים?\n\n${selectedUserNames}`)) {
+      return;
+    }
+
+    try {
+      for (const userId of selectedUsers) {
+        await api(`/api/admin/users/${userId}/unblock`, { method: "POST" });
+      }
+      alert(`✅ ${selectedUsers.size} משתמשים שוחררו!`);
+      clearSelection();
+      await loadData();
+    } catch (error: any) {
+      alert(`❌ שגיאה בשחרור המשתמשים: ${error.message}`);
+    }
+  }
+
+  async function bulkDeleteUsers() {
+    if (selectedUsers.size === 0) return;
+    
+    const selectedUserNames = users
+      .filter(user => selectedUsers.has(user.id))
+      .map(user => user.email)
+      .join(", ");
+    
+    if (!confirm(`⚠️ האם אתה בטוח שברצונך למחוק ${selectedUsers.size} משתמשים?\n\n${selectedUserNames}\n\nפעולה זו תמחק את המשתמשים לצמיתות ולא ניתן לבטל אותה!`)) {
+      return;
+    }
+
+    if (!confirm(`אישור סופי: למחוק ${selectedUsers.size} משתמשים?`)) {
+      return;
+    }
+
+    try {
+      for (const userId of selectedUsers) {
+        await api(`/api/admin/users/${userId}`, { method: "DELETE" });
+      }
+      alert(`✅ ${selectedUsers.size} משתמשים נמחקו בהצלחה!`);
+      clearSelection();
+      await loadData();
+    } catch (error: any) {
+      alert(`❌ שגיאה במחיקת המשתמשים: ${error.message}`);
+    }
+  }
+
+  async function bulkUpdateCredit() {
+    if (selectedUsers.size === 0) return;
+    
+    const credit = prompt(`הזן סכום זיכוי עבור ${selectedUsers.size} משתמשים (₪):`, "0");
+    if (credit === null) return;
+    
+    const creditNum = parseFloat(credit);
+    if (isNaN(creditNum)) {
+      alert("סכום לא תקין");
+      return;
+    }
+
+    const selectedUserNames = users
+      .filter(user => selectedUsers.has(user.id))
+      .map(user => user.email)
+      .join(", ");
+    
+    if (!confirm(`האם אתה בטוח שברצונך לעדכן זיכוי ל-${selectedUsers.size} משתמשים?\n\n${selectedUserNames}\n\nסכום: ${creditNum} ₪`)) {
+      return;
+    }
+
+    try {
+      for (const userId of selectedUsers) {
+        await api(`/api/admin/users/${userId}/credit`, {
+          method: "POST",
+          body: JSON.stringify({ credit: creditNum })
+        });
+      }
+      alert(`✅ זיכוי עודכן ל-${selectedUsers.size} משתמשים!`);
+      clearSelection();
+      await loadData();
+    } catch (error: any) {
+      alert(`❌ שגיאה בעדכון הזיכוי: ${error.message}`);
     }
   }
 
@@ -293,6 +429,154 @@ export default function AdminPanel() {
             👥 ניהול משתמשים
           </h3>
           
+          {/* כפתורי בחירה מרובה */}
+          <div style={{ 
+            display: "flex", 
+            gap: 12, 
+            marginBottom: 16, 
+            padding: 16, 
+            background: "#f8f9fa", 
+            borderRadius: 8, 
+            border: "1px solid #e9ecef",
+            flexWrap: "wrap",
+            alignItems: "center"
+          }}>
+            <button
+              onClick={() => setBulkActionMode(!bulkActionMode)}
+              style={{
+                padding: "8px 16px",
+                borderRadius: 6,
+                border: "none",
+                background: bulkActionMode ? "#dc3545" : "#007bff",
+                color: "#fff",
+                cursor: "pointer",
+                fontWeight: 600,
+                fontSize: 14
+              }}
+            >
+              {bulkActionMode ? "❌ ביטול בחירה מרובה" : "☑️ בחירה מרובה"}
+            </button>
+            
+            {bulkActionMode && (
+              <>
+                <button
+                  onClick={selectAllUsers}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: 6,
+                    border: "1px solid #6c757d",
+                    background: "#fff",
+                    color: "#6c757d",
+                    cursor: "pointer",
+                    fontWeight: 600,
+                    fontSize: 14
+                  }}
+                >
+                  ☑️ בחר הכל
+                </button>
+                
+                <button
+                  onClick={clearSelection}
+                  disabled={selectedUsers.size === 0}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: 6,
+                    border: "1px solid #6c757d",
+                    background: selectedUsers.size === 0 ? "#f8f9fa" : "#fff",
+                    color: selectedUsers.size === 0 ? "#adb5bd" : "#6c757d",
+                    cursor: selectedUsers.size === 0 ? "not-allowed" : "pointer",
+                    fontWeight: 600,
+                    fontSize: 14
+                  }}
+                >
+                  🗑️ נקה בחירה
+                </button>
+                
+                {selectedUsers.size > 0 && (
+                  <div style={{ 
+                    marginLeft: "auto", 
+                    display: "flex", 
+                    gap: 8, 
+                    flexWrap: "wrap",
+                    alignItems: "center"
+                  }}>
+                    <span style={{ 
+                      fontSize: 14, 
+                      fontWeight: 600, 
+                      color: "#495057" 
+                    }}>
+                      {selectedUsers.size} נבחרו
+                    </span>
+                    
+                    <button
+                      onClick={bulkBlockUsers}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: 4,
+                        border: "none",
+                        background: "#dc3545",
+                        color: "#fff",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        fontSize: 12
+                      }}
+                    >
+                      🚫 חסום
+                    </button>
+                    
+                    <button
+                      onClick={bulkUnblockUsers}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: 4,
+                        border: "none",
+                        background: "#20c997",
+                        color: "#fff",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        fontSize: 12
+                      }}
+                    >
+                      ✅ שחרר
+                    </button>
+                    
+                    <button
+                      onClick={bulkUpdateCredit}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: 4,
+                        border: "none",
+                        background: "#17a2b8",
+                        color: "#fff",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        fontSize: 12
+                      }}
+                    >
+                      💰 עדכן זיכוי
+                    </button>
+                    
+                    <button
+                      onClick={bulkDeleteUsers}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: 4,
+                        border: "none",
+                        background: "#343a40",
+                        color: "#fff",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        fontSize: 12
+                      }}
+                    >
+                      🗑️ מחק
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          
           <div style={{ overflowX: "auto" }}>
             <table style={{
               width: "100%",
@@ -301,6 +585,11 @@ export default function AdminPanel() {
             }}>
               <thead>
                 <tr style={{ background: "#f5f5f5", borderBottom: "2px solid #e0e0e0" }}>
+                  {bulkActionMode && (
+                    <th style={{ padding: 12, textAlign: "center", fontWeight: 700, width: "50px" }}>
+                      ☑️
+                    </th>
+                  )}
                   <th style={{ padding: 12, textAlign: "right", fontWeight: 700 }}>אימייל</th>
                   <th style={{ padding: 12, textAlign: "center", fontWeight: 700 }}>PSN</th>
                   <th style={{ padding: 12, textAlign: "center", fontWeight: 700 }}>תפקיד</th>
@@ -314,8 +603,23 @@ export default function AdminPanel() {
                 {users.map((user, idx) => (
                   <tr key={user.id} style={{
                     borderBottom: "1px solid #f0f0f0",
-                    background: idx % 2 === 0 ? "#fff" : "#fafafa"
+                    background: idx % 2 === 0 ? "#fff" : "#fafafa",
+                    opacity: selectedUsers.has(user.id) ? 0.7 : 1
                   }}>
+                    {bulkActionMode && (
+                      <td style={{ padding: 12, textAlign: "center" }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedUsers.has(user.id)}
+                          onChange={() => toggleUserSelection(user.id)}
+                          style={{
+                            width: 18,
+                            height: 18,
+                            cursor: "pointer"
+                          }}
+                        />
+                      </td>
+                    )}
                     <td style={{ padding: 12 }}>{user.email}</td>
                     <td style={{ padding: 12, textAlign: "center", fontFamily: "monospace", fontSize: 13 }}>
                       {user.psnUsername || <span style={{ color: "#999" }}>לא הוגדר</span>}
