@@ -212,7 +212,8 @@ export default function PlayerDashboard() {
         borderRadius: isMobile ? 12 : 16,
         color: "#fff",
         boxShadow: "0 10px 30px rgba(102, 126, 234, 0.3)",
-        overflow: "hidden"
+        overflow: "hidden",
+        textAlign: "center"
       }}>
         <h2 style={{ 
           fontSize: isMobile ? 18 : 32, 
@@ -221,7 +222,8 @@ export default function PlayerDashboard() {
           lineHeight: 1.3,
           wordBreak: "break-word",
           overflow: "hidden",
-          textOverflow: "ellipsis"
+          textOverflow: "ellipsis",
+          textAlign: "center"
         }}>
           שלום, {playerInfo?.email}! ⚽
         </h2>
@@ -229,7 +231,8 @@ export default function PlayerDashboard() {
           fontSize: isMobile ? 13 : 16, 
           opacity: 0.9,
           lineHeight: 1.4,
-          wordBreak: "break-word"
+          wordBreak: "break-word",
+          textAlign: "center"
         }}>
           ברוך הבא לאזור השחקנים של FC Masters Cup
         </p>
@@ -722,14 +725,20 @@ export default function PlayerDashboard() {
         borderRadius: isMobile ? 12 : 16,
         border: "2px solid #ff9800",
         textAlign: "center",
-        overflow: "hidden"
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center"
       }}>
         <p style={{ 
           fontSize: isMobile ? 13 : 16, 
           color: "#e65100", 
           marginBottom: isMobile ? 10 : 16,
           lineHeight: 1.4,
-          wordBreak: "break-word"
+          wordBreak: "break-word",
+          textAlign: "center",
+          margin: "0 0 10px 0"
         }}>
           רוצה להגיש תוצאת משחק?
         </p>
@@ -745,10 +754,12 @@ export default function PlayerDashboard() {
             fontWeight: 700,
             fontSize: isMobile ? 13 : 16,
             boxShadow: "0 4px 15px rgba(255, 152, 0, 0.4)",
-            maxWidth: "100%",
+            maxWidth: isMobile ? "90%" : "100%",
             overflow: "hidden",
             textOverflow: "ellipsis",
-            whiteSpace: "nowrap"
+            whiteSpace: "nowrap",
+            textAlign: "center",
+            width: isMobile ? "auto" : "auto"
           }}
         >
           {isMobile ? "תוצאות 📊" : "צפה בתוצאות 📊"}
