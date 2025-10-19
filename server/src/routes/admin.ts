@@ -19,16 +19,24 @@ function isTargetSuperAdmin(userId: string): boolean {
 
 // Get all users (admin only)
 admin.get("/users", (req, res) => {
-  const users = db.prepare(`SELECT id, email, role, secondPrizeCredit, createdAt, status, psnUsername FROM users ORDER BY createdAt DESC`).all();
-  
-  // מניעת cache
-  res.set({
-    'Cache-Control': 'no-cache, no-store, must-revalidate',
-    'Pragma': 'no-cache',
-    'Expires': '0'
-  });
-  
-  res.json(users);
+  console.log("🔍 API /users נקרא");
+  try {
+    const users = db.prepare(`SELECT id, email, role, secondPrizeCredit, createdAt, status, psnUsername FROM users ORDER BY createdAt DESC`).all();
+    console.log("📊 משתמשים מהמסד נתונים:", users.length, "משתמשים");
+    console.log("📋 פרטי משתמשים:", users);
+    
+    // מניעת cache
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+    
+    res.json(users);
+  } catch (error) {
+    console.error("❌ שגיאה בטעינת משתמשים:", error);
+    res.status(500).json({ error: "שגיאה בטעינת משתמשים" });
+  }
 });
 
 // Get online users (admin only)
