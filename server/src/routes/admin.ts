@@ -2,6 +2,7 @@ import { Router } from "express";
 import db from "../db.js";
 import argon2 from "argon2";
 import { logger } from "../logger.js";
+import { getPresenceData } from "../presence.js";
 
 export const admin = Router();
 
@@ -39,37 +40,45 @@ admin.get("/users", (req, res) => {
   }
 });
 
-// Get online users (admin only)
+// Get online users (admin only) - תמיד מחזיר תשובה תקינה
 admin.get("/online-users", async (req, res) => {
+  // יצירת timeout promise (800ms - timeout רך)
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error("presence_timeout")), 800)
+  );
+
   try {
-    // קבלת נתוני נוכחות ממערכת ה-presence
-    const presenceResponse = await fetch(`http://localhost:${process.env.PORT || 8787}/api/presence/all-users`);
-    if (!presenceResponse.ok) {
-      throw new Error("Failed to get presence data");
-    }
-    
-    const allUsersWithPresence = await presenceResponse.json();
+    // ריצת getPresenceData עם timeout של 800ms
+    const data = await Promise.race([getPresenceData(), timeout]);
     
     // יצירת רשימת משתמשים מחוברים
-    const onlineUsers = allUsersWithPresence.filter((user: any) => user.isOnline);
+    const onlineUsers = data.users.filter((user: any) => user.isOnline);
     const onlineUserIds = onlineUsers.map((user: any) => user.id);
     
-    logger.info("admin", `Found ${onlineUserIds.length} users online:`, {
-      users: onlineUsers.map((u: any) => ({ id: u.id, email: u.email, isOnline: u.isOnline, isActive: u.isActive }))
-    });
+    logger.info("admin", `Found ${onlineUserIds.length} users online`);
     
+    // החזרת תשובה תמיד 200 OK
     res.json({ 
       onlineUsers: onlineUserIds,
-      allUsers: allUsersWithPresence, // נשלח את כל המשתמשים עם נתוני נוכחות
+      allUsers: data.users,
+      total: data.total,
       debug: {
-        totalUsers: allUsersWithPresence.length,
-        onlineUsers: onlineUserIds.length,
-        userDetails: onlineUsers.map((u: any) => ({ id: u.id, email: u.email }))
+        totalUsers: data.users.length,
+        onlineUsers: onlineUserIds.length
       }
     });
-  } catch (error) {
-    logger.error("admin", "Failed to get online users", error);
-    res.json({ onlineUsers: [] });
+  } catch (e: any) {
+    // טיפול בשגיאות - תמיד מחזיר 200 OK עם מבנה ריק
+    console.warn("[ADMIN] Failed to get online users:", e?.message ?? e);
+    res.status(200).json({ 
+      onlineUsers: [], 
+      allUsers: [], 
+      total: 0,
+      debug: {
+        totalUsers: 0,
+        onlineUsers: 0
+      }
+    });
   }
 });
 

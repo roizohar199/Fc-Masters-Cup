@@ -7,7 +7,6 @@ console.log("ENV check → HOST:", process.env.SMTP_HOST, "| USER:", process.env
 import express from "express";
 import cors from "cors";
 import path from "node:path";
-import passport from "passport";
 import rateLimit from "express-rate-limit";
 import { tournaments } from "./routes/tournaments.js";
 import { matches } from "./routes/matches.js";
@@ -18,7 +17,6 @@ import { admin } from "./routes/admin.js";
 import { adminUsers } from "./routes/adminUsers.js";
 import { approvalRequests } from "./routes/approvalRequests.js";
 import { withCookies, requireAuth, requireSuperAdmin, seedAdminFromEnv } from "./auth.js";
-// Google OAuth removed
 import { logger } from "./logger.js";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
@@ -32,9 +30,6 @@ const app = express();
 
 // אנחנו מאחורי Nginx - trust proxy headers
 app.set('trust proxy', 1);
-
-// Setup Google OAuth
-// Google OAuth removed
 
 // Rate Limiting - prevent abuse
 // בפיתוח: מקל, בפרודקשן: חמור
@@ -60,7 +55,6 @@ app.use(cors({
 
 app.use(withCookies());
 app.use(express.json());
-app.use(passport.initialize());
 
 // Apply rate limiting to all API routes
 app.use('/api/', apiLimiter);

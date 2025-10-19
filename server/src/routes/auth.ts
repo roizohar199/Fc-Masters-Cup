@@ -1,6 +1,5 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
-import passport from "passport";
 import { authenticate, registerUser, createPasswordResetToken, resetPassword, setSessionCookie, clearSessionCookie, signToken, decodeToken } from "../auth.js";
 import { RegisterDTO, ForgotPasswordDTO, ResetPasswordDTO } from "../models.js";
 import { sendWelcomeEmail, sendPasswordResetEmail, sendPasswordResetSuccessEmail } from "../email.js";
@@ -282,6 +281,4 @@ auth.post("/change-password", limiter, async (req, res) => {
   
   res.json({ ok: true, message: "הסיסמה שונתה בהצלחה" });
 });
-
-// Google OAuth removed - using only regular registration
 

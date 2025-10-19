@@ -55,7 +55,6 @@ export function loadEnvSafely() {
     JWT_SECRET: process.env.JWT_SECRET ? "✓ Set" : "✗ NOT SET (using dev_secret)",
     ADMIN_EMAIL: process.env.ADMIN_EMAIL ? "✓ Set" : "✗ NOT SET",
     ADMIN_PASSWORD: process.env.ADMIN_PASSWORD ? "✓ Set" : "✗ NOT SET",
-    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? "✓ Set" : "○ Not set (optional)",
     SMTP_USER: process.env.SMTP_USER ? "✓ Set" : "○ Not set (optional)"
   });
 

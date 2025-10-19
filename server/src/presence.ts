@@ -251,61 +251,91 @@ export function attachPresence(server: HTTPServer) {
   return { getOnline: snapshot };
 }
 
-// אופציונלי: REST fallback
+// פונקציה לקבלת נתוני נוכחות עם טיפול בשגיאות - ללא זריקת exceptions
+export async function getPresenceData() {
+  try {
+    // ייבוא db דינמי כדי למנוע בעיות circular import
+    const db = (await import("./db.js")).default;
+    
+    // שליפת כל המשתמשים מהמסד נתונים
+    let allUsers: any[] = [];
+    try {
+      allUsers = db.prepare("SELECT id, email, role, status, psnUsername, secondPrizeCredit, createdAt, approvalStatus, isSuperAdmin FROM users").all() as any[];
+    } catch (dbError) {
+      console.warn("[PRESENCE] Database query failed:", dbError instanceof Error ? dbError.message : dbError);
+      return { users: [], total: 0 };
+    }
+    
+    // קבלת נתוני נוכחות - עם fallback במקרה של כשל
+    let presenceData: Array<{uid:string;email:string;lastSeen:number;isOnline:boolean;isActive:boolean;connections:number}>;
+    try {
+      presenceData = snapshot();
+    } catch (presenceError) {
+      console.warn("[PRESENCE] Snapshot unavailable:", presenceError instanceof Error ? presenceError.message : presenceError);
+      presenceData = [];
+    }
+    const presenceMap = new Map(presenceData.map(p => [p.email, p]));
+    
+    // שילוב הנתונים עם לוגיקה חדשה שמתחשבת ב-logins
+    const users = allUsers.map(user => {
+      const presence = presenceMap.get(user.email);
+      const now = Date.now();
+      const recentLogin = recentLogins.get(user.email);
+      
+      // משתמש נחשב אונליין אם:
+      // 1. יש לו WebSocket connection פעיל, או
+      // 2. הוא התחבר לאחרונה (ב-5 דקות האחרונות)
+      const hasWebSocketConnection = presence?.isOnline || false;
+      const hasRecentLogin = recentLogin && (now - recentLogin) <= (5 * 60 * 1000); // 5 דקות
+      
+      const isOnline = hasWebSocketConnection || hasRecentLogin;
+      const isActive = presence?.isActive || false;
+      
+      return {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        isOnline: isOnline,
+        isActive: isActive,
+        lastSeen: presence?.lastSeen || recentLogin || null,
+        connections: presence?.connections || 0,
+        psnUsername: user.psnUsername,
+        secondPrizeCredit: user.secondPrizeCredit,
+        createdAt: user.createdAt,
+        approvalStatus: user.approvalStatus || 'approved',
+        isSuperAdmin: user.isSuperAdmin === 1
+      };
+    });
+    
+    return { users, total: users.length };
+  } catch (e: any) {
+    console.warn("[PRESENCE] Data collection failed:", e?.message ?? e);
+    return { users: [], total: 0 }; // החזר מבנה ריק במקום להפיל
+  }
+}
+
+// אופציונלי: REST fallback - ללא זריקת exceptions
 export function presenceRest(app: import("express").Express) {
-  app.get("/api/presence/online", (_req, res) => res.json(snapshot()));
+  app.get("/api/presence/online", (_req, res) => {
+    try {
+      const data = snapshot();
+      res.json(data);
+    } catch (error) {
+      console.warn("[PRESENCE] /api/presence/online failed:", error instanceof Error ? error.message : error);
+      res.status(200).json([]);
+    }
+  });
   
   // endpoint חדש שמחזיר את כל המשתמשים עם סטטוס נוכחות
   app.get("/api/presence/all-users", async (_req, res) => {
     try {
-      // ייבוא db דינמי כדי למנוע בעיות circular import
-      const db = (await import("./db.js")).default;
-      
-      // שליפת כל המשתמשים מהמסד נתונים
-      const allUsers = db.prepare("SELECT id, email, role, status, psnUsername, secondPrizeCredit, createdAt, approvalStatus, isSuperAdmin FROM users").all() as any[];
-      
-      // קבלת נתוני נוכחות
-      const presenceData = snapshot();
-      const presenceMap = new Map(presenceData.map(p => [p.email, p]));
-      
-      // שילוב הנתונים עם לוגיקה חדשה שמתחשבת ב-logins
-      const result = allUsers.map(user => {
-        const presence = presenceMap.get(user.email);
-        const now = Date.now();
-        const recentLogin = recentLogins.get(user.email);
-        
-        // משתמש נחשב אונליין אם:
-        // 1. יש לו WebSocket connection פעיל, או
-        // 2. הוא התחבר לאחרונה (ב-5 דקות האחרונות)
-        const hasWebSocketConnection = presence?.isOnline || false;
-        const hasRecentLogin = recentLogin && (now - recentLogin) <= (5 * 60 * 1000); // 5 דקות
-        
-        const isOnline = hasWebSocketConnection || hasRecentLogin;
-        const isActive = presence?.isActive || false;
-        
-        console.log(`🔍 User ${user.email}: hasWebSocket=${hasWebSocketConnection}, hasRecentLogin=${hasRecentLogin}, isOnline=${isOnline}`);
-        
-        return {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          status: user.status,
-          isOnline: isOnline,
-          isActive: isActive,
-          lastSeen: presence?.lastSeen || recentLogin || null,
-          connections: presence?.connections || 0,
-          psnUsername: user.psnUsername,
-          secondPrizeCredit: user.secondPrizeCredit,
-          createdAt: user.createdAt,
-          approvalStatus: user.approvalStatus || 'approved',
-          isSuperAdmin: user.isSuperAdmin === 1
-        };
-      });
-      
-      res.json(result);
+      const data = await getPresenceData();
+      res.json(data.users);
     } catch (error) {
-      console.error("Error in /api/presence/all-users:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.warn("[PRESENCE] /api/presence/all-users failed:", error instanceof Error ? error.message : error);
+      // במקרה של כשל - החזר מערך ריק עם סטטוס 200
+      res.status(200).json([]);
     }
   });
 }
