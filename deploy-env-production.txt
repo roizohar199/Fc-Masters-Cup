@@ -1,0 +1,25 @@
+PORT=8787
+NODE_ENV=production
+
+# !!! חשוב: שנה את הכתובות לדומיין שלך !!!
+SITE_URL=https://k-rstudio.com
+CORS_ORIGIN=https://k-rstudio.com
+
+# Admin
+ADMIN_EMAIL=roizohar111@gmail.com
+ADMIN_PASSWORD=Roizohar1985
+
+# JWT Secret - אל תשנה!
+JWT_SECRET=2670b72afa9d87ecbbb65bdb4959f67b129894eb9de7135295665148852f9b990181540461fc3e88c95b16e8a0ad1e20004203e1b9778e66a683fd5a39369a07
+
+# SMTP Configuration
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=roizohar111@gmail.com
+SMTP_PASS=acccxggzncimlcnr
+SMTP_FROM=FC Masters Cup <roizohar111@gmail.com>
+SMTP_SECURE=false
+
+# Timezone
+TZ=Asia/Jerusalem
+

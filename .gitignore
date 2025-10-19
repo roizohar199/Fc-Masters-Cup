@@ -12,6 +12,14 @@ build/
 .env
 .env.local
 .env.production
+!.env.production.example
+*.key
+*.pem
+github_actions_rsa*
+
+# Google OAuth secrets (NEVER commit these!)
+client_secret_*.json
+**/client_secret_*.json
 
 # Database files (keep empty database structure)
 # *.sqlite
