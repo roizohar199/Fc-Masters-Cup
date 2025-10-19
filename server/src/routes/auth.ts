@@ -301,7 +301,21 @@ auth.get("/google/callback",
       
       console.log("Google OAuth: User authenticated:", user.email);
       
-      const token = signToken({ uid: user.uid, email: user.email });
+      // בדוק אם המשתמש מאושר
+      const userData = db.prepare(`SELECT status, approvalStatus, role FROM users WHERE email=?`).get(user.email) as any;
+      
+      if (!userData) {
+        console.error("Google OAuth: User not found in database");
+        return res.redirect("/login?error=user_not_found");
+      }
+      
+      // בדוק אם המשתמש מאושר
+      if (userData.approvalStatus !== 'approved' || userData.status !== 'active') {
+        console.log("Google OAuth: User not approved:", user.email, "Status:", userData.status, "Approval:", userData.approvalStatus);
+        return res.redirect("/login?error=pending_approval");
+      }
+      
+      const token = signToken({ uid: user.uid, email: user.email, role: userData.role });
       setSessionCookie(res, token);
       
       console.log("Google OAuth: Token created, redirecting to /");

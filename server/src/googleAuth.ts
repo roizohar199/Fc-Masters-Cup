@@ -44,11 +44,31 @@ export function setupGoogleAuth() {
             const userId = randomUUID();
             console.log("Google OAuth: Creating new user:", email);
             
-            db.prepare(`INSERT INTO users (id, email, passwordHash, createdAt, role, status, approvalStatus) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-              .run(userId, email, "", new Date().toISOString(), 'player', 'active', 'approved');
+            // יצירת approval token
+            const approvalToken = randomUUID();
+            
+            db.prepare(`INSERT INTO users (id, email, passwordHash, createdAt, role, status, approvalStatus, approvalToken) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+              .run(userId, email, "", new Date().toISOString(), 'player', 'pending', 'pending', approvalToken);
             user = { id: userId, email };
             
             console.log("Google OAuth: New user created:", userId);
+            
+            // שליחת מייל למנהל על הרשמה חדשה עם Google
+            try {
+              const { sendAdminApprovalRequest } = await import("./email.js");
+              const adminEmail = process.env.ADMIN_EMAIL;
+              if (adminEmail) {
+                await sendAdminApprovalRequest(adminEmail, { 
+                  email: email, 
+                  psnUsername: '', // Google users don't have PSN username initially
+                  createdAt: new Date().toISOString(),
+                  approvalToken: approvalToken
+                });
+                console.log("Google OAuth: Admin notification sent for:", email);
+              }
+            } catch (emailError) {
+              console.error("Google OAuth: Failed to send admin notification:", emailError);
+            }
           } else {
             console.log("Google OAuth: Existing user found:", user.id);
           }
