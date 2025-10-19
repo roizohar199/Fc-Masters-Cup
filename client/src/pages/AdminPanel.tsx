@@ -192,7 +192,7 @@ export default function AdminPanel() {
       .map(user => user.email)
       .join(", ");
     
-    if (!confirm(`האם אתה בטוח שברצונך לשחרר ${selectedUsers.size} משתמשים?\n\n${selectedUserNames}`)) {
+    if (!confirm(`האם אתה בטוח שברצונך לבטל חסימה ל-${selectedUsers.size} משתמשים?\n\n${selectedUserNames}`)) {
       return;
     }
 
@@ -200,7 +200,7 @@ export default function AdminPanel() {
       for (const userId of selectedUsers) {
         await api(`/api/admin/users/${userId}/unblock`, { method: "POST" });
       }
-      alert(`✅ ${selectedUsers.size} משתמשים שוחררו!`);
+      alert(`✅ חסימה בוטלה ל-${selectedUsers.size} משתמשים!`);
       clearSelection();
       await loadData();
     } catch (error: any) {
@@ -537,7 +537,7 @@ export default function AdminPanel() {
                         fontSize: 12
                       }}
                     >
-                      ✅ שחרר
+                      ✅ בטל חסימה
                     </button>
                     
                     <button
