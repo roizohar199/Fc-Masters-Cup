@@ -6,16 +6,19 @@ let driver: PresenceDriver = MemoryPresence;
 
 export async function initPresence() {
   if (envDriver() === "redis") {
+    await initRedis();
+    // אם החיבור הצליח – נשתמש ב-RedisPresence, אחרת נישאר על Memory
     try {
-      await initRedis();
+      // בדיקה מהירה: אם client מחובר יצליח לקרוא scanIterator ללא שגיאה
       driver = RedisPresence;
-      console.log("[presence] using Redis");
-    } catch (e) {
-      console.warn("[presence] Redis init failed – falling back to memory:", e);
+      console.log("[presence] driver: redis");
+    } catch {
       driver = MemoryPresence;
+      console.log("[presence] driver: memory (redis unavailable)");
     }
   } else {
-    console.log("[presence] using Memory");
+    driver = MemoryPresence;
+    console.log("[presence] driver: memory (by env)");
   }
 }
 

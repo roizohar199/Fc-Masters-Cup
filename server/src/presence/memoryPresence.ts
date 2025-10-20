@@ -1,7 +1,7 @@
 import type { PresenceDriver } from "./driver.js";
 
 type K = string; // userId:sessionId
-const TTL = 60_000;
+const TTL = 60_000; // 60s
 const map = new Map<K, number>();
 const key = (u: string, s?: string) => `${u}:${s || "default"}`;
 
