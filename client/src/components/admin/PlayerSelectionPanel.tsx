@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { api } from '../../api';
+import { apiUrl } from '../../config/api';
+import { usePresence } from '../../hooks/usePresence';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 
 interface User {
   id: string;
@@ -31,24 +34,46 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
     prizeSecond: 0
   });
 
+  // Get current user ID from auth context (you'll need to implement this)
+  const currentUserId = "current-user-id"; // TODO: Get from auth context
+
+  // Presence tracking
+  usePresence({ 
+    userId: currentUserId, 
+    tournamentId, 
+    enabled: !!tournamentId 
+  });
+
+  // Online status polling
+  const { isUserOnline, onlineStatus } = useOnlineStatus({ 
+    pollInterval: 10000, // Poll every 10 seconds
+    enabled: !!tournamentId 
+  });
+
   useEffect(() => {
-    loadUsers();
-    loadTournamentDetails();
+    if (tournamentId) {
+      loadUsers();
+      loadTournamentDetails();
+    }
   }, [tournamentId]);
 
   const loadUsers = async () => {
     try {
       setLoading(true);
-      // טען משתמשים עם מידע על סטטוס מחובר
-      const response = await api('/admin/users/online-status');
+      // טען משתמשים (ללא סטטוס מחובר - זה יטופל על ידי useOnlineStatus)
+      const response = await api(apiUrl('/admin/users'));
       if (response.ok) {
-        const usersData = response.data.allUsers || response.data;
-        setUsers(usersData.filter((user: User) => user.status === 'active'));
+        const allUsers = response.data || [];
+        
+        // Filter active users
+        const activeUsers = allUsers.filter((user: User) => user.status === 'active');
+        setUsers(activeUsers);
       } else {
         // fallback למקרה שהנקודת קצה לא קיימת
-        const fallbackResponse = await api('/users');
+        const fallbackResponse = await api(apiUrl('/users'));
         if (fallbackResponse.ok) {
-          setUsers(fallbackResponse.data.filter((user: User) => user.status === 'active'));
+          const users = fallbackResponse.data.filter((user: User) => user.status === 'active');
+          setUsers(users);
         }
       }
     } catch (error) {
@@ -61,7 +86,7 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
 
   const loadTournamentDetails = async () => {
     try {
-      const response = await api(`/tournaments/${tournamentId}`);
+      const response = await api(apiUrl(`/tournaments/${tournamentId}`));
       if (response.ok) {
         const tournament = response.data;
         setTournamentDetails({
@@ -502,8 +527,8 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
                 gap: '6px',
                 fontSize: '12px',
                 fontWeight: '600',
-                color: user.isOnline ? '#28a745' : '#6c757d',
-                background: user.isOnline ? '#d4edda' : '#e9ecef',
+                color: isUserOnline(user.id) ? '#28a745' : '#6c757d',
+                background: isUserOnline(user.id) ? '#d4edda' : '#e9ecef',
                 padding: '4px 10px',
                 borderRadius: '12px'
               }}>
@@ -511,10 +536,10 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
                   width: '8px',
                   height: '8px',
                   borderRadius: '50%',
-                  background: user.isOnline ? '#28a745' : '#6c757d',
-                  animation: user.isOnline ? 'pulse 2s infinite' : 'none'
+                  background: isUserOnline(user.id) ? '#28a745' : '#6c757d',
+                  animation: isUserOnline(user.id) ? 'pulse 2s infinite' : 'none'
                 }} />
-                {user.isOnline ? 'מחובר' : 'לא מחובר'}
+                {isUserOnline(user.id) ? 'מחובר' : 'לא מחובר'}
               </div>
               
               <div style={{

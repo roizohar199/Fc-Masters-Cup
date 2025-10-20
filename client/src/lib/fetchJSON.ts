@@ -24,15 +24,14 @@ export async function fetchJSON<T = any>(url: string, opts: RequestInit = {}): P
     }
     // כאן בדרך כלל נקבל '<!doctype html>' – זה מסביר את ה-Unexpected token '<'
     throw new Error(
-      `Expected JSON but got ${ct || "unknown"} (HTTP ${res.status}) from ${url}. First 200 chars:\n` +
-      body.slice(0, 200)
+      `HTTP ${res.status} from ${url}. Content-Type: ${ct}. Body: ${body.slice(0, 200)}`
     );
   }
 
   if (!ct.includes("application/json")) {
     const body = await res.text().catch(() => "");
     throw new Error(
-      `Expected JSON but got ${ct || "unknown"} from ${url}. First 200 chars:\n` + body.slice(0, 200)
+      `Expected JSON but got ${ct} from ${url}. Body: ${body.slice(0, 200)}`
     );
   }
 

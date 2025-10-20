@@ -24,6 +24,8 @@ import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 import { attachPresence, presenceRest } from "./presence.js";
 import { apiErrorHandler, apiNotFoundHandler } from "./errorHandler.js";
+import { presence } from "./routes/presence.js";
+import { startPresenceSweeper } from "./presence/presenceManager.js";
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -115,6 +117,9 @@ app.use("/api/matches", (req, res, next) => {
 // Disputes - admin only
 app.use("/api/disputes", requireAuth, disputes);
 
+// Presence tracking (public - heartbeat/leave)
+app.use("/api/presence", presence);
+
 // ✅ API 404 handler - must come AFTER all API routes but BEFORE SPA fallback
 app.use(apiNotFoundHandler);
 
@@ -148,6 +153,9 @@ const PORT = process.env.PORT || 8787;
 async function startServer(port: number, retries = 0): Promise<void> {
   try {
     await seedAdminFromEnv();
+
+    // Start presence sweeper
+    startPresenceSweeper();
 
     // Create HTTP server explicitly (required for WebSocket upgrade handling)
     const server = http.createServer(app);
