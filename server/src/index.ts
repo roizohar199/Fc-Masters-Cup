@@ -24,8 +24,8 @@ import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 import { attachPresence, presenceRest } from "./presence.js";
 import { apiErrorHandler, apiNotFoundHandler } from "./errorHandler.js";
-import { presence } from "./routes/presence.js";
-import { initializeRedis } from "./presence/redisSetup.js";
+import { presenceApi } from "./routes/presenceApi.js";
+import { initPresence } from "./presence/index.js";
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -118,7 +118,7 @@ app.use("/api/matches", (req, res, next) => {
 app.use("/api/disputes", requireAuth, disputes);
 
 // Presence tracking (public - heartbeat/leave)
-app.use("/api/presence", presence);
+app.use("/api/presence", presenceApi);
 
 // ✅ API 404 handler - must come AFTER all API routes but BEFORE SPA fallback
 app.use(apiNotFoundHandler);
@@ -154,8 +154,8 @@ async function startServer(port: number, retries = 0): Promise<void> {
   try {
     await seedAdminFromEnv();
 
-    // Initialize Redis connection
-    await initializeRedis();
+    // Initialize Presence system (Redis or Memory fallback)
+    await initPresence();
 
     // Create HTTP server explicitly (required for WebSocket upgrade handling)
     const server = http.createServer(app);
