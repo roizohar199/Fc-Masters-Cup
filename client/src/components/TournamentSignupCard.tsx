@@ -110,14 +110,99 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
     return (
       <div
         style={{
-          padding: isMobile ? 16 : 24,
-          borderRadius: isMobile ? 12 : 20,
-          background: "white",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
+          padding: isMobile ? 20 : 32,
+          borderRadius: isMobile ? 16 : 24,
+          background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
+          boxShadow: "0 12px 40px rgba(0,0,0,0.12)",
+          border: "1px solid rgba(102, 126, 234, 0.1)",
         }}
       >
-        <div style={{ textAlign: "center", color: "#e74c3c" }}>
-          ⚠️ לא נמצא טורניר פעיל כרגע
+        <div style={{ textAlign: "center" }}>
+          <h3
+            style={{
+              fontSize: isMobile ? 20 : 28,
+              fontWeight: 800,
+              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              margin: "0 0 16px 0",
+            }}
+          >
+            ⚽ רישום מוקדם לטורניר
+          </h3>
+          
+          <div
+            style={{
+              padding: isMobile ? 16 : 20,
+              borderRadius: 12,
+              background: "linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%)",
+              border: "2px solid #ff9800",
+              marginBottom: isMobile ? 16 : 20,
+            }}
+          >
+            <p
+              style={{
+                margin: 0,
+                fontSize: isMobile ? 14 : 16,
+                color: "#e65100",
+                fontWeight: 600,
+              }}
+            >
+              🔄 כרגע אין טורניר פעיל להרשמה
+            </p>
+            <p
+              style={{
+                margin: "8px 0 0 0",
+                fontSize: isMobile ? 12 : 14,
+                color: "#bf360c",
+              }}
+            >
+              הטורניר הבא יפתח בקרוב - בדוק שוב מאוחר יותר!
+            </p>
+          </div>
+          
+          {/* הסבר על איך זה עובד גם כשאין טורניר */}
+          <div
+            style={{
+              padding: isMobile ? 12 : 16,
+              borderRadius: 12,
+              background: "linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)",
+              border: "2px solid #2196f3",
+            }}
+          >
+            <h4
+              style={{
+                margin: "0 0 8px 0",
+                fontSize: isMobile ? 14 : 16,
+                fontWeight: 700,
+                color: "#1565c0",
+                textAlign: "center",
+              }}
+            >
+              📋 איך זה עובד?
+            </h4>
+            <div
+              style={{
+                fontSize: isMobile ? 12 : 13,
+                color: "#0d47a1",
+                lineHeight: 1.6,
+              }}
+            >
+              <p style={{ margin: "0 0 6px 0" }}>
+                <strong>1️⃣ הרשמה:</strong> לחץ "אני בפנים!" כדי להירשם לטורניר
+              </p>
+              <p style={{ margin: "0 0 6px 0" }}>
+                <strong>2️⃣ 16 הראשונים:</strong> 16 השחקנים הראשונים שירשמו ישחקו בטורניר הראשון
+              </p>
+              <p style={{ margin: "0 0 6px 0" }}>
+                <strong>3️⃣ טורניר נוסף:</strong> אם יירשמו עוד 16 שחקנים, נפתח טורניר שני
+              </p>
+              <p style={{ margin: "0" }}>
+                <strong>4️⃣ הודעה למנהל:</strong> המנהל יקבל מייל על כל רישום חדש
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -157,7 +242,7 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
             margin: 0,
           }}
         >
-          ⚽ {t.title || "רישום מוקדם לטורניר"}
+          ⚽ {t.title || "טורניר שישי בערב"}
         </h3>
         <span
           style={{
@@ -248,18 +333,67 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
       )}
 
       {/* Description */}
-      <p
+      <div
         style={{
-          fontSize: isMobile ? 14 : 16,
-          color: "#555",
-          lineHeight: 1.8,
           marginBottom: isMobile ? 16 : 20,
-          textAlign: "center",
         }}
       >
-        מחכים ל־<strong>{t.min ?? 16}+</strong> נרשמים (עד מקס׳ <strong>{t.capacity ?? 100}</strong>
-        ). התשלום ייגבה בקבוצת הטלגרם בביט, ותונפק קבלה.
-      </p>
+        <p
+          style={{
+            fontSize: isMobile ? 14 : 16,
+            color: "#555",
+            lineHeight: 1.8,
+            marginBottom: isMobile ? 12 : 16,
+            textAlign: "center",
+          }}
+        >
+          מחכים ל־<strong>{t.min ?? 16}+</strong> נרשמים (עד מקס׳ <strong>{t.capacity ?? 100}</strong>
+          ). התשלום ייגבה בקבוצת הטלגרם בביט, ותונפק קבלה.
+        </p>
+        
+        {/* הסבר על איך זה עובד */}
+        <div
+          style={{
+            padding: isMobile ? 12 : 16,
+            borderRadius: 12,
+            background: "linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)",
+            border: "2px solid #2196f3",
+            marginBottom: isMobile ? 12 : 16,
+          }}
+        >
+          <h4
+            style={{
+              margin: "0 0 8px 0",
+              fontSize: isMobile ? 14 : 16,
+              fontWeight: 700,
+              color: "#1565c0",
+              textAlign: "center",
+            }}
+          >
+            📋 איך זה עובד?
+          </h4>
+          <div
+            style={{
+              fontSize: isMobile ? 12 : 13,
+              color: "#0d47a1",
+              lineHeight: 1.6,
+            }}
+          >
+            <p style={{ margin: "0 0 6px 0" }}>
+              <strong>1️⃣ הרשמה:</strong> לחץ "אני בפנים!" כדי להירשם לטורניר
+            </p>
+            <p style={{ margin: "0 0 6px 0" }}>
+              <strong>2️⃣ 16 הראשונים:</strong> 16 השחקנים הראשונים שירשמו ישחקו בטורניר הראשון
+            </p>
+            <p style={{ margin: "0 0 6px 0" }}>
+              <strong>3️⃣ טורניר נוסף:</strong> אם יירשמו עוד 16 שחקנים, נפתח טורניר שני
+            </p>
+            <p style={{ margin: "0" }}>
+              <strong>4️⃣ הודעה למנהל:</strong> המנהל יקבל מייל על כל רישום חדש
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* Action Buttons */}
       <div

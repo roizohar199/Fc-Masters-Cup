@@ -203,12 +203,10 @@ export default function PlayerDashboard() {
       {/* הודעות */}
       <NotificationBanner />
       
-      {/* כרטיס הרשמה לטורניר */}
-      {tournament && (
-        <div style={{ marginBottom: isMobile ? 20 : 32 }}>
-          <TournamentSignupCard tournamentId={tournament.id} />
-        </div>
-      )}
+      {/* כרטיס הרשמה לטורניר - תמיד מוצג */}
+      <div style={{ marginBottom: isMobile ? 20 : 32 }}>
+        <TournamentSignupCard tournamentId={tournament?.id || "default"} />
+      </div>
 
       {/* רכיב חדש בסגנון ליגת האלופות */}
       <PlayerDashboardChampions

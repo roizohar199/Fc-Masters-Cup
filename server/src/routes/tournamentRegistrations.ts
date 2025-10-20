@@ -58,7 +58,18 @@ function isAdminOrSuperAdmin(email: string): boolean {
 tournamentRegistrations.get("/:id/summary", requireAuth, (req, res) => {
   const tournamentId = req.params.id;
   
-  const t: Tournament | undefined = db.prepare(`SELECT * FROM tournaments WHERE id=?`).get(tournamentId) as Tournament | undefined;
+  let t: Tournament | undefined = db.prepare(`SELECT * FROM tournaments WHERE id=?`).get(tournamentId) as Tournament | undefined;
+  
+  // אם לא נמצא טורניר ספציפי, נחפש טורניר פעיל אחר
+  if (!t && tournamentId === "default") {
+    t = db.prepare(`
+      SELECT * FROM tournaments 
+      WHERE registrationStatus = 'open' 
+      ORDER BY createdAt DESC 
+      LIMIT 1
+    `).get() as Tournament | undefined;
+  }
+  
   if (!t) return res.status(404).json({ ok: false, error: "tournament_not_found" });
 
   const countRow: { n: number } | undefined = db.prepare(
