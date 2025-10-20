@@ -90,6 +90,99 @@ export default function PlayerDashboardChampions({
         </div>
       </div>
 
+      {/* זיכוי כספי - הודעה בולטת */}
+      {playerInfo && playerInfo.secondPrizeCredit > 0 && (
+        <div className="champions-league-match-card" style={{
+          marginBottom: 24,
+          padding: isMobile ? 20 : 28,
+          background: "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)",
+          border: "4px solid #FF8C00",
+          boxShadow: "0 10px 40px rgba(255, 215, 0, 0.5), inset 0 0 30px rgba(255, 255, 255, 0.3)",
+          position: "relative",
+          overflow: "hidden",
+          animation: "pulse 2s infinite"
+        }}>
+          {/* אפקט נוצץ */}
+          <div style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.3) 50%, transparent 70%)",
+            animation: "shine 3s infinite"
+          }} />
+          
+          <div style={{ 
+            position: "relative", 
+            zIndex: 2,
+            textAlign: "center"
+          }}>
+            <div style={{ 
+              fontSize: isMobile ? 48 : 64, 
+              marginBottom: 12,
+              animation: "bounce 1s infinite"
+            }}>
+              🎁💰
+            </div>
+            
+            <h3 style={{ 
+              fontSize: isMobile ? 22 : 32, 
+              fontWeight: 900, 
+              color: "#8B0000",
+              margin: "0 0 8px 0",
+              textShadow: "2px 2px 4px rgba(0, 0, 0, 0.2)"
+            }}>
+              יש לך זיכוי כספי!
+            </h3>
+            
+            <div style={{
+              fontSize: isMobile ? 36 : 48,
+              fontWeight: 900,
+              color: "#FFFFFF",
+              margin: "16px 0",
+              textShadow: "3px 3px 6px rgba(0, 0, 0, 0.4)",
+              padding: "12px 24px",
+              background: "rgba(139, 0, 0, 0.8)",
+              borderRadius: 16,
+              display: "inline-block"
+            }}>
+              ₪ {playerInfo.secondPrizeCredit}
+            </div>
+            
+            <p style={{ 
+              fontSize: isMobile ? 16 : 20, 
+              color: "#4A0000",
+              margin: "12px 0 0 0",
+              fontWeight: 700,
+              textShadow: "1px 1px 2px rgba(255, 255, 255, 0.5)"
+            }}>
+              הזיכוי ישמש עבור הטורניר הבא 🏆
+            </p>
+          </div>
+          
+          {/* סגנון נוסף - כוכבים מסתובבים */}
+          <style>
+            {`
+              @keyframes pulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.02); }
+              }
+              
+              @keyframes shine {
+                0% { transform: translateX(-100%); }
+                100% { transform: translateX(100%); }
+              }
+              
+              @keyframes bounce {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(-10px); }
+              }
+            `}
+          </style>
+        </div>
+      )}
+
       {/* סטטיסטיקות שחקן */}
       <div className="champions-league-match-card" style={{
         marginBottom: 24,

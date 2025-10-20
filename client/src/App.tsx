@@ -5,6 +5,7 @@ import PlayerDashboard from "./pages/PlayerDashboard";
 import TawkTo from "./components/TawkTo";
 import { api } from "./api";
 import { Toaster } from "react-hot-toast";
+import { startPresence } from "./presence";
 
 export default function App() {
   const [me, setMe] = useState<{ ok: boolean; email?: string; role?: string; secondPrizeCredit?: number }>({ ok: false });
@@ -47,6 +48,14 @@ export default function App() {
       nav("/login");
     }
   }, [loading, me.ok, nav]);
+
+  // הפעלת מערכת נוכחות כאשר המשתמש מחובר
+  useEffect(() => {
+    if (!loading && me.ok) {
+      console.log("🚀 Starting presence system for user:", me.email);
+      startPresence();
+    }
+  }, [loading, me.ok, me.email]);
 
   async function logout() {
     try {
