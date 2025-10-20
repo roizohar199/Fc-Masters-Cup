@@ -311,7 +311,6 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
             borderRadius: 12,
             fontSize: isMobile ? 15 : 18,
             fontWeight: 700,
-            border: "none",
             cursor: canLeave ? "pointer" : "not-allowed",
             background: canLeave ? "#fff" : "#f8f9fa",
             color: canLeave ? "#e74c3c" : "#adb5bd",
