@@ -84,7 +84,7 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
       });
       toast.dismiss(tId);
       if (result.ok) {
-        toast.success("✅ הוספת את עצמך לרשימת המעוניינים!");
+        toast.success("✅ הוספת את עצמך לרשימת המעוניינים בטורניר!");
         refresh();
       } else {
         toast.error(result.error || "שגיאה בהבעת עניין");
@@ -124,7 +124,7 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
       });
       toast.dismiss(tId);
       if (result.ok) {
-        toast.success("הסרת את עצמך מרשימת המעוניינים");
+        toast.success("הסרת את עצמך מרשימת המעוניינים בטורניר");
         refresh();
       } else {
         toast.error(result.error || "שגיאה בהסרת עניין");
@@ -203,7 +203,7 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
                 color: "#bf360c",
               }}
             >
-              הטורניר הבא יפתח בקרוב - בדוק שוב מאוחר יותר!
+              נפתח טורניר חדש בקרוב - בדוק שוב מאוחר יותר!
             </p>
           </div>
           
@@ -235,16 +235,16 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
               }}
             >
               <p style={{ margin: "0 0 6px 0" }}>
-                <strong>1️⃣ הרשמה:</strong> לחץ "אני בפנים!" כדי להירשם לטורניר
+                <strong>1️⃣ הבעת עניין:</strong> לחץ "אני בפנים!" כדי להביע עניין בטורניר
               </p>
               <p style={{ margin: "0 0 6px 0" }}>
-                <strong>2️⃣ 16 הראשונים:</strong> 16 השחקנים הראשונים שירשמו ישחקו בטורניר הראשון
+                <strong>2️⃣ 16 הראשונים:</strong> 16 השחקנים הראשונים יזכו לשחק בטורניר הראשון
               </p>
               <p style={{ margin: "0 0 6px 0" }}>
-                <strong>3️⃣ טורניר נוסף:</strong> אם יירשמו עוד 16 שחקנים, נפתח טורניר שני
+                <strong>3️⃣ טורניר נוסף:</strong> אם יביעו עניין עוד 16 שחקנים, נפתח טורניר שני
               </p>
               <p style={{ margin: "0" }}>
-                <strong>4️⃣ הודעה למנהל:</strong> המנהל יקבל מייל על כל רישום חדש
+                <strong>4️⃣ הודעה למנהל:</strong> המנהל יקבל מייל על כל שחקן שמביע עניין
               </p>
             </div>
           </div>
@@ -287,7 +287,7 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
             margin: 0,
           }}
         >
-          ⚽ {t.title || "טורניר שישי בערב"}
+          🎮 הבעת עניין בטורניר
         </h3>
         <span
           style={{
@@ -348,7 +348,7 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
               color: "#155724",
             }}
           >
-            ✅ אתה רשום לטורניר זה!
+            ✅ אתה מביע עניין בטורניר!
           </p>
         </div>
       )}
@@ -372,7 +372,7 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
               color: "#c0392b",
             }}
           >
-            😢 הטורניר מלא - אין מקומות פנויים
+            😢 הגענו למקסימום שחקנים שמביעים עניין
           </p>
         </div>
       )}
@@ -392,8 +392,8 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
             textAlign: "center",
           }}
         >
-          מחכים ל־<strong>{t.min ?? 16}+</strong> נרשמים (עד מקס׳ <strong>{t.capacity ?? 100}</strong>
-          ). התשלום ייגבה בקבוצת הטלגרם בביט, ותונפק קבלה.
+          מחכים ל־<strong>{t.min ?? 16}+</strong> שחקנים שמביעים עניין (עד מקס׳ <strong>{t.capacity ?? 100}</strong>
+          ). לאחר מכן נפתח טורניר והתשלום ייגבה בקבוצת הטלגרם בביט.
         </p>
         
         {/* הסבר על איך זה עובד */}
@@ -425,16 +425,16 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
             }}
           >
             <p style={{ margin: "0 0 6px 0" }}>
-              <strong>1️⃣ הרשמה:</strong> לחץ "אני בפנים!" כדי להירשם לטורניר
+              <strong>1️⃣ הבעת עניין:</strong> לחץ "אני בפנים!" כדי להביע עניין בטורניר
             </p>
             <p style={{ margin: "0 0 6px 0" }}>
-              <strong>2️⃣ 16 הראשונים:</strong> 16 השחקנים הראשונים שירשמו ישחקו בטורניר הראשון
+              <strong>2️⃣ 16 הראשונים:</strong> 16 השחקנים הראשונים יזכו לשחק בטורניר הראשון
             </p>
             <p style={{ margin: "0 0 6px 0" }}>
-              <strong>3️⃣ טורניר נוסף:</strong> אם יירשמו עוד 16 שחקנים, נפתח טורניר שני
+              <strong>3️⃣ טורניר נוסף:</strong> אם יביעו עניין עוד 16 שחקנים, נפתח טורניר שני
             </p>
             <p style={{ margin: "0" }}>
-              <strong>4️⃣ הודעה למנהל:</strong> המנהל יקבל מייל על כל רישום חדש
+              <strong>4️⃣ הודעה למנהל:</strong> המנהל יקבל מייל על כל שחקן שמביע עניין
             </p>
           </div>
         </div>

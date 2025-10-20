@@ -44,6 +44,13 @@ export default function AdminDashboard() {
   // ניהול בחירת שחקנים
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   
+  // סטטוס נרשמים לטורניר
+  const [tournamentRegistrations, setTournamentRegistrations] = useState<{
+    tournament: any;
+    registrations: any[];
+    totalRegistrations: number;
+  }>({ tournament: null, registrations: [], totalRegistrations: 0 });
+  
   // מצב כפתורים - האם השלב כבר הופעל
   const [stagesActivated, setStagesActivated] = useState({
     R16: false,
@@ -116,6 +123,7 @@ export default function AdminDashboard() {
     loadCurrentUser();
     loadUsers();
     loadTournaments();
+    loadTournamentRegistrations();
   }, []);
 
   async function loadCurrentUser() {
@@ -289,6 +297,18 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       console.error("❌ Failed to load users:", error);
+    }
+  }
+
+  // טעינת סטטוס נרשמים לטורניר
+  async function loadTournamentRegistrations() {
+    try {
+      console.log("🏆 טוען סטטוס נרשמים לטורניר...");
+      const data = await api("/api/admin/tournament-registrations");
+      console.log("📊 נתוני רישומים:", data);
+      setTournamentRegistrations(data);
+    } catch (error) {
+      console.error("❌ שגיאה בטעינת רישומים לטורניר:", error);
     }
   }
 
@@ -1038,6 +1058,69 @@ export default function AdminDashboard() {
 
   return (
     <div style={{ display: "grid", gap: 24, direction: "rtl" }}>
+      {/* סטטוס נרשמים לטורניר */}
+      <div style={{
+        padding: 20,
+        borderRadius: 16,
+        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        color: "white",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.1)"
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <h3 style={{ margin: 0, fontSize: 24, fontWeight: 700 }}>
+            🏆 סטטוס נרשמים לטורניר
+          </h3>
+          <button
+            onClick={loadTournamentRegistrations}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 8,
+              background: "rgba(255,255,255,0.2)",
+              color: "white",
+              border: "none",
+              cursor: "pointer",
+              fontSize: 14,
+              fontWeight: 600
+            }}
+          >
+            🔄 רענן
+          </button>
+        </div>
+        
+        {tournamentRegistrations.tournament ? (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 32, fontWeight: 700, marginBottom: 8 }}>
+                {tournamentRegistrations.totalRegistrations}
+              </div>
+              <div style={{ fontSize: 14, opacity: 0.9 }}>
+                נרשמים
+              </div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 32, fontWeight: 700, marginBottom: 8 }}>
+                {tournamentRegistrations.tournament.registrationCapacity || 100}
+              </div>
+              <div style={{ fontSize: 14, opacity: 0.9 }}>
+                מקסימום
+              </div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 32, fontWeight: 700, marginBottom: 8 }}>
+                {tournamentRegistrations.tournament.registrationMinPlayers || 16}
+              </div>
+              <div style={{ fontSize: 14, opacity: 0.9 }}>
+                מינימום
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div style={{ textAlign: "center", fontSize: 16, opacity: 0.9 }}>
+            אין טורניר פעיל
+          </div>
+        )}
+      </div>
+
       {/* כפתורי ניווט מהיר */}
       <div style={{
         display: "flex",

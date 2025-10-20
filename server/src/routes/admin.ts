@@ -348,3 +348,60 @@ admin.post("/users/add-admin", async (req, res) => {
     res.status(500).json({ error: "שגיאה ביצירת המנהל" });
   }
 });
+
+// Get tournament registration status (admin only)
+admin.get("/tournament-registrations", async (req, res) => {
+  try {
+    // מצא טורניר פעיל או ברירת מחדל
+    let tournament = db.prepare(`
+      SELECT * FROM tournaments 
+      WHERE registrationStatus = 'collecting' 
+      ORDER BY createdAt DESC 
+      LIMIT 1
+    `).get() as any;
+
+    if (!tournament) {
+      // אם אין טורניר פעיל, מצא את הטורניר האחרון
+      tournament = db.prepare(`
+        SELECT * FROM tournaments 
+        ORDER BY createdAt DESC 
+        LIMIT 1
+      `).get() as any;
+    }
+
+    if (!tournament) {
+      return res.json({
+        ok: true,
+        tournament: null,
+        registrations: [],
+        totalRegistrations: 0,
+        message: "אין טורניר פעיל"
+      });
+    }
+
+    // קבל את כל הרישומים לטורניר
+    const registrations = db.prepare(`
+      SELECT tr.*, u.email, u.psnUsername, u.role, u.createdAt as userCreatedAt
+      FROM tournament_registrations tr
+      JOIN users u ON u.id = tr.userId
+      WHERE tr.tournamentId = ? AND tr.state = 'registered'
+      ORDER BY tr.createdAt DESC
+    `).all(tournament.id);
+
+    res.json({
+      ok: true,
+      tournament: {
+        id: tournament.id,
+        title: tournament.title,
+        registrationStatus: tournament.registrationStatus,
+        registrationCapacity: tournament.registrationCapacity,
+        registrationMinPlayers: tournament.registrationMinPlayers
+      },
+      registrations: registrations,
+      totalRegistrations: registrations.length
+    });
+  } catch (error) {
+    console.error("❌ שגיאה בטעינת רישומים לטורניר:", error);
+    res.status(500).json({ error: "שגיאה בטעינת רישומים לטורניר" });
+  }
+});

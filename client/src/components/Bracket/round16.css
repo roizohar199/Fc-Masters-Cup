@@ -1,0 +1,117 @@
+/* עטיפה כללית */
+.r16__wrap {
+  width: min(1200px, 95vw);
+  margin: 0 auto;
+  padding: 24px 0 48px;
+  color: #f8f8fb;
+}
+
+/* כותרת */
+.r16__header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.r16__title {
+  font-family: "Agency FB", "Rubik", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+  font-size: clamp(28px, 4vw, 48px);
+  letter-spacing: 1px;
+  margin: 0;
+}
+.r16__subtitle {
+  margin: 6px 0 0;
+  opacity: 0.85;
+  font-weight: 600;
+  letter-spacing: .5px;
+}
+
+/* שתי עמודות */
+.r16__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 32px;
+  align-items: start;
+}
+
+/* עמודה בודדת (סטאק של משחקים) */
+.r16__col {
+  display: grid;
+  grid-template-rows: repeat(4, auto);
+  gap: 18px;
+}
+
+/* כרטיס משחק */
+.r16__match {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  box-shadow: 0 6px 18px rgba(0,0,0,.18);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+/* צדדים */
+.r16__side {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.r16__side--home { justify-content: flex-start; }
+.r16__side--away { justify-content: flex-end; }
+
+/* שם קבוצה */
+.r16__team-name {
+  font-weight: 800;
+  font-size: clamp(14px, 2.4vw, 18px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.r16__team-name--right {
+  text-align: right;
+}
+
+/* "VS" */
+.r16__vs {
+  font-weight: 900;
+  font-size: clamp(14px, 3vw, 18px);
+  color: #ffd34d;
+  text-shadow: 0 1px 0 #000;
+}
+
+/* לוגו/ראשי־תיבות */
+.r16__crest-img {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.18);
+  background: #101621;
+}
+.r16__crest-fallback {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  color: #101621;
+  background: #ffd34d;
+  border: 2px solid rgba(255,255,255,.18);
+}
+
+/* מובייל: עמודה אחת */
+@media (max-width: 900px) {
+  .r16__grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .r16__col {
+    grid-template-rows: none;
+    gap: 14px;
+  }
+}

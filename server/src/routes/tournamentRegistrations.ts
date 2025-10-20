@@ -86,7 +86,7 @@ tournamentRegistrations.get("/:id/summary", requireAuth, (req, res) => {
       
       // נכניס את הטורניר למסד הנתונים
       db.prepare(`
-        INSERT OR REPLACE INTO tournaments 
+        INSERT INTO tournaments 
         (id, title, game, platform, timezone, createdAt, prizeFirst, prizeSecond, registrationStatus, registrationCapacity, registrationMinPlayers)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(

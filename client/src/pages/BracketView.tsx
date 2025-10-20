@@ -4,6 +4,7 @@ import { api } from "../api";
 import { useStore } from "../store";
 import ChampionsLeagueBracket from "../components/ChampionsLeagueBracket";
 import PlayersList from "../components/PlayersList";
+import RoundOf16Grid, { Match as R16Match } from "../components/Bracket/RoundOf16Grid";
 
 export default function BracketView() {
   const { tournamentId } = useStore();
@@ -27,6 +28,33 @@ export default function BracketView() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // פונקציה להמרת נתונים לפורמט R16Grid
+  const convertToR16Matches = (): R16Match[] => {
+    const r16Matches = matches.filter(m => m.round === 'R16');
+    
+    return r16Matches.map(match => {
+      const homePlayer = players.find(p => p.id === match.homeId);
+      const awayPlayer = players.find(p => p.id === match.awayId);
+      
+      return {
+        id: match.id,
+        home: {
+          id: match.homeId,
+          name: homePlayer?.displayName || homePlayer?.psn || 'TBD',
+          short: homePlayer?.psn || undefined
+        },
+        away: {
+          id: match.awayId,
+          name: awayPlayer?.displayName || awayPlayer?.psn || 'TBD',
+          short: awayPlayer?.psn || undefined
+        },
+        status: match.status === 'CONFIRMED' ? 'finished' : 
+                match.status === 'PENDING' ? 'scheduled' : 'scheduled',
+        note: match.status === 'PENDING' ? 'טרם שוחק' : undefined
+      };
+    });
   };
 
   useEffect(() => {
@@ -289,7 +317,23 @@ export default function BracketView() {
           )}
 
           {tournamentId && matches.length > 0 && (
-            <ChampionsLeagueBracket matches={matches} players={players} onRefresh={loadBracket} />
+            <>
+              {/* משחקי שמינית הגמר - רכיב חדש */}
+              {matches.filter(m => m.round === 'R16').length > 0 && (
+                <div style={{ marginBottom: 32 }}>
+                  <RoundOf16Grid 
+                    matches={convertToR16Matches()} 
+                    title="FC MASTERS CUP"
+                    subtitle="ROUND OF 16"
+                  />
+                </div>
+              )}
+              
+              {/* שאר השלבים - רכיב ישן */}
+              {matches.filter(m => m.round !== 'R16').length > 0 && (
+                <ChampionsLeagueBracket matches={matches.filter(m => m.round !== 'R16')} players={players} onRefresh={loadBracket} />
+              )}
+            </>
           )}
           </div>
         </div>
