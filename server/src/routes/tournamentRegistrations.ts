@@ -82,6 +82,8 @@ tournamentRegistrations.get("/:id/summary", requireAuth, (req, res) => {
         createdAt: new Date().toISOString()
       };
       
+      console.log("🔧 Creating default tournament with status:", defaultTournament.registrationStatus);
+      
       // נכניס את הטורניר למסד הנתונים
       db.prepare(`
         INSERT OR REPLACE INTO tournaments 
@@ -142,7 +144,12 @@ tournamentRegistrations.post("/:id/register", requireAuth, async (req, res) => {
   const tournamentId = req.params.id;
   
   const t: Tournament | undefined = db.prepare(`SELECT * FROM tournaments WHERE id=?`).get(tournamentId) as Tournament | undefined;
-  if (!t || t.registrationStatus !== "collecting") {
+  if (!t) {
+    return res.status(404).json({ ok: false, error: "tournament_not_found" });
+  }
+  
+  // בדיקה אם הטורניר פתוח להרשמה
+  if (t.registrationStatus !== "collecting" && t.registrationStatus !== "open") {
     return res.status(400).json({ ok: false, error: "not_collecting" });
   }
 

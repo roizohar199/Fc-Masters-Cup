@@ -49,15 +49,15 @@ export function startPresence() {
   // קביעת URL דינמי על בסיס הסביבה
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const host = window.location.hostname;
-  const port = import.meta.env.DEV ? "8787" : window.location.port;
   
-  // תיקון: אם אנחנו ב-production, לא נוסיף פורט
+  // תמיד נשתמש בפורט 8787 עבור WebSocket
   let wsUrl;
-  if (import.meta.env.DEV) {
-    wsUrl = `${protocol}//${host}:${port}/presence`;
+  if (window.location.port === "3000" || import.meta.env.DEV) {
+    // Development - Vite dev server
+    wsUrl = `${protocol}//${host}:8787/presence`;
   } else {
-    // ב-production, השתמש באותו host ללא פורט
-    wsUrl = `${protocol}//${host}/presence`;
+    // Production - same host but different port for WebSocket
+    wsUrl = `${protocol}//${host}:8787/presence`;
   }
   
   console.log(`🔌 Connecting to WebSocket: ${wsUrl}`);
