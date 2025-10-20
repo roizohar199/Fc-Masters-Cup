@@ -29,7 +29,7 @@ export function NotificationBanner({ onNotificationClick }: NotificationBannerPr
   const loadNotifications = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/tournament-registrations/notifications?limit=5');
+      const response = await api('/tournament-registrations/notifications?limit=5');
       if (response.ok) {
         setNotifications(response.data.notifications);
         setUnreadCount(response.data.unreadCount);
@@ -43,7 +43,7 @@ export function NotificationBanner({ onNotificationClick }: NotificationBannerPr
 
   const markAsRead = async (notificationId: string) => {
     try {
-      const response = await api.put(`/tournament-registrations/notifications/${notificationId}/read`);
+      const response = await api(`/tournament-registrations/notifications/${notificationId}/read`, { method: 'PUT' });
       if (response.ok) {
         setNotifications(prev => 
           prev.map(n => n.id === notificationId ? { ...n, isRead: 1 } : n)

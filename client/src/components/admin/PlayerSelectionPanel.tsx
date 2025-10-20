@@ -40,13 +40,13 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
     try {
       setLoading(true);
       // טען משתמשים עם מידע על סטטוס מחובר
-      const response = await api.get('/admin/users/online-status');
+      const response = await api('/admin/users/online-status');
       if (response.ok) {
         const usersData = response.data.allUsers || response.data;
         setUsers(usersData.filter((user: User) => user.status === 'active'));
       } else {
         // fallback למקרה שהנקודת קצה לא קיימת
-        const fallbackResponse = await api.get('/users');
+        const fallbackResponse = await api('/users');
         if (fallbackResponse.ok) {
           setUsers(fallbackResponse.data.filter((user: User) => user.status === 'active'));
         }
@@ -61,7 +61,7 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
 
   const loadTournamentDetails = async () => {
     try {
-      const response = await api.get(`/tournaments/${tournamentId}`);
+      const response = await api(`/tournaments/${tournamentId}`);
       if (response.ok) {
         const tournament = response.data;
         setTournamentDetails({
@@ -125,13 +125,16 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
 
     try {
       setSelecting(true);
-      const response = await api.post(`/tournament-registrations/${tournamentId}/select-players`, {
+      const response = await api(`/tournament-registrations/${tournamentId}/select-players`, {
+        method: 'POST',
+        body: JSON.stringify({
         selectedUserIds,
         tournamentTitle: tournamentDetails.title,
         tournamentDate: tournamentDetails.date,
         telegramLink: tournamentDetails.telegramLink,
         prizeFirst: tournamentDetails.prizeFirst,
         prizeSecond: tournamentDetails.prizeSecond
+        })
       });
 
       if (response.ok) {
