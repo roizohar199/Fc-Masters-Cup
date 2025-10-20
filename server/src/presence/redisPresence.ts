@@ -13,8 +13,8 @@ const REDIS_URL = process.env.REDIS_URL || "redis://127.0.0.1:6379";
 export const redis = createClient({ url: REDIS_URL });
 
 // Error handling
-redis.on("error", (e) => {
-  logger.error("redis", "Redis connection error", e);
+redis.on("error", (err: unknown) => {
+  logger.error("redis", "Redis connection error", err);
 });
 
 // Connection events
@@ -128,7 +128,7 @@ export async function getOnlineStatus(req: Request, res: Response) {
     
     // Scan Redis for all presence keys
     const pattern = "presence:*";
-    let cursor = "0";
+    let cursor = 0;
     
     do {
       const result = await redis.scan(cursor, { 
@@ -146,7 +146,7 @@ export async function getOnlineStatus(req: Request, res: Response) {
           userSessions.set(userId, (userSessions.get(userId) || 0) + 1);
         }
       }
-    } while (cursor !== "0");
+    } while (cursor !== 0);
     
     const onlineUsers = Array.from(onlineByUser);
     const totalSessions = Array.from(userSessions.values()).reduce((sum, count) => sum + count, 0);
@@ -204,7 +204,7 @@ export async function getTournamentOnlineUsers(tournamentId: string): Promise<st
     
     const onlineUsers = new Set<string>();
     const pattern = "presence:*";
-    let cursor = "0";
+    let cursor = 0;
     
     do {
       const result = await redis.scan(cursor, { 
@@ -225,7 +225,7 @@ export async function getTournamentOnlineUsers(tournamentId: string): Promise<st
           }
         }
       }
-    } while (cursor !== "0");
+    } while (cursor !== 0);
     
     return Array.from(onlineUsers);
   } catch (error) {
@@ -251,7 +251,7 @@ export async function getPresenceStats() {
     
     const userSet = new Set<string>();
     const pattern = "presence:*";
-    let cursor = "0";
+    let cursor = 0;
     
     do {
       const result = await redis.scan(cursor, { 
@@ -270,7 +270,7 @@ export async function getPresenceStats() {
           userSet.add(userId);
         }
       }
-    } while (cursor !== "0");
+    } while (cursor !== 0);
     
     stats.activeUsers = userSet.size;
     
