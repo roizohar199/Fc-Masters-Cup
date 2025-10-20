@@ -3,12 +3,14 @@ import { Link } from "react-router-dom";
 import { api } from "../api";
 import { useStore } from "../store";
 import ChampionsLeagueBracket from "../components/ChampionsLeagueBracket";
+import PlayersList from "../components/PlayersList";
 
 export default function BracketView() {
   const { tournamentId } = useStore();
   const [matches, setMatches] = useState<any[]>([]);
   const [players, setPlayers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   const loadBracket = async () => {
     if (!tournamentId) return;
@@ -30,6 +32,15 @@ export default function BracketView() {
   useEffect(() => {
     loadBracket();
   }, [tournamentId]);
+
+  // זיהוי מובייל
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   return (
     <div style={{
@@ -144,14 +155,55 @@ export default function BracketView() {
 
         {/* Main Content */}
         <div style={{
-          backgroundColor: "rgba(255, 255, 255, 0.95)",
-          borderRadius: 20,
-          padding: 24,
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.2)",
-          backdropFilter: "blur(10px)",
-          minHeight: 400,
-          direction: "rtl"
+          display: "flex",
+          gap: isMobile ? 16 : 24,
+          alignItems: "flex-start"
         }}>
+          {/* רשימת שחקנים - צד שמאל */}
+          <div style={{
+            flexShrink: 0,
+            order: isMobile ? 2 : 1
+          }}>
+            {players.length > 0 ? (
+              <PlayersList players={players} isMobile={isMobile} />
+            ) : tournamentId ? (
+              <div style={{
+                width: isMobile ? "100%" : "300px",
+                minHeight: "200px",
+                background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
+                borderRadius: isMobile ? 12 : 16,
+                padding: isMobile ? 16 : 20,
+                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
+                border: "2px dashed #ddd",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center"
+              }}>
+                <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>👥</div>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: "#666", margin: "0 0 8px 0" }}>
+                  אין שחקנים
+                </h3>
+                <p style={{ fontSize: 14, color: "#999", margin: 0 }}>
+                  טרם נוספו שחקנים לטורניר
+                </p>
+              </div>
+            ) : null}
+          </div>
+
+          {/* תוכן ראשי - צד ימין */}
+          <div style={{
+            flex: 1,
+            backgroundColor: "rgba(255, 255, 255, 0.95)",
+            borderRadius: 20,
+            padding: 24,
+            boxShadow: "0 20px 60px rgba(0, 0, 0, 0.2)",
+            backdropFilter: "blur(10px)",
+            minHeight: 400,
+            direction: "rtl",
+            order: isMobile ? 1 : 2
+          }}>
           <div style={{
             display: "flex",
             justifyContent: "space-between",
@@ -239,6 +291,7 @@ export default function BracketView() {
           {tournamentId && matches.length > 0 && (
             <ChampionsLeagueBracket matches={matches} players={players} onRefresh={loadBracket} />
           )}
+          </div>
         </div>
       </div>
     </div>
