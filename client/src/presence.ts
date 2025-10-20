@@ -43,26 +43,9 @@ function detectActivity() {
   }, 5000); // 5 שניות בין פעילויות
 }
 
-export function startPresence() {
-  if (ws && ws.readyState === WebSocket.OPEN) return;
-  
-  // קביעת URL דינמי על בסיס הסביבה
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const host = window.location.hostname;
-  
-  // תמיד נשתמש בפורט 8787 עבור WebSocket
-  let wsUrl;
-  if (window.location.port === "3000" || import.meta.env.DEV) {
-    // Development - Vite dev server
-    wsUrl = `${protocol}//${host}:8787/presence`;
-  } else {
-    // Production - same host but different port for WebSocket
-    wsUrl = `${protocol}//${host}:8787/presence`;
-  }
-  
-  console.log(`🔌 Connecting to WebSocket: ${wsUrl}`);
-  
-  ws = new WebSocket(wsUrl);
+// פונקציה להגדרת ה-handlers של WebSocket
+function setupWebSocketHandlers() {
+  if (!ws) return;
 
   ws.onopen = () => {
     console.log("✅ WebSocket connected successfully");
@@ -128,6 +111,19 @@ export function startPresence() {
     console.error("   3. בדוק שהשרת Backend רץ על Port 8787");
     console.error("   4. ראה מדריך מפורט: README-תיקון-WebSocket.md");
   };
+}
+
+export function startPresence() {
+  if (ws && ws.readyState === WebSocket.OPEN) return;
+  
+  // שימוש בפונקציה החדשה ליצירת URL נכון
+  // זה תומך גם בפרודקשן (WSS על 443) וגם בפיתוח (WS על 8787)
+  import('./utils/ws.js').then(({ getPresenceWsUrl }) => {
+    const wsUrl = getPresenceWsUrl();
+    console.log(`🔌 Connecting to WebSocket: ${wsUrl}`);
+    ws = new WebSocket(wsUrl);
+    setupWebSocketHandlers();
+  });
 }
 
 // הגדרת זיהוי פעילות משתמש
