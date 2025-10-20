@@ -274,6 +274,25 @@ tournaments.get("/:id/bracket", (req,res)=>{
   res.json(rows);
 });
 
+// Get matches for a specific tournament and round
+tournaments.get("/:id/matches", (req,res)=>{
+  const tournamentId = req.params.id;
+  const round = req.query.round as string;
+  
+  let query = `SELECT * FROM matches WHERE tournamentId=?`;
+  let params = [tournamentId];
+  
+  if (round) {
+    query += ` AND round=?`;
+    params.push(round);
+  }
+  
+  query += ` ORDER BY createdAt ASC`;
+  
+  const rows = db.prepare(query).all(...params);
+  res.json(rows);
+});
+
 // Get all players in a tournament (optimized - fixed N+1 query)
 tournaments.get("/:id/players", (req,res)=>{
   // Single optimized query instead of N+1 queries

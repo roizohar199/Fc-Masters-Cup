@@ -40,6 +40,40 @@ admin.get("/users", (req, res) => {
   }
 });
 
+// Get users with online status (admin only)
+admin.get("/users/online-status", async (req, res) => {
+  try {
+    // Get all users
+    const allUsers = db.prepare(`SELECT id, email, role, secondPrizeCredit, createdAt, status, psnUsername FROM users ORDER BY createdAt DESC`).all() as any[];
+    
+    // Get online users from presence
+    let onlineUsers: any[] = [];
+    try {
+      const presence = await import("../presence.js");
+      const onlineUserIds = await presence.getOnlineUserIds();
+      onlineUsers = allUsers.filter((user: any) => onlineUserIds.includes(user.id));
+    } catch (error) {
+      console.warn("⚠️ לא ניתן לקבל מידע על משתמשים מחוברים:", error);
+    }
+    
+    // Add isOnline property to all users
+    const usersWithStatus = allUsers.map((user: any) => ({
+      ...user,
+      isOnline: onlineUsers.some((online: any) => online.id === user.id)
+    }));
+    
+    res.json({
+      allUsers: usersWithStatus,
+      onlineUsers,
+      total: allUsers.length,
+      online: onlineUsers.length
+    });
+  } catch (error) {
+    console.error("❌ שגיאה בטעינת משתמשים עם סטטוס:", error);
+    res.status(500).json({ error: "שגיאה בטעינת משתמשים" });
+  }
+});
+
 // Get online users (admin only) - תמיד מחזיר תשובה תקינה
 admin.get("/online-users", async (req, res) => {
   // יצירת timeout promise (800ms - timeout רך)

@@ -252,6 +252,18 @@ export function attachPresence(server: HTTPServer) {
 }
 
 // פונקציה לקבלת נתוני נוכחות עם טיפול בשגיאות - ללא זריקת exceptions
+export async function getOnlineUserIds(): Promise<string[]> {
+  try {
+    const presenceData = snapshot();
+    return presenceData
+      .filter(p => p.isOnline)
+      .map(p => p.uid);
+  } catch (error) {
+    console.warn("[PRESENCE] Failed to get online user IDs:", error);
+    return [];
+  }
+}
+
 export async function getPresenceData() {
   try {
     // ייבוא db דינמי כדי למנוע בעיות circular import
