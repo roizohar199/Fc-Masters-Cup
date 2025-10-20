@@ -1,0 +1,128 @@
+# ==========================
+# FC Masters - Nginx Config
+# WebSocket 1006 Error Fix
+# ==========================
+# 
+# הערה חשובה: 
+# ה-map directive חייב להיות בקונטקסט http (לא server)
+# אם כבר יש לך map גלובלי ב-/etc/nginx/nginx.conf - אל תכפיל אותו!
+# במקרה כזה, פשוט הוסף את ה-server blocks מטה.
+
+# ===== 1. Map directive (שים אותו ב-http context ב-/etc/nginx/nginx.conf) =====
+# אם הקובץ הזה ב-/etc/nginx/sites-available/, השתמש בו רק אם אין לך map גלובלי.
+map $http_upgrade $connection_upgrade {
+  default upgrade;
+  ''      close;
+}
+
+# ===== 2. HTTP → HTTPS Redirect =====
+server {
+  listen 80;
+  listen [::]:80;
+  server_name k-rstudio.com www.k-rstudio.com;
+  
+  # Redirect all HTTP to HTTPS
+  return 301 https://www.k-rstudio.com$request_uri;
+}
+
+# ===== 3. HTTPS Server (Frontend + API + WebSocket) =====
+server {
+  listen 443 ssl http2;
+  listen [::]:443 ssl http2;
+  server_name www.k-rstudio.com k-rstudio.com;
+
+  # SSL Configuration
+  ssl_certificate     /etc/letsencrypt/live/k-rstudio.com/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/k-rstudio.com/privkey.pem;
+  
+  # SSL Security Settings (Mozilla Intermediate)
+  ssl_protocols TLSv1.2 TLSv1.3;
+  ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
+  ssl_prefer_server_ciphers off;
+  
+  # SSL Session Cache
+  ssl_session_cache shared:SSL:10m;
+  ssl_session_timeout 10m;
+  
+  # OCSP Stapling
+  ssl_stapling on;
+  ssl_stapling_verify on;
+  ssl_trusted_certificate /etc/letsencrypt/live/k-rstudio.com/chain.pem;
+
+  # ===== API Routes → Node (Express) =====
+  location ^~ /api/ {
+    proxy_pass http://127.0.0.1:8787;
+    proxy_http_version 1.1;
+    
+    # WebSocket support (for any future WebSocket in API routes)
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+    
+    # Standard proxy headers
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    
+    # Timeouts (10 minutes - reasonable for API)
+    proxy_connect_timeout 600s;
+    proxy_send_timeout 600s;
+    proxy_read_timeout 600s;
+  }
+
+  # ===== WebSocket Presence (Critical for 1006 fix!) =====
+  location /presence {
+    proxy_pass http://127.0.0.1:8787/presence;
+    proxy_http_version 1.1;
+    
+    # ✅ WebSocket headers - CRITICAL!
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+    
+    # Standard proxy headers
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    
+    # ✅ WebSocket timeouts (10 minutes)
+    proxy_connect_timeout 600s;
+    proxy_send_timeout 600s;
+    proxy_read_timeout 600s;
+    
+    # ✅ Disable buffering for WebSocket
+    proxy_buffering off;
+    
+    # ✅ Allow cookies (for authentication)
+    proxy_set_header Cookie $http_cookie;
+  }
+
+  # ===== Uploads (Static Files) =====
+  location /uploads {
+    alias /var/www/fcmasters/server/src/uploads;
+    add_header Cache-Control "public, max-age=31536000";
+    access_log off;
+  }
+
+  # ===== Frontend (React SPA) =====
+  root /var/www/fcmasters/client/dist;
+  index index.html;
+
+  location / {
+    try_files $uri $uri/ /index.html;
+    add_header Cache-Control "public, max-age=3600";
+  }
+
+  # ===== Security Headers =====
+  add_header X-Frame-Options "SAMEORIGIN" always;
+  add_header X-Content-Type-Options "nosniff" always;
+  add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+
+  # ===== Let's Encrypt ACME Challenge =====
+  location /.well-known/acme-challenge/ {
+    root /var/www/letsencrypt;
+    allow all;
+  }
+}
+

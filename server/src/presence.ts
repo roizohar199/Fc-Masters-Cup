@@ -142,9 +142,10 @@ function broadcast(wss: WebSocketServer) {
 }
 
 export function attachPresence(server: HTTPServer) {
-  const wss = new WebSocketServer({ server, path: "/presence" });
+  // ✅ noServer: true = manual upgrade handling (robust behind Nginx)
+  const wss = new WebSocketServer({ noServer: true });
   
-  console.log("🔌 WebSocket Server initialized on path: /presence");
+  console.log("🔌 WebSocket Server initialized with noServer mode");
   console.log("📊 Waiting for WebSocket connections...");
 
   wss.on("connection", (ws: WebSocket, req: any) => {
@@ -256,7 +257,7 @@ export function attachPresence(server: HTTPServer) {
 
   wss.on("close", () => clearInterval(iv));
 
-  return { getOnline: snapshot };
+  return { getOnline: snapshot, wss };
 }
 
 // פונקציה לקבלת נתוני נוכחות עם טיפול בשגיאות - ללא זריקת exceptions

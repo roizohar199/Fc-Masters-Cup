@@ -7,6 +7,7 @@ console.log("ENV check → HOST:", process.env.SMTP_HOST, "| USER:", process.env
 import express from "express";
 import cors from "cors";
 import path from "node:path";
+import http from "node:http";
 import rateLimit from "express-rate-limit";
 import { tournaments } from "./routes/tournaments.js";
 import { matches } from "./routes/matches.js";
@@ -120,7 +121,31 @@ async function startServer(port: number, retries = 0): Promise<void> {
   try {
     await seedAdminFromEnv();
 
-    const server = app.listen(port, () => {
+    // Create HTTP server explicitly (required for WebSocket upgrade handling)
+    const server = http.createServer(app);
+
+    // Attach presence WebSocket with noServer: true
+    const { getOnline, wss } = attachPresence(server);
+    presenceRest(app); // REST fallback
+
+    // ✅ Handle WebSocket upgrade manually (robust behind Nginx)
+    server.on("upgrade", (req, socket, head) => {
+      const url = req.url || '';
+      logger.info("websocket", `Upgrade request for: ${url}`);
+      
+      if (url.startsWith('/presence')) {
+        wss.handleUpgrade(req, socket as any, head, (ws) => {
+          wss.emit('connection', ws, req);
+          logger.success("websocket", `WebSocket connection upgraded successfully`);
+        });
+      } else {
+        logger.warn("websocket", `Invalid WebSocket path: ${url}`);
+        socket.destroy();
+      }
+    });
+
+    // Start listening
+    server.listen(port, () => {
       logger.success("server", `Server started successfully on http://localhost:${port}`);
       logger.info("server", `Environment: ${process.env.NODE_ENV || 'development'}`);
       logger.info("server", `CORS Origin: ${ORIGIN}`);
@@ -147,6 +172,7 @@ async function startServer(port: number, retries = 0): Promise<void> {
         logger.info("server", "  - WebSocket will use WS (non-secure) on HTTP");
         logger.info("server", "  - Frontend should connect to: ws://localhost:" + port + "/presence");
       }
+      logger.success("server", "Presence WebSocket attached to /presence with manual upgrade handling");
     });
 
     // Handle port already in use error
@@ -167,11 +193,6 @@ async function startServer(port: number, retries = 0): Promise<void> {
         process.exit(1);
       }
     });
-
-    // Attach presence WebSocket
-    const { getOnline } = attachPresence(server);
-    presenceRest(app); // REST fallback
-    logger.success("server", "Presence WebSocket attached to /presence");
   } catch (error) {
     logger.error("server", "Failed to start server", error);
     process.exit(1);
