@@ -46,6 +46,11 @@ logger.info("server", `Rate Limiting: ${isProduction ? 'ENABLED (Production)' : 
 
 // CORS with credentials for cookie-based auth
 const ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
+logger.info("server", `CORS Origin: ${ORIGIN}`);
+if (!process.env.CORS_ORIGIN) {
+  logger.warn("server", "⚠️  CORS_ORIGIN not set in .env, using default: http://localhost:5173");
+  logger.warn("server", "⚠️  For production with HTTPS, set: CORS_ORIGIN=https://your-domain.com");
+}
 app.use(cors({
   origin: ORIGIN,
   credentials: true,
@@ -117,7 +122,10 @@ async function startServer(port: number, retries = 0): Promise<void> {
 
     const server = app.listen(port, () => {
       logger.success("server", `Server started successfully on http://localhost:${port}`);
-      logger.info("server", "All routes initialized:");
+      logger.info("server", `Environment: ${process.env.NODE_ENV || 'development'}`);
+      logger.info("server", `CORS Origin: ${ORIGIN}`);
+      logger.info("server", "");
+      logger.info("server", "📡 API Routes initialized:");
       logger.info("server", "  - /api/auth (public)");
       logger.info("server", "  - /api/user (requires auth)");
       logger.info("server", "  - /api/admin (requires auth)");
@@ -125,7 +133,20 @@ async function startServer(port: number, retries = 0): Promise<void> {
       logger.info("server", "  - /api/tournament-registrations (mixed)");
       logger.info("server", "  - /api/matches (mixed)");
       logger.info("server", "  - /api/disputes (requires auth)");
-      logger.info("server", "  - /presence (WebSocket)");
+      logger.info("server", "");
+      logger.info("server", "🔌 WebSocket Routes:");
+      logger.info("server", "  - /presence (WebSocket - Real-time user presence)");
+      logger.info("server", "");
+      if (isProduction) {
+        logger.warn("server", "⚠️  Production Mode:");
+        logger.warn("server", "  - Ensure Nginx is configured with SSL + WebSocket headers");
+        logger.warn("server", "  - WebSocket will use WSS (secure) on HTTPS");
+        logger.warn("server", "  - See: nginx-config-k-rstudio-ssl.txt for config");
+      } else {
+        logger.info("server", "💡 Development Mode:");
+        logger.info("server", "  - WebSocket will use WS (non-secure) on HTTP");
+        logger.info("server", "  - Frontend should connect to: ws://localhost:" + port + "/presence");
+      }
     });
 
     // Handle port already in use error

@@ -143,12 +143,20 @@ function broadcast(wss: WebSocketServer) {
 
 export function attachPresence(server: HTTPServer) {
   const wss = new WebSocketServer({ server, path: "/presence" });
+  
+  console.log("🔌 WebSocket Server initialized on path: /presence");
+  console.log("📊 Waiting for WebSocket connections...");
 
   wss.on("connection", (ws: WebSocket, req: any) => {
+    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    console.log(`🔗 New WebSocket connection attempt from: ${clientIp}`);
+    
     const cookies = parseCookie(req.headers.cookie as string | undefined);
     const token = cookies["session"];
     const decoded = token ? decodeToken(token) : null;
     if (!decoded || typeof decoded !== "object" || !(decoded as any).email) {
+      console.log(`❌ WebSocket authentication failed from: ${clientIp}`);
+      console.log(`   Reason: ${!token ? 'No session cookie' : 'Invalid token'}`);
       ws.close(4401, "unauthorized");
       return;
     }

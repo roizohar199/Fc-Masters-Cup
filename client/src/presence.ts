@@ -95,15 +95,38 @@ export function startPresence() {
 
   ws.onclose = (event) => { 
     console.log("❌ WebSocket closed:", event.code, event.reason);
+    
+    // הסברים מפורטים לשגיאות נפוצות
+    if (event.code === 1006) {
+      console.error("💡 שגיאה 1006: בעיה בחיבור WebSocket. אפשרויות:");
+      console.error("   1. הבדוק ש-Nginx מוגדר עם SSL + WebSocket headers");
+      console.error("   2. ודא שהשרת Backend רץ (pm2 status)");
+      console.error("   3. בדוק את CORS_ORIGIN ב-.env");
+    } else if (event.code === 4401) {
+      console.error("💡 שגיאה 4401: Authentication נכשל - צריך להתחבר שוב");
+    } else if (event.code === 1000) {
+      console.log("✅ חיבור נסגר בהצלחה (נורמלי)");
+    }
+    
     clearInterval(hbIv); 
     hbIv = null; 
     clearTimeout(activityTimeout);
     activityTimeout = null;
-    setTimeout(startPresence, 3000); 
+    
+    // ננסה להתחבר שוב רק אם זה לא סגירה נורמלית
+    if (event.code !== 1000) {
+      console.log("🔄 ננסה להתחבר שוב בעוד 3 שניות...");
+      setTimeout(startPresence, 3000);
+    }
   };
 
   ws.onerror = (error) => {
     console.error("❌ WebSocket error:", error);
+    console.error("💡 עצות לפתרון בעיות:");
+    console.error("   1. בדוק שהאתר רץ על HTTPS (אם כן, WebSocket חייב להיות WSS)");
+    console.error("   2. בדוק ש-Nginx מוגדר נכון עם SSL Certificate");
+    console.error("   3. בדוק שהשרת Backend רץ על Port 8787");
+    console.error("   4. ראה מדריך מפורט: README-תיקון-WebSocket.md");
   };
 }
 
