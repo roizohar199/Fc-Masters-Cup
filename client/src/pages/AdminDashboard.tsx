@@ -2610,11 +2610,31 @@ export default function AdminDashboard() {
               </button>
               {tournamentId && (
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     console.log("🔍 מגדיר טורניר פעיל:", tournamentId);
                     setTournamentId(tournamentId);
                     console.log("🔍 אחרי הגדרה, tournamentId ב-store:", useStore.getState().tournamentId);
-                    alert("✅ הטורניר הוגדר כפעיל!");
+                    
+                    // פתיחת הטורניר להרשמה
+                    try {
+                      const response = await api(`/api/tournament-registrations/${tournamentId}/admin/open`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                          title: title,
+                          capacity: 100,
+                          min: 16
+                        })
+                      });
+                      
+                      if (response.ok) {
+                        alert("✅ הטורניר הוגדר כפעיל ופתוח להרשמה!");
+                      } else {
+                        alert("❌ שגיאה בפתיחת הטורניר: " + (response.error || "שגיאה לא ידועה"));
+                      }
+                    } catch (error: any) {
+                      console.error("שגיאה בפתיחת הטורניר:", error);
+                      alert("❌ שגיאה בפתיחת הטורניר: " + error.message);
+                    }
                   }}
                   style={{
                     padding: "6px 12px",
@@ -2628,7 +2648,40 @@ export default function AdminDashboard() {
                     marginLeft: 8
                   }}
                 >
-                  ⭐ הגדר כפעיל
+                  ⭐ הגדר כפעיל ופתח להרשמה
+                </button>
+              )}
+              {tournamentId && (
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await api(`/api/tournament-registrations/${tournamentId}/admin/close`, {
+                        method: 'POST'
+                      });
+                      
+                      if (response.ok) {
+                        alert("✅ הטורניר נסגר להרשמה!");
+                      } else {
+                        alert("❌ שגיאה בסגירת הטורניר: " + (response.error || "שגיאה לא ידועה"));
+                      }
+                    } catch (error: any) {
+                      console.error("שגיאה בסגירת הטורניר:", error);
+                      alert("❌ שגיאה בסגירת הטורניר: " + error.message);
+                    }
+                  }}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 6,
+                    border: "none",
+                    background: "#f44336",
+                    color: "#fff",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    marginLeft: 8
+                  }}
+                >
+                  🔒 סגור להרשמה
                 </button>
               )}
             </div>
