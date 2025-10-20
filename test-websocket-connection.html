@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>בדיקת WebSocket - k-rstudio.com</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .config-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            direction: ltr;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .btn-connect {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-connect:hover:not(:disabled) {
+            background: #059669;
+        }
+        
+        .btn-disconnect {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-disconnect:hover:not(:disabled) {
+            background: #dc2626;
+        }
+        
+        .status-box {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #gray;
+            margin-left: 10px;
+        }
+        
+        .status-indicator.connected {
+            background: #10b981;
+            box-shadow: 0 0 10px #10b981;
+        }
+        
+        .status-indicator.connecting {
+            background: #f59e0b;
+            animation: pulse 1s infinite;
+        }
+        
+        .status-indicator.disconnected {
+            background: #ef4444;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .log-box {
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        
+        .log-entry.info {
+            color: #60a5fa;
+        }
+        
+        .log-entry.success {
+            color: #34d399;
+        }
+        
+        .log-entry.error {
+            color: #f87171;
+            background: rgba(248, 113, 113, 0.1);
+        }
+        
+        .log-entry.warning {
+            color: #fbbf24;
+        }
+        
+        .timestamp {
+            color: #94a3b8;
+            margin-left: 10px;
+        }
+        
+        .help-box {
+            background: #fef3c7;
+            border-right: 4px solid #f59e0b;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .help-box h3 {
+            color: #92400e;
+            margin-bottom: 10px;
+        }
+        
+        .help-box ul {
+            color: #78350f;
+            margin-right: 20px;
+        }
+        
+        .help-box li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 בדיקת חיבור WebSocket</h1>
+        <div class="subtitle">בדיקת WebSocket Secure (WSS) ל־k-rstudio.com</div>
+        
+        <div class="config-section">
+            <div class="input-group">
+                <label>כתובת WebSocket URL:</label>
+                <input type="text" id="wsUrl" value="wss://www.k-rstudio.com/presence" placeholder="wss://www.k-rstudio.com/presence">
+            </div>
+            <div style="font-size: 12px; color: #666; margin-top: 10px;">
+                💡 עצה: השתמש ב־<code>wss://</code> ל־HTTPS או <code>ws://</code> ל־HTTP
+            </div>
+        </div>
+        
+        <div class="status-box">
+            <div>
+                <strong>סטטוס:</strong>
+                <span id="statusText">מנותק</span>
+            </div>
+            <div class="status-indicator" id="statusIndicator"></div>
+        </div>
+        
+        <div class="button-group">
+            <button class="btn-connect" id="connectBtn" onclick="connect()">
+                🔌 התחבר
+            </button>
+            <button class="btn-disconnect" id="disconnectBtn" onclick="disconnect()" disabled>
+                ❌ התנתק
+            </button>
+            <button onclick="clearLogs()" style="background: #6b7280; color: white;">
+                🗑️ נקה לוג
+            </button>
+        </div>
+        
+        <h3 style="margin-bottom: 10px;">📋 לוג חיבור:</h3>
+        <div class="log-box" id="logBox">
+            <div class="log-entry info">
+                <span class="timestamp">[--:--:--]</span>
+                מוכן להתחבר. לחץ על "התחבר" כדי להתחיל.
+            </div>
+        </div>
+        
+        <div class="help-box">
+            <h3>💡 עזרה</h3>
+            <ul>
+                <li><strong>אם החיבור נכשל:</strong> ודא ש־Nginx מוגדר נכון עם SSL</li>
+                <li><strong>שגיאת 1006:</strong> בעיה בתצורת Nginx או SSL</li>
+                <li><strong>שגיאת 401/403:</strong> בעיית Authentication (נדרש Cookie)</li>
+                <li><strong>Mixed Content:</strong> ודא שאתה משתמש ב־wss:// ולא ws://</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let reconnectInterval = null;
+        
+        function log(message, type = 'info') {
+            const logBox = document.getElementById('logBox');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            
+            const now = new Date();
+            const timestamp = now.toLocaleTimeString('he-IL', { hour12: false });
+            
+            entry.innerHTML = `<span class="timestamp">[${timestamp}]</span> ${message}`;
+            logBox.appendChild(entry);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+        
+        function updateStatus(text, state) {
+            document.getElementById('statusText').textContent = text;
+            const indicator = document.getElementById('statusIndicator');
+            indicator.className = 'status-indicator ' + state;
+        }
+        
+        function connect() {
+            const url = document.getElementById('wsUrl').value.trim();
+            
+            if (!url) {
+                log('❌ שגיאה: נא להזין URL', 'error');
+                return;
+            }
+            
+            log(`🔌 מתחבר ל־ ${url}...`, 'info');
+            updateStatus('מתחבר...', 'connecting');
+            
+            try {
+                ws = new WebSocket(url);
+                
+                ws.onopen = () => {
+                    log('✅ WebSocket התחבר בהצלחה!', 'success');
+                    updateStatus('מחובר', 'connected');
+                    document.getElementById('connectBtn').disabled = true;
+                    document.getElementById('disconnectBtn').disabled = false;
+                };
+                
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        log(`📨 הודעה התקבלה: ${JSON.stringify(data, null, 2)}`, 'success');
+                        
+                        // הצג פרטים נוספים על הודעת presence
+                        if (data.type === 'presence:hello') {
+                            log(`👋 קיבלתי Hello! משתמשים מחוברים: ${data.users?.length || 0}`, 'info');
+                        } else if (data.type === 'presence:update') {
+                            log(`🔄 עדכון נוכחות: ${data.users?.length || 0} משתמשים`, 'info');
+                        }
+                    } catch (e) {
+                        log(`📨 הודעה (raw): ${event.data}`, 'info');
+                    }
+                };
+                
+                ws.onerror = (error) => {
+                    log(`❌ שגיאת WebSocket: ${error.message || 'Unknown error'}`, 'error');
+                    console.error('WebSocket error:', error);
+                };
+                
+                ws.onclose = (event) => {
+                    log(`❌ WebSocket נסגר. קוד: ${event.code}, סיבה: ${event.reason || 'לא צוין'}`, 'warning');
+                    updateStatus('מנותק', 'disconnected');
+                    document.getElementById('connectBtn').disabled = false;
+                    document.getElementById('disconnectBtn').disabled = true;
+                    
+                    // הסברים לקודים נפוצים
+                    if (event.code === 1006) {
+                        log('💡 קוד 1006: בעיה בתצורת Nginx/SSL או שהשרת לא זמין', 'warning');
+                    } else if (event.code === 4401) {
+                        log('💡 קוד 4401: Authentication נכשל - נדרש Cookie של session', 'warning');
+                    }
+                };
+                
+            } catch (error) {
+                log(`❌ שגיאה ביצירת WebSocket: ${error.message}`, 'error');
+                updateStatus('שגיאה', 'disconnected');
+            }
+        }
+        
+        function disconnect() {
+            if (ws) {
+                log('🔌 מתנתק...', 'info');
+                ws.close();
+                ws = null;
+            }
+        }
+        
+        function clearLogs() {
+            document.getElementById('logBox').innerHTML = '';
+            log('לוג נוקה.', 'info');
+        }
+        
+        // נסיון אוטומטי להתחבר בטעינת הדף (אופציונלי)
+        // window.onload = connect;
+    </script>
+</body>
+</html>
+
