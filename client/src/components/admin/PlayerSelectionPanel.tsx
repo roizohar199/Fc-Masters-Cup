@@ -8,6 +8,7 @@ interface User {
   psnUsername?: string;
   role: string;
   status: string;
+  isOnline?: boolean;
 }
 
 interface PlayerSelectionPanelProps {
@@ -21,6 +22,7 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
   const [loading, setLoading] = useState(true);
   const [selecting, setSelecting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [onlineFilter, setOnlineFilter] = useState<'all' | 'online' | 'offline'>('all');
   const [tournamentDetails, setTournamentDetails] = useState({
     title: '',
     date: '',
@@ -37,9 +39,17 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/users');
+      // טען משתמשים עם מידע על סטטוס מחובר
+      const response = await api.get('/admin/users/online-status');
       if (response.ok) {
-        setUsers(response.data.filter((user: User) => user.status === 'active'));
+        const usersData = response.data.allUsers || response.data;
+        setUsers(usersData.filter((user: User) => user.status === 'active'));
+      } else {
+        // fallback למקרה שהנקודת קצה לא קיימת
+        const fallbackResponse = await api.get('/users');
+        if (fallbackResponse.ok) {
+          setUsers(fallbackResponse.data.filter((user: User) => user.status === 'active'));
+        }
       }
     } catch (error) {
       console.error('Failed to load users:', error);
@@ -67,10 +77,19 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
     }
   };
 
-  const filteredUsers = users.filter(user => 
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (user.psnUsername && user.psnUsername.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredUsers = users.filter(user => {
+    // סינון לפי חיפוש
+    const matchesSearch = user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.psnUsername && user.psnUsername.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    // סינון לפי סטטוס מחובר
+    const matchesOnlineFilter = 
+      onlineFilter === 'all' ? true :
+      onlineFilter === 'online' ? user.isOnline === true :
+      user.isOnline !== true;
+    
+    return matchesSearch && matchesOnlineFilter;
+  });
 
   const handleUserToggle = (userId: string) => {
     setSelectedUserIds(prev => {
@@ -147,13 +166,27 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
   }
 
   return (
-    <div style={{
-      background: 'white',
-      borderRadius: '12px',
-      padding: '24px',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-      marginBottom: '24px'
-    }}>
+    <>
+      <style>{`
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.5;
+            transform: scale(1.2);
+          }
+        }
+      `}</style>
+      
+      <div style={{
+        background: 'white',
+        borderRadius: '12px',
+        padding: '24px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+        marginBottom: '24px'
+      }}>
       <h3 style={{
         fontSize: '20px',
         fontWeight: '700',
@@ -265,7 +298,7 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
         </div>
       </div>
 
-      {/* חיפוש */}
+      {/* חיפוש וסינון */}
       <div style={{ marginBottom: '20px' }}>
         <input
           type="text"
@@ -278,9 +311,80 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
             border: '1px solid #ddd',
             borderRadius: '8px',
             fontSize: '14px',
-            boxSizing: 'border-box'
+            boxSizing: 'border-box',
+            marginBottom: '12px'
           }}
         />
+        
+        {/* כפתורי סינון */}
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+          <button
+            onClick={() => setOnlineFilter('all')}
+            style={{
+              padding: '6px 16px',
+              border: onlineFilter === 'all' ? '2px solid #007bff' : '1px solid #ddd',
+              borderRadius: '6px',
+              background: onlineFilter === 'all' ? '#e3f2fd' : 'white',
+              color: onlineFilter === 'all' ? '#007bff' : '#495057',
+              fontSize: '13px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            כולם ({users.length})
+          </button>
+          <button
+            onClick={() => setOnlineFilter('online')}
+            style={{
+              padding: '6px 16px',
+              border: onlineFilter === 'online' ? '2px solid #28a745' : '1px solid #ddd',
+              borderRadius: '6px',
+              background: onlineFilter === 'online' ? '#d4edda' : 'white',
+              color: onlineFilter === 'online' ? '#28a745' : '#495057',
+              fontSize: '13px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <div style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: '#28a745'
+            }} />
+            מחוברים ({users.filter(u => u.isOnline).length})
+          </button>
+          <button
+            onClick={() => setOnlineFilter('offline')}
+            style={{
+              padding: '6px 16px',
+              border: onlineFilter === 'offline' ? '2px solid #6c757d' : '1px solid #ddd',
+              borderRadius: '6px',
+              background: onlineFilter === 'offline' ? '#e9ecef' : 'white',
+              color: onlineFilter === 'offline' ? '#495057' : '#6c757d',
+              fontSize: '13px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <div style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: '#6c757d'
+            }} />
+            לא מחוברים ({users.filter(u => !u.isOnline).length})
+          </button>
+        </div>
       </div>
 
       {/* כפתורי פעולה */}
@@ -387,6 +491,29 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
                   {user.email}
                 </div>
               </div>
+              
+              {/* אינדיקטור מחובר/לא מחובר */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: user.isOnline ? '#28a745' : '#6c757d',
+                background: user.isOnline ? '#d4edda' : '#e9ecef',
+                padding: '4px 10px',
+                borderRadius: '12px'
+              }}>
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: user.isOnline ? '#28a745' : '#6c757d',
+                  animation: user.isOnline ? 'pulse 2s infinite' : 'none'
+                }} />
+                {user.isOnline ? 'מחובר' : 'לא מחובר'}
+              </div>
+              
               <div style={{
                 fontSize: '12px',
                 color: '#28a745',
@@ -445,5 +572,6 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
         </ul>
       </div>
     </div>
+    </>
   );
 }
