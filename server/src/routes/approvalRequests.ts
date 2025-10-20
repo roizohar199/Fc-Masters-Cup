@@ -169,6 +169,11 @@ approvalRequests.post("/:requestId/approve", async (req, res) => {
         db.prepare(`DELETE FROM users WHERE id=?`).run(request.targetUserId);
         break;
         
+      case 'approve-user':
+        // אישור משתמש חדש - עדכון הסטטוס ל-approved
+        db.prepare(`UPDATE users SET approvalStatus='approved' WHERE id=?`).run(request.targetUserId);
+        break;
+        
       default:
         return res.status(400).json({ error: "סוג פעולה לא ידוע" });
     }

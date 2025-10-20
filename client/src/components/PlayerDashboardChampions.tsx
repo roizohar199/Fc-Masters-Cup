@@ -27,11 +27,12 @@ export default function PlayerDashboardChampions({
 }: PlayerDashboardChampionsProps) {
   return (
     <div className="champions-league-container" style={{
-      minHeight: "100vh",
-      padding: isMobile ? 16 : 24,
+      minHeight: isMobile ? "auto" : "100vh",
+      padding: isMobile ? 12 : 24,
       borderRadius: 20,
       border: "3px solid #FFD700",
-      boxShadow: "0 0 50px rgba(255, 215, 0, 0.3), inset 0 0 50px rgba(255, 215, 0, 0.1)"
+      boxShadow: "0 0 50px rgba(255, 215, 0, 0.3), inset 0 0 50px rgba(255, 215, 0, 0.1)",
+      margin: isMobile ? "8px" : "0"
     }}>
       {/* רקע דרקון */}
       <div className="champions-league-dragon-bg" />

@@ -126,6 +126,28 @@ auth.post("/register", limiter, async (req, res) => {
   const { sendPendingApprovalEmail, sendAdminApprovalRequest } = await import("../email.js");
   await sendPendingApprovalEmail(email);
   
+  // יצירת בקשה אוטומטית לאישור משתמש חדש
+  const { randomUUID } = await import("node:crypto");
+  const requestId = randomUUID();
+  
+  db.prepare(`
+    INSERT INTO approval_requests (id, requesterId, requesterEmail, actionType, targetUserId, targetUserEmail, actionData, status, createdAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+  `).run(
+    requestId,
+    'system', // מזהה מיוחד למערכת
+    'system@fcmasterscup.com',
+    'approve-user',
+    user.uid,
+    user.email,
+    JSON.stringify({ 
+      psnUsername: user.psnUsername,
+      approvalToken: user.approvalToken,
+      registrationDate: user.createdAt
+    }),
+    new Date().toISOString()
+  );
+
   // שליחת מייל למנהל עם קישור לאישור המשתמש
   const adminEmail = process.env.ADMIN_EMAIL;
   if (adminEmail) {

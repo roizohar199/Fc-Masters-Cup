@@ -1342,6 +1342,7 @@ export default function AdminDashboard() {
                         {request.actionType === "promote" && "👑 קידום למנהל"}
                         {request.actionType === "demote" && "⬇️ הורדה לשחקן"}
                         {request.actionType === "delete" && "🗑️ מחיקת משתמש"}
+                        {request.actionType === "approve-user" && "👤 אישור משתמש חדש"}
                       </div>
                       <div style={{ fontSize: 14, color: "#666" }}>
                         על המשתמש: <strong>{request.targetUserEmail}</strong>

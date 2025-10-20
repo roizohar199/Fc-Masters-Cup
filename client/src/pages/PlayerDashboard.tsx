@@ -199,12 +199,12 @@ export default function PlayerDashboard() {
   }
 
   return (
-    <div>
+    <div style={{ padding: isMobile ? "8px" : "0" }}>
       {/* הודעות */}
       <NotificationBanner />
       
       {/* כרטיס הרשמה לטורניר - תמיד מוצג */}
-      <div style={{ marginBottom: isMobile ? 20 : 32 }}>
+      <div style={{ marginBottom: isMobile ? 16 : 32 }}>
         <TournamentSignupCard tournamentId={tournament?.id || "default"} />
       </div>
 
