@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { api } from "../api";
 import { useStore } from "../store";
 import AdvanceWinners from "../components/AdvanceWinners";
+import { TournamentRegistrationsPanel } from "../components/TournamentRegistrationsPanel";
 import { startPresence, onPresenceUpdate } from "../presence";
 
 interface User {
@@ -2968,6 +2969,13 @@ export default function AdminDashboard() {
           אחרי שנוצרות ההתמודדויות, עבור לעמוד "צפייה בתוצאות", פתח כרטיס משחק והעתק את קישור ההגשה לשחקנים.
         </p>
       </div>
+
+      {/* פאנל ניהול הרשמות לטורניר */}
+      {tournamentId && (
+        <div style={{ marginBottom: 24 }}>
+          <TournamentRegistrationsPanel tournamentId={tournamentId} />
+        </div>
+      )}
 
       <div style={{
         backgroundColor: "#fff",

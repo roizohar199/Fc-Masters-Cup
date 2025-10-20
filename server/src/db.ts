@@ -37,7 +37,10 @@ CREATE TABLE IF NOT EXISTS tournaments (
   prizeFirst INTEGER NOT NULL,
   prizeSecond INTEGER NOT NULL,
   nextTournamentDate TEXT,
-  telegramLink TEXT
+  telegramLink TEXT,
+  registrationStatus TEXT DEFAULT 'closed',
+  registrationCapacity INTEGER DEFAULT 100,
+  registrationMinPlayers INTEGER DEFAULT 16
 );
 CREATE TABLE IF NOT EXISTS matches (
   id TEXT PRIMARY KEY,
@@ -125,9 +128,26 @@ CREATE TABLE IF NOT EXISTS advance_operations (
   FOREIGN KEY (tournamentId) REFERENCES tournaments(id)
 );
 
+CREATE TABLE IF NOT EXISTS tournament_registrations (
+  id TEXT PRIMARY KEY,
+  tournamentId TEXT NOT NULL,
+  userId TEXT NOT NULL,
+  state TEXT NOT NULL DEFAULT 'registered',
+  createdAt TEXT NOT NULL,
+  updatedAt TEXT NOT NULL,
+  FOREIGN KEY(tournamentId) REFERENCES tournaments(id) ON DELETE CASCADE,
+  FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_advance_operations_tournament ON advance_operations(tournamentId);
 CREATE INDEX IF NOT EXISTS idx_advance_operations_round ON advance_operations(round);
 CREATE INDEX IF NOT EXISTS idx_advance_operations_key ON advance_operations(idempotencyKey);
+
+-- Tournament registrations indexes
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tr_unique ON tournament_registrations (tournamentId, userId);
+CREATE INDEX IF NOT EXISTS idx_tr_tournament ON tournament_registrations (tournamentId);
+CREATE INDEX IF NOT EXISTS idx_tr_user ON tournament_registrations (userId);
+CREATE INDEX IF NOT EXISTS idx_tr_state ON tournament_registrations (state);
 `);
 
 export default db;
@@ -194,6 +214,23 @@ try {
       approveStmt.run(user.id);
     });
     console.log(`✅ Auto-approved ${existingUsers.length} existing users`);
+  }
+  
+  // הוספת עמודות הרשמה לטורנירים
+  const tournamentCols = db.prepare(`PRAGMA table_info(tournaments)`).all() as any[];
+  const haveTournament = new Set(tournamentCols.map((c: any) => c.name));
+  
+  if (!haveTournament.has('registrationStatus')) {
+    db.exec("ALTER TABLE tournaments ADD COLUMN registrationStatus TEXT DEFAULT 'closed'");
+    console.log("✅ Added registrationStatus column to tournaments table");
+  }
+  if (!haveTournament.has('registrationCapacity')) {
+    db.exec("ALTER TABLE tournaments ADD COLUMN registrationCapacity INTEGER DEFAULT 100");
+    console.log("✅ Added registrationCapacity column to tournaments table");
+  }
+  if (!haveTournament.has('registrationMinPlayers')) {
+    db.exec("ALTER TABLE tournaments ADD COLUMN registrationMinPlayers INTEGER DEFAULT 16");
+    console.log("✅ Added registrationMinPlayers column to tournaments table");
   }
 } catch {}
 

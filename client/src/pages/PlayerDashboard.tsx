@@ -3,6 +3,7 @@ import { api } from "../api";
 import { Link } from "react-router-dom";
 import { useStore } from "../store";
 import PlayerDashboardChampions from "../components/PlayerDashboardChampions";
+import { TournamentSignupCard } from "../components/TournamentSignupCard";
 import { getRoundName } from "../utils/rounds";
 import "../styles/championsLeague.css";
 
@@ -198,6 +199,13 @@ export default function PlayerDashboard() {
 
   return (
     <div>
+      {/* כרטיס הרשמה לטורניר */}
+      {tournament && (
+        <div style={{ marginBottom: isMobile ? 20 : 32 }}>
+          <TournamentSignupCard tournamentId={tournament.id} />
+        </div>
+      )}
+
       {/* רכיב חדש בסגנון ליגת האלופות */}
       <PlayerDashboardChampions
         playerInfo={playerInfo}

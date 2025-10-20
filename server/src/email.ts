@@ -507,6 +507,88 @@ export async function sendPasswordResetSuccessEmail(email: string) {
   }
 }
 
+export async function sendTournamentRegistrationEmail(params: {
+  tournamentTitle: string;
+  userName?: string;
+  userEmail: string;
+  count: number;
+  capacity: number;
+}) {
+  const { tournamentTitle, userName, userEmail, count, capacity } = params;
+  const adminEmail = process.env.ADMIN_EMAIL || 'roizohar111@gmail.com';
+  const transport = getTransporter();
+
+  const subject = `נרשם חדש לטורניר: ${tournamentTitle} (${count}/${capacity})`;
+  const emailContent = {
+    from: process.env.EMAIL_FROM || process.env.SMTP_FROM || `"FC Masters Cup" <${process.env.SMTP_USER}>`,
+    to: adminEmail,
+    subject,
+    html: `
+      <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px;">
+        <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+          <h1 style="color: #667eea; text-align: center; font-size: 32px; margin-bottom: 20px;">
+            ⚽ נרשם חדש לטורניר!
+          </h1>
+          
+          <div style="background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-right: 4px solid #667eea;">
+            <p style="font-size: 18px; color: #333; line-height: 1.8; margin: 0;">
+              שלום רועי,<br><br>
+              יש נרשם חדש לטורניר "<strong>${tournamentTitle}</strong>".
+            </p>
+          </div>
+          
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #e9ecef;">
+            <h3 style="color: #495057; font-size: 18px; margin: 0 0 15px 0;">📋 פרטי המשתתף:</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+              <div>
+                <p style="margin: 0; color: #6c757d; font-size: 14px;">👤 שם:</p>
+                <p style="margin: 5px 0 0 0; color: #333; font-weight: 600;">${userName || 'ללא שם'}</p>
+              </div>
+              <div>
+                <p style="margin: 0; color: #6c757d; font-size: 14px;">📧 אימייל:</p>
+                <p style="margin: 5px 0 0 0; color: #333; font-weight: 600;">${userEmail || 'לא צוין'}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-right: 4px solid #28a745;">
+            <p style="font-size: 20px; color: #28a745; margin: 0; font-weight: 700; text-align: center;">
+              📊 סה"כ נרשמו: ${count}/${capacity}
+            </p>
+          </div>
+          
+          <div style="text-align: center; margin-top: 40px;">
+            <a href="${process.env.SITE_URL || "http://localhost:5173"}/admin" 
+               style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 18px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+              פאנל ניהול 👨‍💼
+            </a>
+          </div>
+          
+          <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #f0f0f0; text-align: center;">
+            <p style="color: #999; font-size: 12px; margin: 5px 0;">
+              FC Masters Cup • PS5 • FC25/FC26
+            </p>
+          </div>
+        </div>
+      </div>
+    `,
+  };
+
+  if (!transport) {
+    console.log("[email] 📧 Tournament registration email (dev mode):", emailContent);
+    return true;
+  }
+
+  try {
+    await transport.sendMail(emailContent);
+    console.log(`[email] ✅ Tournament registration email sent to admin`);
+    return true;
+  } catch (error) {
+    console.error(`[email] ❌ Failed to send tournament registration email:`, error);
+    return false;
+  }
+}
+
 export async function sendUserApprovedEmail(email: string) {
   const transport = getTransporter();
   

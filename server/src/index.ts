@@ -16,6 +16,7 @@ import { userSettings } from "./routes/userSettings.js";
 import { admin } from "./routes/admin.js";
 import { adminUsers } from "./routes/adminUsers.js";
 import { approvalRequests } from "./routes/approvalRequests.js";
+import { tournamentRegistrations } from "./routes/tournamentRegistrations.js";
 import { withCookies, requireAuth, requireSuperAdmin, seedAdminFromEnv } from "./auth.js";
 import { logger } from "./logger.js";
 import { fileURLToPath } from "node:url";
@@ -83,6 +84,9 @@ app.use("/api/admin-approval", adminUsers);
 // Approval requests routes (requires auth)
 app.use("/api/approval-requests", requireAuth, approvalRequests);
 
+// Tournament registrations routes (mixed - summary public, register/admin require auth)
+app.use("/api/tournament-registrations", tournamentRegistrations);
+
 // Protect admin operations for tournaments
 app.use("/api/tournaments", (req, res, next) => {
   // GET requests (bracket view) remain public
@@ -118,6 +122,7 @@ async function startServer(port: number, retries = 0): Promise<void> {
       logger.info("server", "  - /api/user (requires auth)");
       logger.info("server", "  - /api/admin (requires auth)");
       logger.info("server", "  - /api/tournaments (mixed)");
+      logger.info("server", "  - /api/tournament-registrations (mixed)");
       logger.info("server", "  - /api/matches (mixed)");
       logger.info("server", "  - /api/disputes (requires auth)");
       logger.info("server", "  - /presence (WebSocket)");
