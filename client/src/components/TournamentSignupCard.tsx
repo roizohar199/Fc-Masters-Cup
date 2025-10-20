@@ -48,6 +48,11 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
   const isFull = data?.isFull ?? false;
   const myState = data?.myState as MyState;
 
+  // מערכת רישום מוקדם - תמיד פעילה
+  const canJoinEarly = !isFull && myState !== "registered";
+  const canLeaveEarly = myState === "registered";
+  
+  // המערכת הישנה - רק כשהטורניר פעיל
   const canJoin = t?.status === "collecting" && !isFull && myState !== "registered";
   const canLeave = t?.status === "collecting" && myState === "registered";
 
@@ -71,6 +76,26 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
     }
   }
 
+  async function joinEarly() {
+    const tId = toast.loading("מביע עניין...");
+    try {
+      const result = await api(`/api/tournament-registrations/${tournamentId}/early-register`, {
+        method: "POST",
+      });
+      toast.dismiss(tId);
+      if (result.ok) {
+        toast.success("✅ הוספת את עצמך לרשימת המעוניינים!");
+        refresh();
+      } else {
+        toast.error(result.error || "שגיאה בהבעת עניין");
+      }
+    } catch (error) {
+      toast.dismiss(tId);
+      toast.error("שגיאה בהבעת עניין");
+      console.error(error);
+    }
+  }
+
   async function leave() {
     const tId = toast.loading("מבטל רישום...");
     try {
@@ -87,6 +112,26 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
     } catch (error) {
       toast.dismiss(tId);
       toast.error("שגיאה בביטול הרישום");
+      console.error(error);
+    }
+  }
+
+  async function leaveEarly() {
+    const tId = toast.loading("מסיר עניין...");
+    try {
+      const result = await api(`/api/tournament-registrations/${tournamentId}/early-unregister`, {
+        method: "POST",
+      });
+      toast.dismiss(tId);
+      if (result.ok) {
+        toast.success("הסרת את עצמך מרשימת המעוניינים");
+        refresh();
+      } else {
+        toast.error(result.error || "שגיאה בהסרת עניין");
+      }
+    } catch (error) {
+      toast.dismiss(tId);
+      toast.error("שגיאה בהסרת עניין");
       console.error(error);
     }
   }
@@ -405,31 +450,31 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
         }}
       >
         <button
-          onClick={join}
-          disabled={!canJoin}
+          onClick={canJoinEarly ? joinEarly : join}
+          disabled={!canJoinEarly && !canJoin}
           style={{
             padding: isMobile ? "12px 24px" : "16px 40px",
             borderRadius: 12,
             fontSize: isMobile ? 15 : 18,
             fontWeight: 700,
             border: "none",
-            cursor: canJoin ? "pointer" : "not-allowed",
-            background: canJoin
+            cursor: (canJoinEarly || canJoin) ? "pointer" : "not-allowed",
+            background: (canJoinEarly || canJoin)
               ? "linear-gradient(135deg, #28a745 0%, #20c997 100%)"
               : "#e9ecef",
-            color: canJoin ? "#fff" : "#adb5bd",
-            boxShadow: canJoin ? "0 4px 15px rgba(40, 167, 69, 0.4)" : "none",
+            color: (canJoinEarly || canJoin) ? "#fff" : "#adb5bd",
+            boxShadow: (canJoinEarly || canJoin) ? "0 4px 15px rgba(40, 167, 69, 0.4)" : "none",
             transition: "all 0.3s ease",
             flex: isMobile ? "1 1 45%" : "0 0 auto",
           }}
           onMouseEnter={(e) => {
-            if (canJoin) {
+            if (canJoinEarly || canJoin) {
               e.currentTarget.style.transform = "translateY(-2px)";
               e.currentTarget.style.boxShadow = "0 6px 20px rgba(40, 167, 69, 0.5)";
             }
           }}
           onMouseLeave={(e) => {
-            if (canJoin) {
+            if (canJoinEarly || canJoin) {
               e.currentTarget.style.transform = "translateY(0)";
               e.currentTarget.style.boxShadow = "0 4px 15px rgba(40, 167, 69, 0.4)";
             }
@@ -438,29 +483,29 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
           🎮 אני בפנים!
         </button>
         <button
-          onClick={leave}
-          disabled={!canLeave}
+          onClick={canLeaveEarly ? leaveEarly : leave}
+          disabled={!canLeaveEarly && !canLeave}
           style={{
             padding: isMobile ? "12px 24px" : "16px 40px",
             borderRadius: 12,
             fontSize: isMobile ? 15 : 18,
             fontWeight: 700,
-            cursor: canLeave ? "pointer" : "not-allowed",
-            background: canLeave ? "#fff" : "#f8f9fa",
-            color: canLeave ? "#e74c3c" : "#adb5bd",
-            border: canLeave ? "2px solid #e74c3c" : "2px solid #dee2e6",
-            boxShadow: canLeave ? "0 2px 8px rgba(231, 76, 60, 0.2)" : "none",
+            cursor: (canLeaveEarly || canLeave) ? "pointer" : "not-allowed",
+            background: (canLeaveEarly || canLeave) ? "#fff" : "#f8f9fa",
+            color: (canLeaveEarly || canLeave) ? "#e74c3c" : "#adb5bd",
+            border: (canLeaveEarly || canLeave) ? "2px solid #e74c3c" : "2px solid #dee2e6",
+            boxShadow: (canLeaveEarly || canLeave) ? "0 2px 8px rgba(231, 76, 60, 0.2)" : "none",
             transition: "all 0.3s ease",
             flex: isMobile ? "1 1 45%" : "0 0 auto",
           }}
           onMouseEnter={(e) => {
-            if (canLeave) {
+            if (canLeaveEarly || canLeave) {
               e.currentTarget.style.background = "#ffe0e0";
               e.currentTarget.style.transform = "translateY(-2px)";
             }
           }}
           onMouseLeave={(e) => {
-            if (canLeave) {
+            if (canLeaveEarly || canLeave) {
               e.currentTarget.style.background = "#fff";
               e.currentTarget.style.transform = "translateY(0)";
             }

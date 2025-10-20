@@ -238,6 +238,95 @@ tournamentRegistrations.post("/:id/unregister", requireAuth, (req, res) => {
   return res.json({ ok: true, count: Number(afterRow?.n || 0) });
 });
 
+/** POST /api/tournament-registrations/:id/early-register
+ * רישום מוקדם - הבעת עניין בטורניר (תמיד פעיל)
+ */
+tournamentRegistrations.post("/:id/early-register", requireAuth, async (req, res) => {
+  const tournamentId = req.params.id;
+  
+  const t: Tournament | undefined = db.prepare(`SELECT * FROM tournaments WHERE id=?`).get(tournamentId) as Tournament | undefined;
+  if (!t) {
+    return res.status(404).json({ ok: false, error: "tournament_not_found" });
+  }
+
+  const userId = (req as any).user.uid;
+  const userEmail = (req as any).user.email;
+  const userPsn = (req as any).user.psnUsername;
+
+  // בדוק אם המשתמש כבר רשום
+  const existing: Registration | undefined = db.prepare(
+    `SELECT * FROM tournament_registrations WHERE tournamentId=? AND userId=?`
+  ).get(tournamentId, userId) as Registration | undefined;
+
+  let created = false;
+
+  if (!existing) {
+    db.prepare(
+      `INSERT INTO tournament_registrations (id, tournamentId, userId, state, createdAt, updatedAt) VALUES (?, ?, ?, 'registered', ?, ?)`
+    ).run(uuid(), tournamentId, userId, nowISO(), nowISO());
+    created = true;
+  } else if (existing.state !== "registered") {
+    db.prepare(
+      `UPDATE tournament_registrations SET state='registered', updatedAt=? WHERE id=?`
+    ).run(nowISO(), existing.id);
+    created = true;
+  }
+
+  // שלח מייל למנהל על הבעת עניין חדשה
+  if (created) {
+    try {
+      const { sendEarlyRegistrationEmail } = await import("../email.js");
+      await sendEarlyRegistrationEmail({
+        userEmail,
+        userPsn: userPsn || userEmail.split('@')[0],
+        tournamentTitle: t.title,
+        totalCount: 0 // נחשב אחר כך
+      });
+    } catch (error) {
+      console.error("Failed to send early registration email:", error);
+    }
+  }
+
+  // ספירת כל המעוניינים
+  const countRow: { n: number } | undefined = db.prepare(
+    `SELECT COUNT(*) AS n FROM tournament_registrations WHERE tournamentId=? AND state='registered'`
+  ).get(tournamentId) as { n: number } | undefined;
+  const count = Number(countRow?.n || 0);
+
+  return res.json({ ok: true, count, message: "הבעת עניין נרשמה בהצלחה" });
+});
+
+/** POST /api/tournament-registrations/:id/early-unregister
+ * ביטול רישום מוקדם - הסרת עניין בטורניר
+ */
+tournamentRegistrations.post("/:id/early-unregister", requireAuth, (req, res) => {
+  const tournamentId = req.params.id;
+  
+  const t: Tournament | undefined = db.prepare(`SELECT * FROM tournaments WHERE id=?`).get(tournamentId) as Tournament | undefined;
+  if (!t) {
+    return res.status(404).json({ ok: false, error: "tournament_not_found" });
+  }
+
+  const userId = (req as any).user.uid;
+  const existing: Registration | undefined = db.prepare(
+    `SELECT * FROM tournament_registrations WHERE tournamentId=? AND userId=?`
+  ).get(tournamentId, userId) as Registration | undefined;
+
+  if (!existing) {
+    return res.json({ ok: true, state: "not_registered" });
+  }
+
+  db.prepare(
+    `UPDATE tournament_registrations SET state='cancelled', updatedAt=? WHERE id=?`
+  ).run(nowISO(), existing.id);
+
+  const afterRow: { n: number } | undefined = db.prepare(
+    `SELECT COUNT(*) AS n FROM tournament_registrations WHERE tournamentId=? AND state='registered'`
+  ).get(tournamentId) as { n: number } | undefined;
+
+  return res.json({ ok: true, count: Number(afterRow?.n || 0), message: "הסרת עניין בוצעה בהצלחה" });
+});
+
 /** GET /api/tournament-registrations/:id/registrations  (admin/superadmin)
  * רשימת נרשמים, חיפוש, פייג'ינג
  */

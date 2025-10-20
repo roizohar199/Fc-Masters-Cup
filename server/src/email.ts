@@ -792,3 +792,79 @@ export async function sendUserApprovedEmail(email: string) {
   }
 }
 
+export async function sendEarlyRegistrationEmail({ userEmail, userPsn, tournamentTitle, totalCount }: {
+  userEmail: string;
+  userPsn: string;
+  tournamentTitle: string;
+  totalCount: number;
+}) {
+  const transport = getTransporter();
+  const adminEmail = process.env.ADMIN_EMAIL;
+  
+  if (!adminEmail) {
+    console.log("[email] No admin email configured, skipping early registration notification");
+    return true;
+  }
+
+  const emailContent = {
+    from: process.env.EMAIL_FROM || process.env.SMTP_FROM || `"FC Masters Cup" <${process.env.SMTP_USER}>`,
+    to: adminEmail,
+    subject: "🎮 משתמש חדש מביע עניין בטורניר!",
+    html: `
+      <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px;">
+        <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+          <h1 style="color: #667eea; text-align: center; font-size: 32px; margin-bottom: 20px;">
+            🎮 משתמש חדש מביע עניין!
+          </h1>
+          
+          <div style="background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-right: 4px solid #667eea;">
+            <p style="font-size: 18px; color: #333; line-height: 1.8; margin: 0;">
+              משתמש חדש לחץ על "אני בפנים!" בטורניר:
+            </p>
+            <p style="font-size: 24px; font-weight: 700; color: #667eea; margin: 15px 0;">
+              ${tournamentTitle}
+            </p>
+          </div>
+
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0;">
+            <h3 style="color: #333; margin: 0 0 15px 0; font-size: 20px;">פרטי המשתמש:</h3>
+            <p style="margin: 8px 0; font-size: 16px;"><strong>אימייל:</strong> ${userEmail}</p>
+            <p style="margin: 8px 0; font-size: 16px;"><strong>שם PSN:</strong> ${userPsn}</p>
+            <p style="margin: 8px 0; font-size: 16px;"><strong>זמן:</strong> ${new Date().toLocaleString("he-IL")}</p>
+          </div>
+
+          <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); padding: 20px; border-radius: 10px; margin: 20px 0; text-align: center;">
+            <h3 style="color: white; margin: 0 0 10px 0; font-size: 20px;">📊 אינדיקציה לפתיחת טורניר</h3>
+            <p style="color: white; margin: 0; font-size: 16px;">
+              זהו רישום מוקדם - המשתמש מביע עניין להשתתף בטורניר
+            </p>
+            <p style="color: white; margin: 10px 0 0 0; font-size: 18px; font-weight: 700;">
+              ככל שיותר משתמשים ילחצו "אני בפנים!", כך תוכל להבין אם כדאי לפתוח טורניר חדש!
+            </p>
+          </div>
+
+          <div style="text-align: center; margin-top: 30px;">
+            <p style="color: #666; font-size: 14px; margin: 0;">
+              FC Masters Cup - מערכת ניהול טורנירים
+            </p>
+          </div>
+        </div>
+      </div>
+    `,
+  };
+  
+  if (!transport) {
+    console.log("[email] 📧 Early registration email (dev mode):", emailContent);
+    return true;
+  }
+  
+  try {
+    await transport.sendMail(emailContent);
+    console.log(`[email] ✅ Early registration email sent to: ${adminEmail}`);
+    return true;
+  } catch (error) {
+    console.error(`[email] ❌ Failed to send early registration email:`, error);
+    return false;
+  }
+}
+

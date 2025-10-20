@@ -18,13 +18,34 @@ function isTargetSuperAdmin(userId: string): boolean {
   return user && user.isSuperAdmin === 1;
 }
 
-// Get all users (admin only)
-admin.get("/users", (req, res) => {
+// Get all users (admin only) - now includes online status
+admin.get("/users", async (req, res) => {
   console.log("🔍 API /users נקרא");
   try {
-    const users = db.prepare(`SELECT id, email, role, secondPrizeCredit, createdAt, status, psnUsername FROM users ORDER BY createdAt DESC`).all();
+    const users = db.prepare(`SELECT id, email, role, secondPrizeCredit, createdAt, status, psnUsername, approvalStatus FROM users ORDER BY createdAt DESC`).all();
     console.log("📊 משתמשים מהמסד נתונים:", users.length, "משתמשים");
     console.log("📋 פרטי משתמשים:", users);
+    
+    // הוסף נתוני נוכחות
+    let usersWithPresence = users;
+    try {
+      const { getPresenceData } = await import("../presence.js");
+      const presenceData = await getPresenceData();
+      const presenceMap = new Map(presenceData.users.map((u: any) => [u.email, u]));
+      
+      usersWithPresence = users.map((user: any) => ({
+        ...user,
+        isOnline: presenceMap.get(user.email)?.isOnline || false,
+        isActive: presenceMap.get(user.email)?.isActive || false,
+        lastSeen: presenceMap.get(user.email)?.lastSeen || null,
+        connections: presenceMap.get(user.email)?.connections || 0
+      }));
+      
+      console.log("📡 נוספו נתוני נוכחות למשתמשים");
+    } catch (presenceError) {
+      console.warn("⚠️ לא ניתן לטעון נתוני נוכחות:", presenceError);
+      // המשך עם הנתונים הרגילים
+    }
     
     // מניעת cache
     res.set({
@@ -33,7 +54,7 @@ admin.get("/users", (req, res) => {
       'Expires': '0'
     });
     
-    res.json(users);
+    res.json(usersWithPresence);
   } catch (error) {
     console.error("❌ שגיאה בטעינת משתמשים:", error);
     res.status(500).json({ error: "שגיאה בטעינת משתמשים" });
