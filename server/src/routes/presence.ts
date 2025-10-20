@@ -1,10 +1,10 @@
 /**
- * Presence API routes
+ * Presence API routes with Redis + TTL
  * Handles heartbeat and leave signals for user presence tracking
  */
 
 import { Router } from "express";
-import { postBeat, postLeave, getOnlineStatus } from "../presence/presenceManager.js";
+import { postBeat, postLeave, getOnlineStatus } from "../presence/redisPresence.js";
 
 const router = Router();
 

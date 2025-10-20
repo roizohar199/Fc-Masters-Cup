@@ -25,7 +25,7 @@ import { dirname } from "node:path";
 import { attachPresence, presenceRest } from "./presence.js";
 import { apiErrorHandler, apiNotFoundHandler } from "./errorHandler.js";
 import { presence } from "./routes/presence.js";
-import { startPresenceSweeper } from "./presence/presenceManager.js";
+import { initializeRedis } from "./presence/redisSetup.js";
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -154,8 +154,8 @@ async function startServer(port: number, retries = 0): Promise<void> {
   try {
     await seedAdminFromEnv();
 
-    // Start presence sweeper
-    startPresenceSweeper();
+    // Initialize Redis connection
+    await initializeRedis();
 
     // Create HTTP server explicitly (required for WebSocket upgrade handling)
     const server = http.createServer(app);

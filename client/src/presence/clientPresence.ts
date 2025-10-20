@@ -18,11 +18,13 @@ let currentTournamentId: string | null = null;
  * Start presence tracking for a user
  * @param userId - User ID to track
  * @param tournamentId - Optional tournament ID
+ * @param sessionId - Optional session ID (will generate if not provided)
  */
-export function startPresence(userId: string, tournamentId?: string) {
+export function startPresence(userId: string, tournamentId?: string, sessionId?: string) {
   // Store current state
   currentUserId = userId;
   currentTournamentId = tournamentId || null;
+  const currentSessionId = sessionId || generateSessionId();
 
   // Send heartbeat immediately and then every HEARTBEAT_MS
   const beat = async () => {
@@ -39,7 +41,7 @@ export function startPresence(userId: string, tournamentId?: string) {
         body: JSON.stringify({ 
           userId: currentUserId, 
           tournamentId: currentTournamentId,
-          sessionId: generateSessionId() // Unique per tab/session
+          sessionId: currentSessionId
         }),
         keepalive: true, // Important for mobile
       });
@@ -89,6 +91,7 @@ function sendLeaveSignal() {
     const payload = JSON.stringify({ 
       userId: currentUserId, 
       tournamentId: currentTournamentId, 
+      sessionId: generateSessionId(),
       reason: "manual" 
     });
     
@@ -126,7 +129,7 @@ function setupLeaveHandlers() {
   window.addEventListener("pagehide", handleLeave, { capture: true });
   
   // Page visibility changes (tab switch, mobile home button, etc.)
-  window.addEventListener("visibilitychange", () => {
+  document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") {
       handleLeave();
     }

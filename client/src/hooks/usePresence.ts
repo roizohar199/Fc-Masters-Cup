@@ -9,6 +9,7 @@ import { startPresence, stopPresence } from '../presence/clientPresence';
 interface UsePresenceOptions {
   userId?: string;
   tournamentId?: string;
+  sessionId?: string;
   enabled?: boolean;
 }
 
@@ -19,6 +20,7 @@ interface UsePresenceOptions {
 export function usePresence({ 
   userId, 
   tournamentId, 
+  sessionId,
   enabled = true 
 }: UsePresenceOptions) {
   useEffect(() => {
@@ -27,13 +29,13 @@ export function usePresence({
     }
 
     // Start presence tracking
-    startPresence(userId, tournamentId);
+    startPresence(userId, tournamentId, sessionId);
 
     // Cleanup on unmount or when dependencies change
     return () => {
       stopPresence();
     };
-  }, [userId, tournamentId, enabled]);
+  }, [userId, tournamentId, sessionId, enabled]);
 
   return {
     isActive: !!userId && enabled

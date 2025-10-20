@@ -37,10 +37,11 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
   // Get current user ID from auth context (you'll need to implement this)
   const currentUserId = "current-user-id"; // TODO: Get from auth context
 
-  // Presence tracking
+  // Presence tracking with unique session ID
   usePresence({ 
     userId: currentUserId, 
     tournamentId, 
+    sessionId: crypto.randomUUID(), // Unique session per component mount
     enabled: !!tournamentId 
   });
 
