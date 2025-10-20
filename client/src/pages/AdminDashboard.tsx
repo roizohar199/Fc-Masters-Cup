@@ -64,7 +64,7 @@ export default function AdminDashboard() {
   const [bulkActionMode, setBulkActionMode] = useState(false);
   
   // שחקנים אמיתיים (משתמשים עם role = 'player')
-  const [availablePlayers, setAvailablePlayers] = useState<Array<{id: string, psn: string, displayName: string, email: string}>>([]);
+  const [availablePlayers, setAvailablePlayers] = useState<Array<{id: string, psn: string, displayName: string, email: string, isOnline?: boolean}>>([]);
   
   // חיפוש שחקנים
   const [playerSearchQuery, setPlayerSearchQuery] = useState("");
@@ -243,24 +243,50 @@ export default function AdminDashboard() {
       console.log("📊 נתונים שהתקבלו מהשרת:", usersData);
       setUsers(usersData || []);
       
-      // יצירת רשימת שחקנים זמינים (כל המשתמשים עם role = 'player', למעט חסומים)
-      const players = (usersData || [])
-        .filter((user: User) => {
-          const isPlayer = user.role === 'player';
-          const notBlocked = user.status !== 'blocked';
-          console.log(`👤 ${user.email}: role=${user.role}, status=${user.status}, isPlayer=${isPlayer}, notBlocked=${notBlocked}`);
-          return isPlayer && notBlocked;
-        })
-        .map((user: User) => ({
-          id: user.id,
-          psn: user.psnUsername || user.email.split('@')[0], // אם אין PSN, נשתמש בחלק הראשון של האימייל
-          displayName: user.psnUsername || user.email.split('@')[0], // נציג את שם ה-PSN או האימייל
-          email: user.email // נשמור את האימייל המלא
-        }));
-      
-      console.log("⚽ שחקנים זמינים:", players);
-      console.log("📈 מספר שחקנים זמינים:", players.length);
-      setAvailablePlayers(players);
+      // טעינת משתמשים עם סטטוס מחובר
+      try {
+        const onlineStatusData = await api("/api/admin/users/online-status");
+        console.log("🌐 נתוני סטטוס מחובר:", onlineStatusData);
+        
+        // יצירת רשימת שחקנים זמינים עם סטטוס מחובר
+        const players = (onlineStatusData.allUsers || [])
+          .filter((user: User) => {
+            const isPlayer = user.role === 'player';
+            const notBlocked = user.status !== 'blocked';
+            console.log(`👤 ${user.email}: role=${user.role}, status=${user.status}, isPlayer=${isPlayer}, notBlocked=${notBlocked}, isOnline=${user.isOnline}`);
+            return isPlayer && notBlocked;
+          })
+          .map((user: User) => ({
+            id: user.id,
+            psn: user.psnUsername || user.email.split('@')[0],
+            displayName: user.psnUsername || user.email.split('@')[0],
+            email: user.email,
+            isOnline: user.isOnline || false
+          }));
+        
+        console.log("⚽ שחקנים זמינים עם סטטוס:", players);
+        console.log("📈 מספר שחקנים זמינים:", players.length);
+        setAvailablePlayers(players);
+      } catch (onlineError) {
+        console.warn("⚠️ לא ניתן לטעון סטטוס מחובר, משתמש בנתונים רגילים:", onlineError);
+        
+        // fallback לנתונים רגילים
+        const players = (usersData || [])
+          .filter((user: User) => {
+            const isPlayer = user.role === 'player';
+            const notBlocked = user.status !== 'blocked';
+            return isPlayer && notBlocked;
+          })
+          .map((user: User) => ({
+            id: user.id,
+            psn: user.psnUsername || user.email.split('@')[0],
+            displayName: user.psnUsername || user.email.split('@')[0],
+            email: user.email,
+            isOnline: false
+          }));
+        
+        setAvailablePlayers(players);
+      }
     } catch (error) {
       console.error("❌ Failed to load users:", error);
     }
@@ -2999,9 +3025,32 @@ export default function AdminDashboard() {
                 <div style={{
                   fontSize: 11,
                   color: "#888",
-                  fontFamily: "monospace"
+                  fontFamily: "monospace",
+                  marginBottom: 8
                 }}>
                   {player.email}
+                </div>
+                
+                {/* אינדיקטור מחובר/לא מחובר */}
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: player.isOnline ? "#28a745" : "#6c757d",
+                  background: player.isOnline ? "#d4edda" : "#e9ecef",
+                  padding: "4px 8px",
+                  borderRadius: 12,
+                  justifyContent: "center"
+                }}>
+                  <div style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: player.isOnline ? "#28a745" : "#6c757d"
+                  }} />
+                  {player.isOnline ? "מחובר" : "לא מחובר"}
                 </div>
               </div>
             );
