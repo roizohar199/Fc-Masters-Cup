@@ -8,10 +8,48 @@ import { sendTournamentRegistrationEmail, sendTournamentSelectionEmail } from ".
 
 export const tournamentRegistrations = Router();
 
+// Types for better TypeScript support
+interface User {
+  id: string;
+  email: string;
+  psnUsername?: string;
+  role?: string;
+  isSuperAdmin?: number;
+}
+
+interface Tournament {
+  id: string;
+  title: string;
+  registrationStatus?: string;
+  registrationCapacity?: number;
+  registrationMinPlayers?: number;
+  status?: string;
+  updatedAt?: string;
+}
+
+interface Registration {
+  id: string;
+  tournamentId: string;
+  userId: string;
+  state: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  data: string | null;
+  isRead: number;
+  createdAt: string;
+}
+
 // Helper function to check if user is admin or super admin
 function isAdminOrSuperAdmin(email: string): boolean {
-  const user = db.prepare(`SELECT role, isSuperAdmin FROM users WHERE email=?`).get(email) as any;
-  return user && (user.role === 'admin' || user.isSuperAdmin === 1);
+  const user: User | undefined = db.prepare(`SELECT role, isSuperAdmin FROM users WHERE email=?`).get(email) as User | undefined;
+  return !!(user && (user.role === 'admin' || user.isSuperAdmin === 1));
 }
 
 /** GET /api/tournament-registrations/:id/summary
@@ -20,18 +58,18 @@ function isAdminOrSuperAdmin(email: string): boolean {
 tournamentRegistrations.get("/:id/summary", requireAuth, (req, res) => {
   const tournamentId = req.params.id;
   
-  const t = db.prepare(`SELECT * FROM tournaments WHERE id=?`).get(tournamentId) as any;
+  const t: Tournament | undefined = db.prepare(`SELECT * FROM tournaments WHERE id=?`).get(tournamentId) as Tournament | undefined;
   if (!t) return res.status(404).json({ ok: false, error: "tournament_not_found" });
 
-  const countRow = db.prepare(
+  const countRow: { n: number } | undefined = db.prepare(
     `SELECT COUNT(*) AS n FROM tournament_registrations WHERE tournamentId=? AND state='registered'`
-  ).get(tournamentId) as any;
+  ).get(tournamentId) as { n: number } | undefined;
   const count = Number(countRow?.n || 0);
 
   const userId = (req as any).user.uid;
-  const myReg = db.prepare(
+  const myReg: { state: string } | undefined = db.prepare(
     `SELECT state FROM tournament_registrations WHERE tournamentId=? AND userId=?`
-  ).get(tournamentId, userId) as any;
+  ).get(tournamentId, userId) as { state: string } | undefined;
 
   const capacity = t.registrationCapacity || 100;
   const minPlayers = t.registrationMinPlayers || 16;
@@ -57,15 +95,15 @@ tournamentRegistrations.get("/:id/summary", requireAuth, (req, res) => {
 tournamentRegistrations.post("/:id/register", requireAuth, async (req, res) => {
   const tournamentId = req.params.id;
   
-  const t = db.prepare(`SELECT * FROM tournaments WHERE id=?`).get(tournamentId) as any;
+  const t: Tournament | undefined = db.prepare(`SELECT * FROM tournaments WHERE id=?`).get(tournamentId) as Tournament | undefined;
   if (!t || t.registrationStatus !== "collecting") {
     return res.status(400).json({ ok: false, error: "not_collecting" });
   }
 
   const capacity = t.registrationCapacity || 100;
-  const countRow = db.prepare(
+  const countRow: { n: number } | undefined = db.prepare(
     `SELECT COUNT(*) AS n FROM tournament_registrations WHERE tournamentId=? AND state='registered'`
-  ).get(tournamentId) as any;
+  ).get(tournamentId) as { n: number } | undefined;
   const countBefore = Number(countRow?.n || 0);
 
   if (countBefore >= capacity) {
@@ -76,12 +114,12 @@ tournamentRegistrations.post("/:id/register", requireAuth, async (req, res) => {
   const userEmail = (req as any).user.email;
   
   // קבל את שם המשתמש מ-DB
-  const user = db.prepare(`SELECT email, psnUsername FROM users WHERE id=?`).get(userId) as any;
+  const user: User | undefined = db.prepare(`SELECT email, psnUsername FROM users WHERE id=?`).get(userId) as User | undefined;
   const userName = user?.psnUsername || userEmail;
 
-  const existing = db.prepare(
+  const existing: Registration | undefined = db.prepare(
     `SELECT * FROM tournament_registrations WHERE tournamentId=? AND userId=?`
-  ).get(tournamentId, userId) as any;
+  ).get(tournamentId, userId) as Registration | undefined;
 
   let created = false;
 
@@ -97,9 +135,9 @@ tournamentRegistrations.post("/:id/register", requireAuth, async (req, res) => {
     created = true;
   }
 
-  const afterRow = db.prepare(
+  const afterRow: { n: number } | undefined = db.prepare(
     `SELECT COUNT(*) AS n FROM tournament_registrations WHERE tournamentId=? AND state='registered'`
-  ).get(tournamentId) as any;
+  ).get(tournamentId) as { n: number } | undefined;
   const count = Number(afterRow?.n || 0);
 
   // שלח מייל על רישום חדש (רק אם באמת חדש/הופעל שוב)
@@ -110,7 +148,7 @@ tournamentRegistrations.post("/:id/register", requireAuth, async (req, res) => {
       userEmail,
       count,
       capacity,
-    }).catch((e) => console.warn("[MAIL] failed:", e?.message || e));
+    }).catch((e: any) => console.warn("[MAIL] failed:", e?.message || e));
   }
 
   return res.json({ ok: true, count, capacity });
@@ -122,15 +160,15 @@ tournamentRegistrations.post("/:id/register", requireAuth, async (req, res) => {
 tournamentRegistrations.post("/:id/unregister", requireAuth, (req, res) => {
   const tournamentId = req.params.id;
   
-  const t = db.prepare(`SELECT * FROM tournaments WHERE id=?`).get(tournamentId) as any;
+  const t: Tournament | undefined = db.prepare(`SELECT * FROM tournaments WHERE id=?`).get(tournamentId) as Tournament | undefined;
   if (!t || t.registrationStatus !== "collecting") {
     return res.status(400).json({ ok: false, error: "not_collecting" });
   }
 
   const userId = (req as any).user.uid;
-  const existing = db.prepare(
+  const existing: Registration | undefined = db.prepare(
     `SELECT * FROM tournament_registrations WHERE tournamentId=? AND userId=?`
-  ).get(tournamentId, userId) as any;
+  ).get(tournamentId, userId) as Registration | undefined;
 
   if (!existing) {
     return res.json({ ok: true, state: "not_registered" });
@@ -140,9 +178,9 @@ tournamentRegistrations.post("/:id/unregister", requireAuth, (req, res) => {
     `UPDATE tournament_registrations SET state='cancelled', updatedAt=? WHERE id=?`
   ).run(nowISO(), existing.id);
 
-  const afterRow = db.prepare(
+  const afterRow: { n: number } | undefined = db.prepare(
     `SELECT COUNT(*) AS n FROM tournament_registrations WHERE tournamentId=? AND state='registered'`
-  ).get(tournamentId) as any;
+  ).get(tournamentId) as { n: number } | undefined;
 
   return res.json({ ok: true, count: Number(afterRow?.n || 0) });
 });
@@ -159,7 +197,7 @@ tournamentRegistrations.get("/:id/registrations", requireAuth, (req, res) => {
     return res.status(403).json({ ok: false, error: "forbidden" });
   }
 
-  const t = db.prepare(`SELECT * FROM tournaments WHERE id=?`).get(tournamentId) as any;
+  const t: Tournament | undefined = db.prepare(`SELECT * FROM tournaments WHERE id=?`).get(tournamentId) as Tournament | undefined;
   if (!t) return res.status(404).json({ ok: false, error: "not_found" });
 
   const state = (req.query.state as string) || "registered";
@@ -191,9 +229,9 @@ tournamentRegistrations.get("/:id/registrations", requireAuth, (req, res) => {
 
   const items = db.prepare(sql).all(...params);
 
-  const totalRow = db.prepare(
+  const totalRow: { n: number } | undefined = db.prepare(
     `SELECT COUNT(*) AS n FROM tournament_registrations WHERE tournamentId=? AND state=?`
-  ).get(tournamentId, state) as any;
+  ).get(tournamentId, state) as { n: number } | undefined;
   const total = Number(totalRow?.n || 0);
 
   const nextCursor = items.length === limit ? (items[items.length - 1] as any).id : null;
@@ -256,7 +294,7 @@ tournamentRegistrations.post("/:id/admin/open", requireAuth, (req, res) => {
     return res.status(400).json({ ok: false, error: "bad_request", issues: body.error.issues });
   }
 
-  const t = db.prepare(`SELECT * FROM tournaments WHERE id=?`).get(req.params.id) as any;
+  const t: Tournament | undefined = db.prepare(`SELECT * FROM tournaments WHERE id=?`).get(req.params.id) as Tournament | undefined;
   if (!t) return res.status(404).json({ ok: false, error: "not_found" });
 
   // עדכן את השדות
@@ -293,7 +331,7 @@ tournamentRegistrations.post("/:id/admin/close", requireAuth, (req, res) => {
     return res.status(403).json({ ok: false, error: "forbidden" });
   }
 
-  const t = db.prepare(`SELECT * FROM tournaments WHERE id=?`).get(req.params.id) as any;
+  const t: Tournament | undefined = db.prepare(`SELECT * FROM tournaments WHERE id=?`).get(req.params.id) as Tournament | undefined;
   if (!t) return res.status(404).json({ ok: false, error: "not_found" });
 
   db.prepare(`UPDATE tournaments SET registrationStatus='closed' WHERE id=?`).run(t.id);
@@ -305,7 +343,7 @@ tournamentRegistrations.post("/:id/admin/close", requireAuth, (req, res) => {
 /** POST /api/tournament-registrations/:id/select-players
  * בחירת שחקנים להשתתפות בטורניר (admin/superadmin)
  */
-tournamentRegistrations.post("/:id/select-players", requireAuth, (req, res) => {
+tournamentRegistrations.post("/:id/select-players", requireAuth, async (req, res) => {
   const tournamentId = req.params.id;
   const userEmail = (req as any).user?.email;
   
@@ -335,21 +373,21 @@ tournamentRegistrations.post("/:id/select-players", requireAuth, (req, res) => {
 
   try {
     // בדיקה שהטורניר קיים
-    const tournament = db.prepare(`SELECT * FROM tournaments WHERE id = ?`).get(tournamentId);
+    const tournament: Tournament | undefined = db.prepare(`SELECT * FROM tournaments WHERE id = ?`).get(tournamentId) as Tournament | undefined;
     if (!tournament) {
       return res.status(404).json({ ok: false, error: "tournament_not_found" });
     }
 
     // בדיקה שהמשתמשים קיימים
     const placeholders = selectedUserIds.map(() => '?').join(',');
-    const users = db.prepare(`SELECT id, email, psnUsername FROM users WHERE id IN (${placeholders})`).all(selectedUserIds);
+    const users = db.prepare(`SELECT id, email, psnUsername FROM users WHERE id IN (${placeholders})`).all(selectedUserIds) as User[];
     
     if (users.length !== selectedUserIds.length) {
       return res.status(400).json({ ok: false, error: "some_users_not_found" });
     }
 
     // יצירת הודעות למשתמשים שנבחרו
-    const notificationPromises = users.map(user => {
+    const notificationPromises = users.map((user: User) => {
       const notificationId = uuid();
       const notificationData = {
         tournamentId,
@@ -398,10 +436,10 @@ tournamentRegistrations.post("/:id/select-players", requireAuth, (req, res) => {
       ok: true, 
       message: `נבחרו ${users.length} שחקנים לטורניר`,
       selectedCount: users.length,
-      selectedUsers: users.map(u => ({ id: u.id, email: u.email, psnUsername: u.psnUsername }))
+      selectedUsers: users.map((u: User) => ({ id: u.id, email: u.email, psnUsername: u.psnUsername }))
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('[Tournament Selection] Error:', error);
     res.status(500).json({ ok: false, error: "internal_server_error" });
   }
@@ -427,15 +465,15 @@ tournamentRegistrations.get("/notifications", requireAuth, (req, res) => {
     LIMIT ? OFFSET ?
   `).all(userId, limit, offset);
 
-  const unreadCount = db.prepare(`SELECT COUNT(*) as count FROM notifications WHERE userId = ? AND isRead = 0`).get(userId) as any;
+  const unreadCount: { count: number } | undefined = db.prepare(`SELECT COUNT(*) as count FROM notifications WHERE userId = ? AND isRead = 0`).get(userId) as { count: number } | undefined;
 
   res.json({ 
     ok: true, 
-    notifications: notifications.map(n => ({
+    notifications: (notifications as any[]).map((n: any) => ({
       ...n,
       data: n.data ? JSON.parse(n.data) : null
     })),
-    unreadCount: unreadCount.count
+    unreadCount: unreadCount?.count || 0
   });
 });
 
