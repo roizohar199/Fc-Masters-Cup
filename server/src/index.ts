@@ -23,6 +23,7 @@ import { logger } from "./logger.js";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 import { attachPresence, presenceRest } from "./presence.js";
+import { apiErrorHandler, apiNotFoundHandler } from "./errorHandler.js";
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -113,6 +114,33 @@ app.use("/api/matches", (req, res, next) => {
 
 // Disputes - admin only
 app.use("/api/disputes", requireAuth, disputes);
+
+// ✅ API 404 handler - must come AFTER all API routes but BEFORE SPA fallback
+app.use(apiNotFoundHandler);
+
+// ✅ Serve static files from client build (production)
+const clientDistPath = path.join(__dirname, "../../client/dist");
+app.use(express.static(clientDistPath));
+
+// ✅ SPA fallback - must come LAST, after all API routes
+// This serves index.html for any non-API routes (client-side routing)
+app.get("*", (req, res, next) => {
+  // Skip if this is an API or WebSocket request
+  if (req.path.startsWith('/api/') || req.path.startsWith('/presence') || req.path.startsWith('/uploads/')) {
+    return next();
+  }
+  
+  const indexPath = path.join(clientDistPath, "index.html");
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      logger.error("server", "Failed to send index.html", err);
+      res.status(500).json({ error: "Failed to load application" });
+    }
+  });
+});
+
+// ✅ Global error handler - must be LAST
+app.use(apiErrorHandler);
 
 const PORT = process.env.PORT || 8787;
 

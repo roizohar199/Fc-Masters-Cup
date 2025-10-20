@@ -1,29 +1,40 @@
+import { fetchJSON } from "./lib/fetchJSON";
+
 export async function api(path: string, init?: RequestInit) {
-  // Use relative path for API calls (will use Vite proxy)
-  const fullPath = path;
-  
-  const res = await fetch(fullPath, { 
+  return fetchJSON(path, {
     headers: { "Content-Type": "application/json" }, 
-    credentials: "include", // allow cookies for auth
     ...init 
   });
-  if (!res.ok) {
-    const errorText = await res.text();
-    let errorMessage = errorText;
-    try {
-      const errorJson = JSON.parse(errorText);
-      errorMessage = errorJson.error || errorText;
-    } catch {}
-    throw new Error(errorMessage);
-  }
-  return res.json();
 }
 
 // helper for auth endpoints that may return empty responses
 export async function apiRaw(path: string, init?: RequestInit) {
   const fullPath = path;
-  const res = await fetch(fullPath, { credentials: "include", ...init });
-  if (!res.ok) throw new Error(await res.text());
+  const res = await fetch(fullPath, { 
+    credentials: "include",
+    headers: { Accept: "application/json" },
+    ...init 
+  });
+  
+  const ct = res.headers.get("content-type") || "";
+  
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    if (ct.includes("application/json")) {
+      try {
+        const json = JSON.parse(text);
+        throw new Error(json.error || json.message || text);
+      } catch {
+        throw new Error(text);
+      }
+    }
+    // אם זה לא JSON, זה כנראה HTML
+    throw new Error(
+      `Expected JSON but got ${ct || "unknown"} (HTTP ${res.status}) from ${fullPath}. First 200 chars:\n` +
+      text.slice(0, 200)
+    );
+  }
+  
   return res;
 }
 
