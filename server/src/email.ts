@@ -589,6 +589,132 @@ export async function sendTournamentRegistrationEmail(params: {
   }
 }
 
+export async function sendTournamentSelectionEmail(params: {
+  userEmail: string;
+  userName?: string;
+  tournamentTitle: string;
+  tournamentDate?: string;
+  telegramLink?: string;
+  prizeFirst: number;
+  prizeSecond: number;
+}) {
+  const { userEmail, userName, tournamentTitle, tournamentDate, telegramLink, prizeFirst, prizeSecond } = params;
+  const transport = getTransporter();
+
+  const subject = `🎉 נבחרת להשתתף בטורניר: ${tournamentTitle}`;
+  const emailContent = {
+    from: process.env.EMAIL_FROM || process.env.SMTP_FROM || `"FC Masters Cup" <${process.env.SMTP_USER}>`,
+    to: userEmail,
+    subject,
+    html: `
+      <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px;">
+        <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+          <h1 style="color: #28a745; text-align: center; font-size: 32px; margin-bottom: 20px;">
+            🎉 מזל טוב! נבחרת להשתתף!
+          </h1>
+          
+          <div style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-right: 4px solid #28a745;">
+            <p style="font-size: 18px; color: #333; line-height: 1.8; margin: 0;">
+              שלום <strong>${userName || userEmail}</strong>,<br><br>
+              <strong>נבחרת להשתתף בטורניר "${tournamentTitle}"!</strong> 🏆
+            </p>
+          </div>
+          
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #e9ecef;">
+            <h3 style="color: #495057; font-size: 18px; margin: 0 0 15px 0;">📋 פרטי הטורניר:</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+              <div>
+                <p style="margin: 0; color: #6c757d; font-size: 14px;">🏆 שם הטורניר:</p>
+                <p style="margin: 5px 0 0 0; color: #333; font-weight: 600;">${tournamentTitle}</p>
+              </div>
+              ${tournamentDate ? `
+              <div>
+                <p style="margin: 0; color: #6c757d; font-size: 14px;">📅 תאריך:</p>
+                <p style="margin: 5px 0 0 0; color: #333; font-weight: 600;">${tournamentDate}</p>
+              </div>
+              ` : ''}
+              <div>
+                <p style="margin: 0; color: #6c757d; font-size: 14px;">🥇 פרס ראשון:</p>
+                <p style="margin: 5px 0 0 0; color: #333; font-weight: 600;">${prizeFirst} ₪</p>
+              </div>
+              <div>
+                <p style="margin: 0; color: #6c757d; font-size: 14px;">🥈 פרס שני:</p>
+                <p style="margin: 5px 0 0 0; color: #333; font-weight: 600;">${prizeSecond} ₪</p>
+              </div>
+            </div>
+          </div>
+          
+          <div style="margin: 30px 0;">
+            <h2 style="color: #667eea; font-size: 22px; margin-bottom: 15px;">📋 מה הלאה?</h2>
+            <ul style="color: #555; font-size: 16px; line-height: 2;">
+              <li>הטורניר יתחיל בקרוב - הישאר ערני לעדכונים</li>
+              <li>הכן את הקונסולה והכישורים שלך ל-FC25/FC26</li>
+              <li>התכונן להתחרות מול השחקנים הטובים ביותר</li>
+              <li>שים לב להוראות הגשת תוצאות - חובה להעלות וידאו!</li>
+            </ul>
+          </div>
+          
+          ${telegramLink ? `
+          <div style="background: #e1f5fe; padding: 20px; border-radius: 10px; border: 2px solid #0288d1; margin: 20px 0;">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="font-size: 28px;">💬</div>
+                <div>
+                  <h3 style="color: #01579b; font-size: 18px; margin: 0;">הצטרף לקבוצת הטלגרם</h3>
+                  <p style="color: #0277bd; font-size: 14px; margin: 4px 0 0 0;">קבל עדכונים ושוחח עם שחקנים אחרים</p>
+                </div>
+              </div>
+              <a href="${telegramLink}" target="_blank" rel="noopener noreferrer" style="padding: 12px 24px; background: #0288d1; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 15px; text-align: center;">
+                הצטרף 📱
+              </a>
+            </div>
+          </div>
+          ` : ''}
+          
+          <div style="background: #fff3e0; padding: 20px; border-radius: 10px; border: 2px solid #ff9800; margin: 20px 0;">
+            <p style="color: #e65100; font-size: 15px; margin: 0; font-weight: 600;">
+              ⚠️ חשוב לדעת:
+            </p>
+            <p style="color: #5d4037; font-size: 14px; line-height: 1.6; margin: 10px 0 0 0;">
+              בכל משחק יש להעלות וידאו של המחצית השנייה כהוכחה לניצחון. 
+              אי העלאת הוכחה תגרור פסילה מהמשחק ללא החזר כספי.
+            </p>
+          </div>
+          
+          <div style="text-align: center; margin-top: 40px;">
+            <a href="${process.env.SITE_URL || "http://localhost:5173"}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 18px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+              כניסה לאתר 🎮
+            </a>
+          </div>
+          
+          <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #f0f0f0; text-align: center;">
+            <p style="color: #999; font-size: 14px; margin: 5px 0;">
+              בהצלחה בטורניר! 🏆
+            </p>
+            <p style="color: #999; font-size: 12px; margin: 5px 0;">
+              FC Masters Cup • PS5 • FC25/FC26
+            </p>
+          </div>
+        </div>
+      </div>
+    `,
+  };
+
+  if (!transport) {
+    console.log("[email] 📧 Tournament selection email (dev mode):", emailContent);
+    return true;
+  }
+
+  try {
+    await transport.sendMail(emailContent);
+    console.log(`[email] ✅ Tournament selection email sent to: ${userEmail}`);
+    return true;
+  } catch (error) {
+    console.error(`[email] ❌ Failed to send tournament selection email:`, error);
+    return false;
+  }
+}
+
 export async function sendUserApprovedEmail(email: string) {
   const transport = getTransporter();
   

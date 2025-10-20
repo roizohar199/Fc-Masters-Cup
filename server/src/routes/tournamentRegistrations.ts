@@ -4,7 +4,7 @@ import db from "../db.js";
 import { uuid } from "../utils/ids.js";
 import { nowISO } from "../lib/util.js";
 import { requireAuth, requireSuperAdmin } from "../auth.js";
-import { sendTournamentRegistrationEmail } from "../email.js";
+import { sendTournamentRegistrationEmail, sendTournamentSelectionEmail } from "../email.js";
 
 export const tournamentRegistrations = Router();
 
@@ -300,5 +300,166 @@ tournamentRegistrations.post("/:id/admin/close", requireAuth, (req, res) => {
 
   const updated = db.prepare(`SELECT * FROM tournaments WHERE id=?`).get(t.id);
   res.json({ ok: true, tournament: updated });
+});
+
+/** POST /api/tournament-registrations/:id/select-players
+ * בחירת שחקנים להשתתפות בטורניר (admin/superadmin)
+ */
+tournamentRegistrations.post("/:id/select-players", requireAuth, (req, res) => {
+  const tournamentId = req.params.id;
+  const userEmail = (req as any).user?.email;
+  
+  if (!userEmail || !isAdminOrSuperAdmin(userEmail)) {
+    return res.status(403).json({ ok: false, error: "forbidden" });
+  }
+
+  const schema = z.object({
+    selectedUserIds: z.array(z.string()).min(1).max(16),
+    tournamentTitle: z.string().min(1),
+    tournamentDate: z.string().optional(),
+    telegramLink: z.string().url().optional(),
+    prizeFirst: z.number().min(0).default(500),
+    prizeSecond: z.number().min(0).default(0)
+  });
+
+  const body = schema.safeParse(req.body);
+  if (!body.success) {
+    return res.status(400).json({ 
+      ok: false, 
+      error: "bad_request", 
+      issues: body.error.issues 
+    });
+  }
+
+  const { selectedUserIds, tournamentTitle, tournamentDate, telegramLink, prizeFirst, prizeSecond } = body.data;
+
+  try {
+    // בדיקה שהטורניר קיים
+    const tournament = db.prepare(`SELECT * FROM tournaments WHERE id = ?`).get(tournamentId);
+    if (!tournament) {
+      return res.status(404).json({ ok: false, error: "tournament_not_found" });
+    }
+
+    // בדיקה שהמשתמשים קיימים
+    const placeholders = selectedUserIds.map(() => '?').join(',');
+    const users = db.prepare(`SELECT id, email, psnUsername FROM users WHERE id IN (${placeholders})`).all(selectedUserIds);
+    
+    if (users.length !== selectedUserIds.length) {
+      return res.status(400).json({ ok: false, error: "some_users_not_found" });
+    }
+
+    // יצירת הודעות למשתמשים שנבחרו
+    const notificationPromises = users.map(user => {
+      const notificationId = uuid();
+      const notificationData = {
+        tournamentId,
+        tournamentTitle,
+        tournamentDate,
+        telegramLink,
+        prizeFirst,
+        prizeSecond
+      };
+
+      // הוספת הודעה למסד הנתונים
+      db.prepare(`
+        INSERT INTO notifications (id, userId, type, title, message, data, createdAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        notificationId,
+        user.id,
+        'tournament_selection',
+        `נבחרת להשתתף בטורניר: ${tournamentTitle}`,
+        `מזל טוב! נבחרת להשתתף בטורניר "${tournamentTitle}". הטורניר יתחיל בקרוב - הישאר ערני לעדכונים!`,
+        JSON.stringify(notificationData),
+        nowISO()
+      );
+
+      // שליחת מייל
+      return sendTournamentSelectionEmail({
+        userEmail: user.email,
+        userName: user.psnUsername || user.email,
+        tournamentTitle,
+        tournamentDate,
+        telegramLink,
+        prizeFirst,
+        prizeSecond
+      });
+    });
+
+    // ביצוע כל הפעולות
+    await Promise.all(notificationPromises);
+
+    // עדכון סטטוס הטורניר ל"running"
+    db.prepare(`UPDATE tournaments SET status = 'running', updatedAt = ? WHERE id = ?`).run(nowISO(), tournamentId);
+
+    console.log(`[Tournament Selection] Selected ${users.length} players for tournament ${tournamentId}`);
+
+    res.json({ 
+      ok: true, 
+      message: `נבחרו ${users.length} שחקנים לטורניר`,
+      selectedCount: users.length,
+      selectedUsers: users.map(u => ({ id: u.id, email: u.email, psnUsername: u.psnUsername }))
+    });
+
+  } catch (error) {
+    console.error('[Tournament Selection] Error:', error);
+    res.status(500).json({ ok: false, error: "internal_server_error" });
+  }
+});
+
+/** GET /api/tournament-registrations/notifications
+ * קבלת הודעות למשתמש הנוכחי
+ */
+tournamentRegistrations.get("/notifications", requireAuth, (req, res) => {
+  const userId = (req as any).user?.id;
+  if (!userId) {
+    return res.status(401).json({ ok: false, error: "unauthorized" });
+  }
+
+  const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+  const offset = parseInt(req.query.offset as string) || 0;
+
+  const notifications = db.prepare(`
+    SELECT id, type, title, message, data, isRead, createdAt
+    FROM notifications 
+    WHERE userId = ? 
+    ORDER BY createdAt DESC 
+    LIMIT ? OFFSET ?
+  `).all(userId, limit, offset);
+
+  const unreadCount = db.prepare(`SELECT COUNT(*) as count FROM notifications WHERE userId = ? AND isRead = 0`).get(userId) as any;
+
+  res.json({ 
+    ok: true, 
+    notifications: notifications.map(n => ({
+      ...n,
+      data: n.data ? JSON.parse(n.data) : null
+    })),
+    unreadCount: unreadCount.count
+  });
+});
+
+/** PUT /api/tournament-registrations/notifications/:id/read
+ * סימון הודעה כנקראה
+ */
+tournamentRegistrations.put("/notifications/:id/read", requireAuth, (req, res) => {
+  const notificationId = req.params.id;
+  const userId = (req as any).user?.id;
+  
+  if (!userId) {
+    return res.status(401).json({ ok: false, error: "unauthorized" });
+  }
+
+  const result = db.prepare(`
+    UPDATE notifications 
+    SET isRead = 1 
+    WHERE id = ? AND userId = ?
+  `).run(notificationId, userId);
+
+  if (result.changes === 0) {
+    return res.status(404).json({ ok: false, error: "notification_not_found" });
+  }
+
+  res.json({ ok: true, message: "הודעה סומנה כנקראה" });
 });
 

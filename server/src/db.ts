@@ -148,6 +148,25 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_tr_unique ON tournament_registrations (tou
 CREATE INDEX IF NOT EXISTS idx_tr_tournament ON tournament_registrations (tournamentId);
 CREATE INDEX IF NOT EXISTS idx_tr_user ON tournament_registrations (userId);
 CREATE INDEX IF NOT EXISTS idx_tr_state ON tournament_registrations (state);
+
+-- Notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+  id TEXT PRIMARY KEY,
+  userId TEXT NOT NULL,
+  type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  data TEXT,
+  isRead INTEGER DEFAULT 0,
+  createdAt TEXT NOT NULL,
+  FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Notifications indexes
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications (userId);
+CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications (type);
+CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications (isRead);
+CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications (createdAt);
 `);
 
 export default db;

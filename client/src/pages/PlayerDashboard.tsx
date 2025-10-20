@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useStore } from "../store";
 import PlayerDashboardChampions from "../components/PlayerDashboardChampions";
 import { TournamentSignupCard } from "../components/TournamentSignupCard";
+import { NotificationBanner } from "../components/NotificationBanner";
 import { getRoundName } from "../utils/rounds";
 import "../styles/championsLeague.css";
 
@@ -199,6 +200,9 @@ export default function PlayerDashboard() {
 
   return (
     <div>
+      {/* הודעות */}
+      <NotificationBanner />
+      
       {/* כרטיס הרשמה לטורניר */}
       {tournament && (
         <div style={{ marginBottom: isMobile ? 20 : 32 }}>

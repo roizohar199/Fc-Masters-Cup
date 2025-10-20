@@ -3,6 +3,7 @@ import { api } from "../api";
 import { useStore } from "../store";
 import AdvanceWinners from "../components/AdvanceWinners";
 import { TournamentRegistrationsPanel } from "../components/TournamentRegistrationsPanel";
+import { PlayerSelectionPanel } from "../components/admin/PlayerSelectionPanel";
 import { startPresence, onPresenceUpdate } from "../presence";
 
 interface User {
@@ -18,6 +19,7 @@ interface User {
   connections?: number;
   approvalStatus?: 'pending' | 'approved' | 'rejected';
   isSuperAdmin?: boolean;
+  psnUsername?: string;
 }
 
 // רשימה של שחקנים אמיתיים - תתעדכן מהמסד נתונים
@@ -193,12 +195,12 @@ export default function AdminDashboard() {
         setUsers(response.allUsers);
         
         // יצירת Set של משתמשים מחוברים
-        const onlineSet = new Set(response.allUsers.filter((u: any) => u.isOnline).map((u: any) => u.id));
+        const onlineSet = new Set<string>(response.allUsers.filter((u: any) => u.isOnline).map((u: any) => u.id));
         console.log("✅ משתמשים מחוברים:", Array.from(onlineSet));
         setOnlineUsers(onlineSet);
       } else if (response && response.onlineUsers && Array.isArray(response.onlineUsers)) {
         // fallback לגישה הישנה
-        const onlineSet = new Set(response.onlineUsers);
+        const onlineSet = new Set<string>(response.onlineUsers as string[]);
         console.log("✅ משתמשים מחוברים (fallback):", Array.from(onlineSet));
         setOnlineUsers(onlineSet);
       } else {
@@ -430,7 +432,7 @@ export default function AdminDashboard() {
       console.log("🔍 מספר טורנירים:", tournaments?.length);
       if (tournaments && tournaments.length > 0) {
         console.log("📋 רשימת טורנירים:");
-        tournaments.forEach((t, index) => {
+        tournaments.forEach((t: any, index: number) => {
           console.log(`  ${index + 1}. ${t.title} (ID: ${t.id}) - טלגרם: ${t.telegramLink || 'אין'}`);
         });
       }
@@ -889,7 +891,7 @@ export default function AdminDashboard() {
       
       // רענון רשימת הטורנירים
       await loadTournaments();
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ שגיאה ביצירת הטורניר:", error);
       alert("❌ שגיאה ביצירת הטורניר: " + error.message);
     }
@@ -984,7 +986,7 @@ export default function AdminDashboard() {
     setSelectedPlayers(availablePlayers.slice(0, maxPlayers).map(p => p.id));
   }
 
-  function clearSelection() {
+  function clearPlayerSelection() {
     setSelectedPlayers([]);
   }
 
@@ -1424,7 +1426,7 @@ export default function AdminDashboard() {
                        <div>
                          <span style={{ fontWeight: 500 }}>{u.email}</span>
                          <div style={{ fontSize: 12, color: "#777" }}>
-                           {u.isActive ? "פעיל" : "לא פעיל"} · {u.connections} חיבורים
+                           {(u as any).isActive ? "פעיל" : "לא פעיל"} · {(u as any).connections || 0} חיבורים
                          </div>
                        </div>
                        <span style={{ fontSize: 12, color: "#777" }}>
@@ -2720,7 +2722,7 @@ export default function AdminDashboard() {
                   alert("✅ קישור הטלגרם נוסף בהצלחה!");
                   setTelegramLink(""); // נקה את השדה
                   await loadTournaments(); // רענן את רשימת הטורנירים
-                } catch (error) {
+                } catch (error: any) {
                   console.error("שגיאה בהוספת קישור טלגרם:", error);
                   alert("❌ שגיאה בהוספת קישור טלגרם: " + error.message);
                 }
@@ -2779,7 +2781,7 @@ export default function AdminDashboard() {
               ✓ בחר הכל
             </button>
             <button
-              onClick={clearSelection}
+              onClick={clearPlayerSelection}
               style={{
                 padding: "10px 16px",
                 borderRadius: 8,
@@ -2974,6 +2976,19 @@ export default function AdminDashboard() {
       {tournamentId && (
         <div style={{ marginBottom: 24 }}>
           <TournamentRegistrationsPanel tournamentId={tournamentId} />
+        </div>
+      )}
+
+      {/* פאנל בחירת שחקנים לטורניר */}
+      {tournamentId && (
+        <div style={{ marginBottom: 24 }}>
+          <PlayerSelectionPanel 
+            tournamentId={tournamentId} 
+            onSelectionComplete={(count) => {
+              console.log(`Selected ${count} players for tournament`);
+              // אפשר להוסיף כאן לוגיקה נוספת אחרי בחירת השחקנים
+            }}
+          />
         </div>
       )}
 
