@@ -17,8 +17,8 @@ smtpAdminRouter.post("/test", async (req:any, res) => {
   const { to } = req.body || {};
   if (!to) return res.status(400).json({ error: "to required" });
   try {
-    const r = await sendMailSafe(to, "SMTP Test ✔", `<div dir="rtl">בדיקת SMTP מהשרת ✅</div>`);
-    res.json({ ok: true, ...r });
+    const { ok, ...rest } = await sendMailSafe(to, "SMTP Test ✔", `<div dir="rtl">בדיקת SMTP מהשרת ✅</div>`);
+    res.json({ ok: true, ...rest });
   } catch (e:any) {
     res.status(500).json({ ok: false, error: String(e?.message || e) });
   }
