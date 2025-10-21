@@ -18,7 +18,7 @@
 
 1. **`server/tournaments.sqlite`** ✅ **הDB הנכון**
    - מכיל **3 משתמשים:**
-     - `roizohar111@gmail.com` (admin)
+     - `fcmasters9@gmail.com` (admin)
      - `yosiyoviv@gmail.com` (admin)
      - `lehaka71@gmail.com` (player)
    - גודל: 118,784 bytes
@@ -26,7 +26,7 @@
 
 2. **`server/server/tournaments.sqlite`** ❌ **DB טעות (כפילות)**
    - מכיל **רק משתמש אחד:**
-     - `roizohar111@gmail.com` (admin)
+     - `fcmasters9@gmail.com` (admin)
    - גודל: 118,784 bytes
    - עדכון אחרון: 17 אוקטובר 2025, 14:15
 
@@ -110,7 +110,7 @@ DB_PATH=./tournaments.sqlite
 
 | אימייל | תפקיד | סטטוס |
 |--------|-------|-------|
-| roizohar111@gmail.com | admin | ✅ קיים |
+| fcmasters9@gmail.com | admin | ✅ קיים |
 | yosiyoviv@gmail.com | admin | ✅ קיים |
 | lehaka71@gmail.com | player | ✅ קיים |
 
@@ -138,7 +138,7 @@ DB_PATH=./tournaments.sqlite
 
 | אימייל | תפקיד | זיכוי | PSN | סטטוס |
 |--------|-------|-------|-----|-------|
-| roizohar111@gmail.com | admin | 0 ₪ | - | ✅ פעיל |
+| fcmasters9@gmail.com | admin | 0 ₪ | - | ✅ פעיל |
 | yosiyoviv@gmail.com | admin | 60 ₪ | Yosi | ✅ פעיל |
 | lehaka71@gmail.com | player | 0 ₪ | Lehaka71 | ✅ פעיל |
 

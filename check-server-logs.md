@@ -10,7 +10,7 @@
 
 ```
 🔑 FORGOT PASSWORD REQUEST START
-✅ Validation OK - Email: roizohar111@gmail.com
+✅ Validation OK - Email: fcmasters9@gmail.com
 👤 User FOUND - Status: active
 🎫 Creating password reset token...
 ✅ Token created successfully
@@ -29,7 +29,7 @@
   Host: smtp.gmail.com
   Port: 587
   Secure: false
-  User: roizohar111@gmail.com
+  User: fcmasters9@gmail.com
   Pass: ***lcnr
 ```
 
@@ -58,7 +58,7 @@ npm start
 
 **חלון 2 - הבדיקה:**
 ```powershell
-node test-forgot-debug.mjs roizohar111@gmail.com
+node test-forgot-debug.mjs fcmasters9@gmail.com
 # עכשיו תחזור לחלון 1 ותראה את הלוגים
 ```
 

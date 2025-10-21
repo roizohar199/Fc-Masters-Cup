@@ -56,14 +56,14 @@ const emailConfig = {
 ✅ SMTP_HOST:    smtp.gmail.com
 ✅ SMTP_PORT:    587
 ✅ SMTP_SECURE:  false
-✅ SMTP_USER:    roizohar111@gmail.com
+✅ SMTP_USER:    fcmasters9@gmail.com
 ✅ SMTP_PASS:    ***lcnr (מוגדר)
 ⚠️  EMAIL_FROM:  לא מוגדר (ישתמש ב-fallback)
 ```
 
 ### Fallback ל-EMAIL_FROM:
 ```
-"FC Masters Cup <roizohar111@gmail.com>"
+"FC Masters Cup <fcmasters9@gmail.com>"
 ```
 
 ---
@@ -99,7 +99,7 @@ Environment Variables:
 SMTP_HOST:     smtp.gmail.com
 SMTP_PORT:     587
 SMTP_SECURE:   false
-SMTP_USER:     roizohar111@gmail.com
+SMTP_USER:     fcmasters9@gmail.com
 SMTP_PASS:     ✅ SET (***lcnr)
 EMAIL_FROM:    ❌ NOT SET
 
@@ -123,7 +123,7 @@ EMAIL_FROM:    ❌ NOT SET
 ### 1. הוסף EMAIL_FROM ל-.env
 פתח `.env` והוסף:
 ```bash
-EMAIL_FROM="FC Masters Cup <roizohar111@gmail.com>"
+EMAIL_FROM="FC Masters Cup <fcmasters9@gmail.com>"
 ```
 
 ### 2. Build מחדש
@@ -139,7 +139,7 @@ npm start
 
 # בחלון אחר, בדוק forgot-password:
 cd server
-node test-forgot-password-manual.mjs roizohar111@gmail.com
+node test-forgot-password-manual.mjs fcmasters9@gmail.com
 ```
 
 ---

@@ -5,7 +5,7 @@
 הוסף את השורה הזו לקובץ `.env` (בשורש הפרויקט):
 
 ```bash
-EMAIL_FROM="FC Masters Cup <roizohar111@gmail.com>"
+EMAIL_FROM="FC Masters Cup <fcmasters9@gmail.com>"
 ```
 
 ## איפה?
@@ -29,7 +29,7 @@ npm start
 node compare-smtp-config.mjs
 
 # בדוק forgot-password:
-node test-forgot-password-manual.mjs roizohar111@gmail.com
+node test-forgot-password-manual.mjs fcmasters9@gmail.com
 ```
 
 ## הקובץ .env המלא צריך להכיל
@@ -39,9 +39,9 @@ node test-forgot-password-manual.mjs roizohar111@gmail.com
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_SECURE=false
-SMTP_USER=roizohar111@gmail.com
+SMTP_USER=fcmasters9@gmail.com
 SMTP_PASS=your-app-password
-EMAIL_FROM="FC Masters Cup <roizohar111@gmail.com>"  ← הוסף את זה!
+EMAIL_FROM="FC Masters Cup <fcmasters9@gmail.com>"  ← הוסף את זה!
 ```
 
 ---
@@ -69,7 +69,7 @@ secure: smtpSecure  // פשוט וברור!
   Host: smtp.gmail.com
   Port: 587
   Secure: false
-  User: roizohar111@gmail.com
+  User: fcmasters9@gmail.com
   Pass: ***lcnr
 ```
 
@@ -85,5 +85,5 @@ secure: smtpSecure  // פשוט וברור!
 
 עכשיו `/auth/forgot-password` משתמש **בדיוק באותה תצורת SMTP** כמו `test-send.js`! 🎉
 
-המיילים יישלחו מ-`roizohar111@gmail.com` (או מה-EMAIL_FROM אם תוסיף).
+המיילים יישלחו מ-`fcmasters9@gmail.com` (או מה-EMAIL_FROM אם תוסיף).
 

@@ -7,7 +7,7 @@ console.log("━━━━━━━━━━━━━━━━━━━━━━�
 console.log("🔍 בדיקת Forgot Password - Debug Mode");
 console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
-const email = process.argv[2] || "roizohar111@gmail.com";
+const email = process.argv[2] || "fcmasters9@gmail.com";
 const port = process.argv[3] || "8787";
 const baseUrl = `http://localhost:${port}`;
 

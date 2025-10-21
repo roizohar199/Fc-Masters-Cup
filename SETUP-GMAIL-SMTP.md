@@ -32,16 +32,16 @@ NODE_ENV=development
 JWT_SECRET=fc-masters-cup-super-secret-key-2024-change-this-in-production
 
 # פרטי אדמין
-ADMIN_EMAIL=roizohar111@gmail.com
+ADMIN_EMAIL=fcmasters9@gmail.com
 ADMIN_PASSWORD=Admin123456!
 
 # SMTP - שליחת מיילים
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_SECURE=false
-SMTP_USER=roizohar111@gmail.com
+SMTP_USER=fcmasters9@gmail.com
 SMTP_PASS=הכנס-כאן-את-ה-16-תווים-שקיבלת
-EMAIL_FROM="FC Masters Cup <roizohar111@gmail.com>"
+EMAIL_FROM="FC Masters Cup <fcmasters9@gmail.com>"
 
 # הגדרות אתר
 CORS_ORIGIN=http://localhost:5173

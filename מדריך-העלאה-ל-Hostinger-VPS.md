@@ -227,16 +227,16 @@ SITE_URL=https://fcmasters.yourdomain.com
 CORS_ORIGIN=https://fcmasters.yourdomain.com
 
 # שאר ההגדרות נשארות אותו דבר:
-ADMIN_EMAIL=roizohar111@gmail.com
+ADMIN_EMAIL=fcmasters9@gmail.com
 ADMIN_PASSWORD=Roizohar1985
 JWT_SECRET=2670b72afa9d87ecbbb65bdb4959f67b129894eb9de7135295665148852f9b990181540461fc3e88c95b16e8a0ad1e20004203e1b9778e66a683fd5a39369a07
 
 # SMTP
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=roizohar111@gmail.com
+SMTP_USER=fcmasters9@gmail.com
 SMTP_PASS=acccxggzncimlcnr
-SMTP_FROM=FC Masters Cup <roizohar111@gmail.com>
+SMTP_FROM=FC Masters Cup <fcmasters9@gmail.com>
 SMTP_SECURE=false
 ```
 
@@ -460,7 +460,7 @@ https://fcmasters.yourdomain.com
 
 1. לחץ על **"התחבר"**
 2. התחבר עם:
-   - Email: `roizohar111@gmail.com`
+   - Email: `fcmasters9@gmail.com`
    - Password: `Roizohar1985`
 
 אם זה עובד - **מעולה!** ✅

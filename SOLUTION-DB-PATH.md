@@ -2,7 +2,7 @@
 
 ## הבעיה שמצאנו
 
-**המשתמש `yosiyoviv@gmail.com` לא קיבל מייל מ-forgot-password**, בעוד `roizohar111@gmail.com` (מנהל על) כן קיבל.
+**המשתמש `yosiyoviv@gmail.com` לא קיבל מייל מ-forgot-password**, בעוד `fcmasters9@gmail.com` (מנהל על) כן קיבל.
 
 ## הסיבה
 
@@ -14,7 +14,7 @@
 - כשהרצת `test-send.js` - פתח את הDB הנכון
 - כשהשרת רץ והשתמש ב-`dist/auth.js` - פתח את הDB המיותר!
 
-**רק `roizohar111@gmail.com` נמצא בשני ה-DBs כי הוא נוצר על ידי `seedAdminFromEnv()` שרץ בכל פעם שהשרת עולה.**
+**רק `fcmasters9@gmail.com` נמצא בשני ה-DBs כי הוא נוצר על ידי `seedAdminFromEnv()` שרץ בכל פעם שהשרת עולה.**
 
 ## הפתרון
 

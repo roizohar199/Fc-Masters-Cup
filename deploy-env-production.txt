@@ -6,7 +6,7 @@ SITE_URL=https://k-rstudio.com
 CORS_ORIGIN=https://k-rstudio.com
 
 # Admin
-ADMIN_EMAIL=roizohar111@gmail.com
+ADMIN_EMAIL=fcmasters9@gmail.com
 ADMIN_PASSWORD=Roizohar1985
 
 # JWT Secret - אל תשנה!
@@ -15,9 +15,9 @@ JWT_SECRET=2670b72afa9d87ecbbb65bdb4959f67b129894eb9de7135295665148852f9b9901815
 # SMTP Configuration
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=roizohar111@gmail.com
+SMTP_USER=fcmasters9@gmail.com
 SMTP_PASS=acccxggzncimlcnr
-SMTP_FROM=FC Masters Cup <roizohar111@gmail.com>
+SMTP_FROM=FC Masters Cup <fcmasters9@gmail.com>
 SMTP_SECURE=false
 
 # Timezone

@@ -41,13 +41,13 @@ Write-Host "  npm start" -ForegroundColor White
 Write-Host "  (Keep this window open and watch the logs)" -ForegroundColor Gray
 Write-Host ""
 Write-Host "Window 2 (Test):" -ForegroundColor Green
-Write-Host "  node test-forgot-debug.mjs roizohar111@gmail.com" -ForegroundColor White
+Write-Host "  node test-forgot-debug.mjs fcmasters9@gmail.com" -ForegroundColor White
 Write-Host "  (Then go back to Window 1 and check the logs)" -ForegroundColor Gray
 Write-Host ""
 Write-Host "==============================================`n" -ForegroundColor Cyan
 Write-Host "💡 What to look for in server logs:" -ForegroundColor Yellow
 Write-Host "  🔑 FORGOT PASSWORD REQUEST START" -ForegroundColor White
-Write-Host "  ✅ Validation OK - Email: roizohar111@gmail.com" -ForegroundColor White
+Write-Host "  ✅ Validation OK - Email: fcmasters9@gmail.com" -ForegroundColor White
 Write-Host "  👤 User FOUND - Status: active" -ForegroundColor White
 Write-Host "  🎫 Creating password reset token..." -ForegroundColor White
 Write-Host "  📧 Sending password reset email..." -ForegroundColor White
