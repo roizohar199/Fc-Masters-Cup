@@ -346,7 +346,7 @@ export async function sendTournamentRegistrationEmail(params: {
   capacity: number;
 }) {
   const { tournamentTitle, userName, userEmail, count, capacity } = params;
-  const adminEmail = process.env.ADMIN_EMAIL || 'roizohar111@gmail.com';
+  const adminEmail = process.env.ADMIN_EMAIL || 'fcmasters9@gmail.com';
   const transport = getTransporter();
 
   const subject = `נרשם חדש לטורניר: ${tournamentTitle} (${count}/${capacity})`;

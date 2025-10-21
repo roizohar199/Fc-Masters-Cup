@@ -2,7 +2,7 @@ import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { authenticate, registerUser, createPasswordResetToken, resetPassword, setSessionCookie, clearSessionCookie, signToken, decodeToken } from "../auth.js";
 import { RegisterDTO, ForgotPasswordDTO, ResetPasswordDTO } from "../models.js";
-import { sendWelcomeEmail, sendPasswordResetEmail, sendPasswordResetSuccessEmail } from "../email.js";
+import { sendWelcomeEmail, sendPasswordResetEmail, sendPasswordResetSuccessEmail, sendAdminNotification } from "../email.js";
 import db from "../db.js";
 
 export const auth = Router();
@@ -175,6 +175,13 @@ auth.post("/register", limiter, async (req, res) => {
       psnUsername: user.psnUsername, 
       createdAt: user.createdAt,
       approvalToken: user.approvalToken
+    });
+    
+    // שליחת התראה למנהל על משתמש חדש
+    await sendAdminNotification(adminEmail, {
+      email: user.email,
+      psnUsername: user.psnUsername,
+      createdAt: user.createdAt
     });
   }
   
