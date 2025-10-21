@@ -135,9 +135,6 @@ app.use("/api/draw", (req, res, next) => {
 // Notifications routes (requires auth)
 app.use("/api", requireAuth, notificationsRouter);
 
-// Tournament selection routes (requires admin auth)
-app.use("/api/tournaments", requireAuth, tournamentsRouter);
-
 // Admin email routes (requires admin auth)
 app.use("/api/admin", requireAuth, adminRouter);
 

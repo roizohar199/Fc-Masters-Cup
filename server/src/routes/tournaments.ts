@@ -311,6 +311,20 @@ tournaments.get("/", (req,res)=>{
   res.json(rows);
 });
 
+// Get single tournament by ID
+tournaments.get("/:id", (req, res) => {
+  try {
+    const tournament = db.prepare(`SELECT * FROM tournaments WHERE id=?`).get(req.params.id);
+    if (!tournament) {
+      return res.status(404).json({ error: "Tournament not found" });
+    }
+    res.json(tournament);
+  } catch (error) {
+    console.error("Error fetching tournament:", error);
+    res.status(500).json({ error: "Failed to fetch tournament" });
+  }
+});
+
 // Update tournament
 tournaments.put("/:id", (req, res) => {
   const { id } = req.params;
@@ -403,4 +417,33 @@ function generateNextRoundMatches(tournamentId: string, currentRound: string, wi
   
   return matchIds;
 }
+
+// Tournament participant selection (admin only)
+// Merged from modules/tournaments/routes.ts to avoid duplicate router registration
+tournaments.post("/:id/select", async (req: any, res) => {
+  // Check admin permissions
+  if (!req.user || (req.user.role !== "admin" && req.user.role !== "super_admin")) {
+    return res.status(403).json({ error: "forbidden - admin access required" });
+  }
+  
+  const tournamentId = req.params.id;
+  const userIds: number[] = req.body.userIds || [];
+  
+  if (!userIds.length) {
+    return res.status(400).json({ error: "userIds required" });
+  }
+  
+  try {
+    // Import selection functions dynamically to avoid circular dependencies
+    const { selectParticipants, flushEmailQueue } = await import("../modules/tournaments/selection.js");
+    
+    selectParticipants(Number(tournamentId), userIds);
+    await flushEmailQueue();
+    
+    res.json({ ok: true, message: `Selected ${userIds.length} participants for tournament` });
+  } catch (error: any) {
+    console.error("Error selecting participants:", error);
+    res.status(500).json({ error: error.message || "Failed to select participants" });
+  }
+});
 
