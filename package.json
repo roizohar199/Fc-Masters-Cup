@@ -11,6 +11,7 @@
     "build:check": "npm run build && echo Build completed successfully!",
     "start": "npm --prefix server run start",
     "test": "npm --prefix server run test",
+    "test:email": "node test-email-system.mjs",
     "deploy:setup": "powershell -ExecutionPolicy Bypass -File ./setup-github-deployment.ps1"
   },
   "devDependencies": {

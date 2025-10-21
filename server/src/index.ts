@@ -183,6 +183,14 @@ async function startServer(port: number, retries = 0): Promise<void> {
     // Initialize Presence system (Redis or Memory fallback)
     await initPresence();
 
+    // Verify SMTP connection at startup
+    const { verifySmtp } = await import("./modules/mail/mailer.js");
+    verifySmtp().then((r) => {
+      if (!r.ok) {
+        console.error("⚠️ SMTP verify failed at startup:", r);
+      }
+    }).catch(e => console.error("⚠️ SMTP verify exception:", e));
+
     // Create HTTP server explicitly (required for WebSocket upgrade handling)
     const server = http.createServer(app);
 

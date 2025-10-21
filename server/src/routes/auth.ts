@@ -167,22 +167,37 @@ auth.post("/register", limiter, async (req, res) => {
     new Date().toISOString()
   );
 
-  // שליחת מייל למנהל עם קישור לאישור המשתמש
+  // שליחת מיילים למנהל - עם לוגים מפורטים
   const adminEmail = process.env.ADMIN_EMAIL;
+  console.log('📧 ADMIN_EMAIL from ENV:', adminEmail);
+  
   if (adminEmail) {
-    await sendAdminApprovalRequest(adminEmail, { 
-      email: user.email, 
-      psnUsername: user.psnUsername, 
-      createdAt: user.createdAt,
-      approvalToken: user.approvalToken
-    });
+    try {
+      console.log('📧 Sending admin approval request to:', adminEmail);
+      await sendAdminApprovalRequest(adminEmail, { 
+        email: user.email, 
+        psnUsername: user.psnUsername, 
+        createdAt: user.createdAt,
+        approvalToken: user.approvalToken
+      });
+      console.log('✅ Admin approval request sent successfully');
+    } catch (e) {
+      console.error('❌ Failed to send admin approval request:', e);
+    }
     
-    // שליחת התראה למנהל על משתמש חדש
-    await sendAdminNotification(adminEmail, {
-      email: user.email,
-      psnUsername: user.psnUsername,
-      createdAt: user.createdAt
-    });
+    try {
+      console.log('📧 Sending admin notification to:', adminEmail);
+      await sendAdminNotification(adminEmail, {
+        email: user.email,
+        psnUsername: user.psnUsername,
+        createdAt: user.createdAt
+      });
+      console.log('✅ Admin notification sent successfully');
+    } catch (e) {
+      console.error('❌ Failed to send admin notification:', e);
+    }
+  } else {
+    console.warn('⚠️ ADMIN_EMAIL not set - no admin notifications will be sent');
   }
   
   // לא מחזירים טוקן התחברות - המשתמש צריך לחכות לאישור

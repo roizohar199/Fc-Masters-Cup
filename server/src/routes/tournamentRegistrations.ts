@@ -195,13 +195,18 @@ tournamentRegistrations.post("/:id/register", requireAuth, async (req, res) => {
 
   // שלח מייל על רישום חדש (רק אם באמת חדש/הופעל שוב)
   if (created) {
+    console.log('📧 ADMIN notify: user joined tournament ->', userEmail, 'T:', tournamentId);
     sendTournamentRegistrationEmail({
       tournamentTitle: t.title,
       userName,
       userEmail,
       count,
       capacity,
-    }).catch((e: any) => console.warn("[MAIL] failed:", e?.message || e));
+    }).then(() => {
+      console.log('✅ Tournament registration email sent successfully');
+    }).catch((e: any) => {
+      console.error('[MAIL] ❌ Failed to send tournament registration email:', e?.message || e);
+    });
   }
 
   return res.json({ ok: true, count, capacity });
