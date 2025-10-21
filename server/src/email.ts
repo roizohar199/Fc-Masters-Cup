@@ -274,175 +274,6 @@ export async function sendPasswordResetEmail(email: string, token: string) {
   }
 }
 
-export async function sendPendingApprovalEmail(email: string) {
-  const transport = getTransporter();
-  
-  const emailContent = {
-    from: process.env.EMAIL_FROM || process.env.SMTP_FROM || `"FC Masters Cup" <${process.env.SMTP_USER}>`,
-    to: email,
-    subject: "ההרשמה שלך ממתינה לאישור - FC Masters Cup ⏳",
-    html: `
-      <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px;">
-        <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-          <h1 style="color: #667eea; text-align: center; font-size: 32px; margin-bottom: 20px;">
-            ⏳ ההרשמה שלך ממתינה לאישור
-          </h1>
-          
-          <div style="background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-right: 4px solid #ff9800;">
-            <p style="font-size: 18px; color: #333; line-height: 1.8; margin: 0;">
-              שלום <strong>${email}</strong>,<br><br>
-              תודה שנרשמת ל-FC Masters Cup! 🎉
-            </p>
-          </div>
-          
-          <div style="margin: 30px 0;">
-            <h2 style="color: #ff9800; font-size: 22px; margin-bottom: 15px;">📋 מה קורה עכשיו?</h2>
-            <ul style="color: #555; font-size: 16px; line-height: 2;">
-              <li>ההרשמה שלך נקלטה במערכת בהצלחה</li>
-              <li>המנהל קיבל הודעה ויאשר את חשבונך בהקדם</li>
-              <li>תקבל מייל נוסף ברגע שהחשבון שלך יאושר</li>
-              <li>לאחר האישור תוכל להתחבר ולהשתתף בטורנירים</li>
-            </ul>
-          </div>
-          
-          <div style="background: #e3f2fd; padding: 20px; border-radius: 10px; border: 2px solid #2196F3; margin: 20px 0;">
-            <p style="color: #1976D2; font-size: 15px; margin: 0; font-weight: 600;">
-              ℹ️ למה צריך אישור?
-            </p>
-            <p style="color: #1565C0; font-size: 14px; line-height: 1.6; margin: 10px 0 0 0;">
-              כדי לשמור על רמה גבוהה של התחרות ולמנוע משתמשים לא רצויים, 
-              כל משתמש חדש עובר אישור ידני של המנהל.
-            </p>
-          </div>
-          
-          <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #f0f0f0; text-align: center;">
-            <p style="color: #999; font-size: 14px; margin: 5px 0;">
-              נתראה בקרוב בטורנירים! 🏆
-            </p>
-            <p style="color: #999; font-size: 12px; margin: 5px 0;">
-              FC Masters Cup • PS5 • FC25/FC26
-            </p>
-          </div>
-        </div>
-      </div>
-    `,
-  };
-  
-  if (!transport) {
-    console.log("[email] 📧 Pending approval email (dev mode):", emailContent);
-    return true;
-  }
-  
-  try {
-    await transport.sendMail(emailContent);
-    console.log(`[email] ✅ Pending approval email sent to: ${email}`);
-    return true;
-  } catch (error) {
-    console.error(`[email] ❌ Failed to send email to ${email}:`, error);
-    return false;
-  }
-}
-
-export async function sendAdminApprovalRequest(adminEmail: string, user: { email: string; psnUsername?: string; createdAt: string; approvalToken: string }) {
-  const transport = getTransporter();
-  
-  const registrationDate = new Date(user.createdAt).toLocaleString("he-IL", {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-  
-  const approvalUrl = `${process.env.SITE_URL || "http://localhost:5173"}/api/admin/approve-user?token=${user.approvalToken}`;
-  const rejectUrl = `${process.env.SITE_URL || "http://localhost:5173"}/api/admin/reject-user?token=${user.approvalToken}`;
-  
-  const emailContent = {
-    from: process.env.EMAIL_FROM || process.env.SMTP_FROM || `"FC Masters Cup" <${process.env.SMTP_USER}>`,
-    to: adminEmail,
-    subject: "משתמש חדש ממתין לאישור! 👤⏳",
-    html: `
-      <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px;">
-        <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-          <h1 style="color: #667eea; text-align: center; font-size: 32px; margin-bottom: 20px;">
-            👤 משתמש חדש ממתין לאישור!
-          </h1>
-          
-          <div style="background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-right: 4px solid #ff9800;">
-            <p style="font-size: 18px; color: #333; line-height: 1.8; margin: 0;">
-              משתמש חדש נרשם לאתר FC Masters Cup וממתין לאישורך:
-            </p>
-          </div>
-          
-          <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #e9ecef;">
-            <h3 style="color: #495057; font-size: 18px; margin: 0 0 15px 0;">📋 פרטי המשתמש:</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-              <div>
-                <p style="margin: 0; color: #6c757d; font-size: 14px;">📧 אימייל:</p>
-                <p style="margin: 5px 0 0 0; color: #333; font-weight: 600;">${user.email}</p>
-              </div>
-              <div>
-                <p style="margin: 0; color: #6c757d; font-size: 14px;">🎮 שם PSN:</p>
-                <p style="margin: 5px 0 0 0; color: #333; font-weight: 600;">${user.psnUsername || 'לא הוזן'}</p>
-              </div>
-              <div style="grid-column: span 2;">
-                <p style="margin: 0; color: #6c757d; font-size: 14px;">🕒 זמן הרשמה:</p>
-                <p style="margin: 5px 0 0 0; color: #333; font-weight: 600;">${registrationDate}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div style="margin: 30px 0;">
-            <h2 style="color: #764ba2; font-size: 20px; margin-bottom: 15px;">⚡ פעולות מהירות:</h2>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-              <a href="${approvalUrl}" 
-                 style="display: block; padding: 16px 24px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4); text-align: center;">
-                ✅ אשר משתמש
-              </a>
-              <a href="${rejectUrl}" 
-                 style="display: block; padding: 16px 24px; background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4); text-align: center;">
-                ❌ דחה משתמש
-              </a>
-            </div>
-          </div>
-          
-          <div style="background: #e3f2fd; padding: 15px; border-radius: 10px; border: 2px solid #2196F3; margin: 20px 0;">
-            <p style="color: #1976D2; font-size: 14px; margin: 0; font-weight: 600;">
-              💡 טיפ: תוכל גם לאשר/לדחות משתמשים ישירות מפאנל הניהול
-            </p>
-          </div>
-          
-          <div style="text-align: center; margin-top: 40px;">
-            <a href="${process.env.SITE_URL || "http://localhost:5173"}/admin" 
-               style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 18px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
-              פאנל ניהול 👨‍💼
-            </a>
-          </div>
-          
-          <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #f0f0f0; text-align: center;">
-            <p style="color: #999; font-size: 12px; margin: 5px 0;">
-              FC Masters Cup • PS5 • FC25/FC26
-            </p>
-          </div>
-        </div>
-      </div>
-    `,
-  };
-  
-  if (!transport) {
-    console.log("[email] 📧 Admin approval request (dev mode):", emailContent);
-    return true;
-  }
-  
-  try {
-    await transport.sendMail(emailContent);
-    console.log(`[email] ✅ Admin approval request sent to: ${adminEmail}`);
-    return true;
-  } catch (error) {
-    console.error(`[email] ❌ Failed to send admin approval request:`, error);
-    return false;
-  }
-}
 
 export async function sendPasswordResetSuccessEmail(email: string) {
   const transport = getTransporter();
@@ -864,6 +695,147 @@ export async function sendEarlyRegistrationEmail({ userEmail, userPsn, tournamen
     return true;
   } catch (error) {
     console.error(`[email] ❌ Failed to send early registration email:`, error);
+    return false;
+  }
+}
+
+export async function sendPendingApprovalEmail(email: string) {
+  const transport = getTransporter();
+  
+  const emailContent = {
+    from: process.env.EMAIL_FROM || process.env.SMTP_FROM || `"FC Masters Cup" <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: "שמתך התקבלה - ממתין לאישור המנהל ⏳",
+    html: `
+      <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px;">
+        <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+          <h1 style="color: #667eea; text-align: center; font-size: 32px; margin-bottom: 20px;">
+            ✅ הרשמתך התקבלה!
+          </h1>
+          
+          <div style="background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-right: 4px solid #667eea;">
+            <p style="font-size: 18px; color: #333; line-height: 1.8; margin: 0;">
+              תודה שהצטרפת ל-FC Masters Cup! הרשמתך התקבלה בהצלחה.
+            </p>
+          </div>
+          
+          <div style="background: #fff3e0; padding: 20px; border-radius: 10px; border: 2px solid #ff9800; margin: 20px 0;">
+            <p style="color: #e65100; font-size: 16px; margin: 0; font-weight: 600;">
+              ⏳ ממתין לאישור המנהל
+            </p>
+            <p style="color: #5d4037; font-size: 14px; line-height: 1.6; margin: 10px 0 0 0;">
+              החשבון שלך ממתין לאישור המנהל. תקבל מייל נוסף ברגע שהחשבון יאושר ותוכל להתחיל להשתתף בטורנירים.
+            </p>
+          </div>
+          
+          <div style="background: #f3e5f5; padding: 20px; border-radius: 10px; border: 2px solid #9c27b0; margin: 20px 0;">
+            <h3 style="color: #7b1fa2; font-size: 18px; margin: 0 0 15px 0;">🎮 מה הלאה?</h3>
+            <ul style="color: #555; font-size: 14px; line-height: 1.8; margin: 0; padding-right: 20px;">
+              <li>המתן לאישור המנהל (בדרך כלל תוך 24 שעות)</li>
+              <li>תקבל מייל אישור כשהוא יאושר</li>
+              <li>הכן את הקונסולה והכישורים שלך ל-FC25/FC26</li>
+              <li>התכונן להתחרות מול השחקנים הטובים ביותר</li>
+            </ul>
+          </div>
+          
+          <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #f0f0f0; text-align: center;">
+            <p style="color: #999; font-size: 14px; margin: 5px 0;">
+              בהצלחה בטורנירים הקרובים! 🏆
+            </p>
+            <p style="color: #999; font-size: 12px; margin: 5px 0;">
+              FC Masters Cup • PS5 • FC25/FC26
+            </p>
+          </div>
+        </div>
+      </div>
+    `,
+  };
+  
+  if (!transport) {
+    console.log("[email] 📧 Pending approval email (dev mode):", emailContent);
+    return true;
+  }
+  
+  try {
+    await transport.sendMail(emailContent);
+    console.log(`[email] ✅ Pending approval email sent to: ${email}`);
+    return true;
+  } catch (error) {
+    console.error(`[email] ❌ Failed to send pending approval email:`, error);
+    return false;
+  }
+}
+
+export async function sendAdminApprovalRequest(adminEmail: string, user: { email: string; psnUsername?: string; createdAt: string; approvalToken: string }) {
+  const transport = getTransporter();
+  
+  const registrationDate = new Date(user.createdAt).toLocaleString("he-IL", {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  
+  const emailContent = {
+    from: process.env.EMAIL_FROM || process.env.SMTP_FROM || `"FC Masters Cup" <${process.env.SMTP_USER}>`,
+    to: adminEmail,
+    subject: "🔔 בקשה חדשה לאישור משתמש - FC Masters Cup",
+    html: `
+      <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px;">
+        <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+          <h1 style="color: #667eea; text-align: center; font-size: 32px; margin-bottom: 20px;">
+            🔔 בקשה חדשה לאישור משתמש
+          </h1>
+          
+          <div style="background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-right: 4px solid #667eea;">
+            <p style="font-size: 18px; color: #333; line-height: 1.8; margin: 0;">
+              משתמש חדש נרשם לאתר וממתין לאישור:
+            </p>
+            <p style="font-size: 24px; font-weight: 700; color: #667eea; margin: 15px 0;">
+              ${user.email}
+            </p>
+            ${user.psnUsername ? `<p style="font-size: 18px; color: #555; margin: 10px 0;"><strong>PSN Username:</strong> ${user.psnUsername}</p>` : ''}
+            <p style="font-size: 16px; color: #777; margin: 10px 0;"><strong>תאריך הרשמה:</strong> ${registrationDate}</p>
+          </div>
+          
+          <div style="background: #fff3e0; padding: 20px; border-radius: 10px; border: 2px solid #ff9800; margin: 20px 0;">
+            <p style="color: #e65100; font-size: 16px; margin: 0; font-weight: 600;">
+              ⚠️ נדרש אישור מנהל
+            </p>
+            <p style="color: #5d4037; font-size: 14px; line-height: 1.6; margin: 10px 0 0 0;">
+              המשתמש ממתין לאישור המנהל כדי להשלים את ההרשמה ולהתחיל להשתתף בטורנירים.
+            </p>
+          </div>
+          
+          <div style="text-align: center; margin-top: 40px;">
+            <a href="${process.env.SITE_URL || "http://localhost:5173"}/admin" 
+               style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 18px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+              כניסה לפאנל ניהול 🔧
+            </a>
+          </div>
+          
+          <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #f0f0f0; text-align: center;">
+            <p style="color: #999; font-size: 14px; margin: 5px 0;">
+              FC Masters Cup • מערכת ניהול משתמשים
+            </p>
+          </div>
+        </div>
+      </div>
+    `,
+  };
+  
+  if (!transport) {
+    console.log("[email] 📧 Admin approval request (dev mode):", emailContent);
+    return true;
+  }
+  
+  try {
+    await transport.sendMail(emailContent);
+    console.log(`[email] ✅ Admin approval request sent to: ${adminEmail}`);
+    return true;
+  } catch (error) {
+    console.error(`[email] ❌ Failed to send admin approval request:`, error);
     return false;
   }
 }
