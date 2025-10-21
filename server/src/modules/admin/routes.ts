@@ -25,7 +25,7 @@ function getDb() {
  */
 adminRouter.post("/users/:id/email", async (req: any, res) => {
   try {
-    if (!req.user || !(req.user.is_admin || req.user.is_manager)) {
+    if (!req.user || (req.user.role !== "admin" && req.user.role !== "super_admin")) {
       return res.status(403).json({ error: "forbidden" });
     }
     const userId = Number(req.params.id);

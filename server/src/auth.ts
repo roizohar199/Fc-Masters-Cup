@@ -144,7 +144,19 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     });
   }
   
-  (req as any).user = decoded; // { uid, email }
+  // שליפת פרטי המשתמש מהדאטאבייס כדי לקבל את ה-role וה-הרשאות
+  const user = db.prepare(`SELECT id, email, role, isSuperAdmin FROM users WHERE email=?`).get(decoded.email) as any;
+  if (!user) return res.status(401).json({ error: "user not found" });
+  
+  // הוספת מידע הרשאות ל-req.user
+  (req as any).user = {
+    ...decoded,
+    id: user.id,
+    role: user.role,
+    is_admin: user.role === 'admin',
+    is_manager: user.role === 'admin',
+    isSuperAdmin: user.isSuperAdmin === 1
+  };
   next();
 }
 
