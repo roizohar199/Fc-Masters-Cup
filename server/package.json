@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "clean": "rimraf dist && tsc -b ../tsconfig.server.json --clean || exit 0",
+    "build": "npm run clean && tsc -p ../tsconfig.server.json",
     "dev": "concurrently -k \"tsc -p ../tsconfig.server.json --watch\" \"wait-on dist/index.js && powershell -Command \\\"$env:DOTENV_CONFIG_PATH='../.env'; node --watch -r dotenv/config dist/index.js\\\"\"",
-    "build": "tsc -p ../tsconfig.server.json",
     "start": "powershell -Command \"$env:DOTENV_CONFIG_PATH='../.env'; node -r dotenv/config dist/index.js\"",
     "test": "vitest run",
     "backup": "node backup-db.mjs"
@@ -38,6 +39,7 @@
     "@types/multer": "^1.4.11",
     "@types/ws": "^8.18.1",
     "concurrently": "^9.0.1",
+    "rimraf": "^5.0.0",
     "typescript": "^5.5.3",
     "vitest": "^2.0.3",
     "wait-on": "^7.2.0"
