@@ -18,6 +18,7 @@ import { admin } from "./routes/admin.js";
 import { adminUsers } from "./routes/adminUsers.js";
 import { approvalRequests } from "./routes/approvalRequests.js";
 import { tournamentRegistrations } from "./routes/tournamentRegistrations.js";
+import { draw } from "./routes/draw.js";
 import { withCookies, requireAuth, requireSuperAdmin, seedAdminFromEnv } from "./auth.js";
 import { logger } from "./logger.js";
 import { fileURLToPath } from "node:url";
@@ -120,6 +121,14 @@ app.use("/api/disputes", requireAuth, disputes);
 // Presence tracking (public - heartbeat/leave)
 app.use("/api/presence", presenceApi);
 
+// Draw routes (GET public for viewing, POST requires admin auth)
+app.use("/api/draw", (req, res, next) => {
+  // GET requests are public (viewing draw ceremony)
+  if (req.method === "GET") return draw(req, res, next);
+  // POST requires admin auth (controlling draw)
+  return requireAuth(req, res, () => draw(req, res, next));
+});
+
 // ✅ API 404 handler - must come AFTER all API routes but BEFORE SPA fallback
 app.use(apiNotFoundHandler);
 
@@ -163,6 +172,10 @@ async function startServer(port: number, retries = 0): Promise<void> {
     // Attach presence WebSocket with noServer: true
     const { getOnline, wss } = attachPresence(server);
     presenceRest(app); // REST fallback
+    
+    // Set WSS instance for broadcasting draw events
+    const { setWssInstance } = await import("./presence.js");
+    setWssInstance(wss);
 
     // ✅ Handle WebSocket upgrade manually (robust behind Nginx)
     server.on("upgrade", (req, socket, head) => {

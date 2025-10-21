@@ -15,6 +15,7 @@ const Settings = lazy(() => import("./pages/Settings"));
 const Rules = lazy(() => import("./pages/Rules"));
 const AdminPanel = lazy(() => import("./pages/AdminPanel"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const DrawView = lazy(() => import("./pages/DrawView"));
 
 // Loading component
 const LoadingFallback = () => (
@@ -88,6 +89,14 @@ const router = createBrowserRouter([
     element: (
       <Suspense fallback={<LoadingFallback />}>
         <AdminPanel />
+      </Suspense>
+    )
+  },
+  { 
+    path: "/draw", 
+    element: (
+      <Suspense fallback={<LoadingFallback />}>
+        <DrawView />
       </Suspense>
     )
   },

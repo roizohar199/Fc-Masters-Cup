@@ -260,6 +260,32 @@ export function attachPresence(server: HTTPServer) {
   return { getOnline: snapshot, wss };
 }
 
+// Export wss instance for broadcasting custom events (like draw events)
+let wssInstance: WebSocketServer | null = null;
+
+export function setWssInstance(wss: WebSocketServer) {
+  wssInstance = wss;
+}
+
+export function broadcastEvent(type: string, data: any) {
+  if (!wssInstance) {
+    console.warn(`[broadcast] WSS not initialized for ${type}`);
+    return;
+  }
+  
+  const payload = JSON.stringify({ type, data });
+  let sentCount = 0;
+  
+  for (const client of wssInstance.clients) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(payload);
+      sentCount++;
+    }
+  }
+  
+  console.log(`📡 Broadcasted ${type} to ${sentCount} clients`);
+}
+
 // פונקציה לקבלת נתוני נוכחות עם טיפול בשגיאות - ללא זריקת exceptions
 export async function getOnlineUserIds(): Promise<string[]> {
   try {

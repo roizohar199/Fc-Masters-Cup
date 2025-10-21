@@ -167,6 +167,27 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications (userId);
 CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications (type);
 CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications (isRead);
 CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications (createdAt);
+
+-- Tournament Draws table for live draw ceremony
+CREATE TABLE IF NOT EXISTS tournament_draws (
+  id TEXT PRIMARY KEY,
+  tournamentId TEXT NOT NULL,
+  round TEXT NOT NULL,
+  stage TEXT NOT NULL DEFAULT 'waiting',
+  currentPick INTEGER DEFAULT 0,
+  pairings TEXT,
+  spinPool TEXT,
+  currentPair TEXT,
+  createdBy TEXT NOT NULL,
+  createdAt TEXT NOT NULL,
+  completedAt TEXT,
+  FOREIGN KEY(tournamentId) REFERENCES tournaments(id) ON DELETE CASCADE
+);
+
+-- Draw indexes
+CREATE INDEX IF NOT EXISTS idx_draws_tournament ON tournament_draws (tournamentId);
+CREATE INDEX IF NOT EXISTS idx_draws_round ON tournament_draws (round);
+CREATE INDEX IF NOT EXISTS idx_draws_stage ON tournament_draws (stage);
 `);
 
 export default db;
