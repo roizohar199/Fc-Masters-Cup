@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
+import { SendEmailInline } from "../components/SendEmailInline";
+import { selectTournamentParticipants } from "../lib/tournamentApi";
 
 interface User {
   id: string;
@@ -53,6 +55,10 @@ export default function AdminPanel() {
   // בחירה מרובה
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [bulkActionMode, setBulkActionMode] = useState(false);
+  
+  // בחירת משתתפים לטורניר
+  const [selectedTournament, setSelectedTournament] = useState<string>("");
+  const [showEmailForm, setShowEmailForm] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -269,6 +275,28 @@ export default function AdminPanel() {
       await loadData();
     } catch (error: any) {
       alert(`❌ שגיאה בעדכון הזיכוי: ${error.message}`);
+    }
+  }
+
+  // פונקציות לבחירת משתתפים לטורניר
+  async function selectParticipantsForTournament() {
+    if (!selectedTournament || selectedUsers.size === 0) {
+      alert("נא לבחור טורניר ומשתמשים");
+      return;
+    }
+
+    if (!confirm(`האם אתה בטוח שברצונך לבחור ${selectedUsers.size} משתמשים לטורניר?`)) {
+      return;
+    }
+
+    try {
+      const userIds = Array.from(selectedUsers).map(id => parseInt(id));
+      await selectTournamentParticipants(parseInt(selectedTournament), userIds);
+      alert(`✅ ${selectedUsers.size} משתמשים נבחרו לטורניר וקיבלו התראות!`);
+      clearSelection();
+      setSelectedTournament("");
+    } catch (error: any) {
+      alert(`❌ שגיאה בבחירת משתתפים: ${error.message}`);
     }
   }
 
@@ -575,6 +603,56 @@ export default function AdminPanel() {
                 )}
               </>
             )}
+            
+            {/* בחירת משתתפים לטורניר */}
+            {bulkActionMode && selectedUsers.size > 0 && (
+              <div style={{
+                marginTop: 16,
+                padding: 16,
+                background: "#e3f2fd",
+                borderRadius: 8,
+                border: "1px solid #2196f3"
+              }}>
+                <h4 style={{ margin: "0 0 12px 0", color: "#1976d2", fontSize: 16 }}>
+                  🏆 בחירת משתתפים לטורניר
+                </h4>
+                <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                  <select
+                    value={selectedTournament}
+                    onChange={(e) => setSelectedTournament(e.target.value)}
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: 6,
+                      border: "1px solid #ccc",
+                      fontSize: 14,
+                      minWidth: 200
+                    }}
+                  >
+                    <option value="">בחר טורניר...</option>
+                    {tournaments.map(t => (
+                      <option key={t.id} value={t.id}>{t.title}</option>
+                    ))}
+                  </select>
+                  
+                  <button
+                    onClick={selectParticipantsForTournament}
+                    disabled={!selectedTournament}
+                    style={{
+                      padding: "8px 16px",
+                      borderRadius: 6,
+                      border: "none",
+                      background: selectedTournament ? "#4caf50" : "#ccc",
+                      color: "#fff",
+                      cursor: selectedTournament ? "pointer" : "not-allowed",
+                      fontWeight: 600,
+                      fontSize: 14
+                    }}
+                  >
+                    🎯 בחר משתתפים ({selectedUsers.size})
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           
           <div style={{ overflowX: "auto" }}>
@@ -714,9 +792,34 @@ export default function AdminPanel() {
                         >
                           💰 זיכוי
                         </button>
+                        
+                        <button
+                          onClick={() => setShowEmailForm(showEmailForm === user.id ? null : user.id)}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: 6,
+                            border: "none",
+                            background: "#9c27b0",
+                            color: "#fff",
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: "pointer"
+                          }}
+                        >
+                          📧 מייל
+                        </button>
                       </div>
                     </td>
                   </tr>
+                  
+                  {/* טופס שליחת מייל */}
+                  {showEmailForm === user.id && (
+                    <tr>
+                      <td colSpan={bulkActionMode ? 8 : 7} style={{ padding: 0, background: "#f8f9fa" }}>
+                        <SendEmailInline userId={parseInt(user.id)} />
+                      </td>
+                    </tr>
+                  )}
                 ))}
               </tbody>
             </table>

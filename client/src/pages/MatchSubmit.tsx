@@ -4,7 +4,6 @@ import Uploader from "../components/Uploader";
 
 export default function MatchSubmit() {
   const { matchId } = useParams<{ matchId: string }>();
-  const [token, setToken] = useState("");
   const [reporterPsn, setReporterPsn] = useState("");
   const [scoreHome, setScoreHome] = useState<number>(0);
   const [scoreAway, setScoreAway] = useState<number>(0);
@@ -13,15 +12,94 @@ export default function MatchSubmit() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [matchInfo, setMatchInfo] = useState<any>(null);
+  const [imageAnalysis, setImageAnalysis] = useState<any>(null);
+
+  // טעינת פרטי המשחק בהתחלה
+  useEffect(() => {
+    if (matchId) {
+      loadMatchInfo();
+    }
+  }, [matchId]);
+
+  async function loadMatchInfo() {
+    try {
+      const res = await fetch(`/api/matches/${matchId}`, {
+        credentials: "include"
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMatchInfo(data);
+      }
+    } catch (err) {
+      console.error("Failed to load match info:", err);
+    }
+  }
+
+  // ניתוח תמונה לזיהוי עריכה
+  async function analyzeImage(file: File): Promise<any> {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const arrayBuffer = e.target?.result as ArrayBuffer;
+        const uint8Array = new Uint8Array(arrayBuffer);
+        
+        // בדיקת EXIF - האם קיימת מטא-דאטה
+        const hasExif = checkForExif(uint8Array);
+        
+        // בדיקת סימני עריכה
+        const editSigns = checkEditSigns(uint8Array);
+        
+        resolve({
+          hasExif,
+          editSigns,
+          fileSize: file.size,
+          fileType: file.type,
+          lastModified: new Date(file.lastModified).toISOString()
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  function checkForExif(data: Uint8Array): boolean {
+    // בדיקה פשוטה של EXIF marker (0xFFE1)
+    if (data[0] === 0xFF && data[1] === 0xD8) { // JPEG marker
+      for (let i = 2; i < Math.min(data.length, 1000); i++) {
+        if (data[i] === 0xFF && data[i + 1] === 0xE1) {
+          // מצאנו EXIF marker
+          const exifString = String.fromCharCode(...Array.from(data.slice(i + 4, i + 10)));
+          return exifString.includes('Exif');
+        }
+      }
+    }
+    return false;
+  }
+
+  function checkEditSigns(data: Uint8Array): string[] {
+    const signs: string[] = [];
+    const dataString = String.fromCharCode(...Array.from(data.slice(0, 5000)));
+    
+    // בדיקת תוכנות עריכה נפוצות
+    if (dataString.includes('Adobe') || dataString.includes('Photoshop')) {
+      signs.push('🚨 נערך ב-Adobe Photoshop');
+    }
+    if (dataString.includes('GIMP')) {
+      signs.push('🚨 נערך ב-GIMP');
+    }
+    if (dataString.includes('Paint.NET')) {
+      signs.push('🚨 נערך ב-Paint.NET');
+    }
+    if (dataString.includes('Snapseed')) {
+      signs.push('🚨 נערך ב-Snapseed');
+    }
+    
+    return signs;
+  }
 
   async function submit() {
     if (!matchId) {
       setError("Match ID חסר");
-      return;
-    }
-
-    if (!token.trim()) {
-      setError("יש להזין את ה-Token");
       return;
     }
 
@@ -58,17 +136,21 @@ export default function MatchSubmit() {
     setResult(null);
 
     try {
+      // ניתוח תמונה לפני השליחה
+      const analysis = await analyzeImage(file);
+      setImageAnalysis(analysis);
+
       const fd = new FormData();
       fd.append("reporterPsn", reporterPsn);
       fd.append("scoreHome", String(scoreHome));
       fd.append("scoreAway", String(scoreAway));
       fd.append("pin", pin);
       fd.append("evidence", file);
+      fd.append("imageAnalysis", JSON.stringify(analysis));
 
-      const res = await fetch(`/api/matches/${matchId}/submit`, {
+      const res = await fetch(`/api/matches/${matchId}/submit-authenticated`, {
         credentials: "include",
         method: "POST",
-        headers: { "x-match-token": token },
         body: fd
       });
 
@@ -148,34 +230,21 @@ export default function MatchSubmit() {
 
         {!result && (
           <div style={{ display: "grid", gap: 20 }}>
-            <div>
-              <label style={{ 
-                display: "block", 
-                marginBottom: 8, 
-                fontWeight: 700,
-                color: "#333",
-                fontSize: 15
+            {matchInfo && (
+              <div style={{
+                padding: 16,
+                background: "linear-gradient(135deg, #e3f2fd 0%, #fff 100%)",
+                borderRadius: 12,
+                border: "2px solid #2196F3"
               }}>
-                Token פרטי <span style={{ color: "#f44336" }}>*</span>
-              </label>
-              <input
-                type="text"
-                placeholder="הזן את ה-Token שקיבלת"
-                value={token}
-                onChange={e => setToken(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: 14,
-                  border: "2px solid #e0e0e0",
-                  borderRadius: 10,
-                  fontSize: 14,
-                  fontFamily: "monospace",
-                  transition: "all 0.3s"
-                }}
-                onFocus={e => e.target.style.borderColor = "#667eea"}
-                onBlur={e => e.target.style.borderColor = "#e0e0e0"}
-              />
-            </div>
+                <div style={{ fontSize: 14, color: "#1976D2", fontWeight: 600 }}>
+                  📋 פרטי המשחק
+                </div>
+                <div style={{ fontSize: 13, color: "#666", marginTop: 8 }}>
+                  {matchInfo.homePsn} vs {matchInfo.awayPsn}
+                </div>
+              </div>
+            )}
 
             <div>
               <label style={{ 
@@ -355,6 +424,56 @@ export default function MatchSubmit() {
               required
             />
 
+            {imageAnalysis && (
+              <div style={{
+                padding: 16,
+                background: imageAnalysis.editSigns.length > 0 
+                  ? "linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)"
+                  : "linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)",
+                borderRadius: 12,
+                border: `3px solid ${imageAnalysis.editSigns.length > 0 ? "#f44336" : "#43e97b"}`
+              }}>
+                <div style={{
+                  fontSize: 16,
+                  fontWeight: 700,
+                  color: imageAnalysis.editSigns.length > 0 ? "#c62828" : "#2e7d32",
+                  marginBottom: 8,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8
+                }}>
+                  {imageAnalysis.editSigns.length > 0 ? "⚠️ אזהרה - זוהו סימני עריכה!" : "✅ התמונה נראית מקורית"}
+                </div>
+                {imageAnalysis.editSigns.length > 0 && (
+                  <ul style={{
+                    fontSize: 13,
+                    color: "#c62828",
+                    margin: "8px 0 0 0",
+                    paddingRight: 20
+                  }}>
+                    {imageAnalysis.editSigns.map((sign: string, idx: number) => (
+                      <li key={idx}>{sign}</li>
+                    ))}
+                    <li style={{ marginTop: 8, fontWeight: 700 }}>
+                      ⚠️ תמונות ערוכות עלולות להוביל לפסילה!
+                    </li>
+                  </ul>
+                )}
+                {!imageAnalysis.hasExif && (
+                  <div style={{
+                    fontSize: 12,
+                    color: "#ff9800",
+                    marginTop: 8,
+                    padding: 8,
+                    background: "rgba(255, 152, 0, 0.1)",
+                    borderRadius: 8
+                  }}>
+                    ℹ️ לתמונה חסרה מטא-דאטה (EXIF) - ייתכן שעברה עיבוד
+                  </div>
+                )}
+              </div>
+            )}
+
             {error && (
               <div style={{
                 padding: 16,
@@ -484,12 +603,14 @@ export default function MatchSubmit() {
       }}>
         <strong style={{ color: "#667eea", fontSize: 14 }}>💡 הוראות:</strong>
         <ol style={{ margin: "8px 0 0 0", paddingRight: 20, lineHeight: 1.8 }}>
-          <li>הזן את ה-Token הפרטי שקיבלת מהמארגן</li>
           <li>הזן את שם המשתמש PSN שלך</li>
           <li>דווח את תוצאת המשחק המדויקת</li>
           <li>הזן את ה-PIN שהוצג בתחילת המשחק (6 תווים)</li>
           <li style={{ color: "#c62828", fontWeight: 700 }}>
-            העלה וידאו של המחצית השנייה (חובה!) - MP4, MOV, AVI - מקס 500MB
+            העלה תמונה ברורה של תוצאת המשחק (חובה!) - JPG, PNG, WEBP - מקס 10MB
+          </li>
+          <li style={{ color: "#ff9800", fontWeight: 600 }}>
+            ⚠️ אל תערוך את התמונה! המערכת מזהה עריכות ועלולה לפסול אותך
           </li>
         </ol>
       </div>

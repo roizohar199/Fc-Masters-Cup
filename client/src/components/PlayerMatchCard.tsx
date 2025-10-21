@@ -193,6 +193,54 @@ export default function PlayerMatchCard({ match, result, isMobile }: PlayerMatch
       }}>
         {match.myRole === 'home' ? 'מארח' : 'אורח'} • {getRoundName(match.round)}
       </div>
+
+      {/* כפתור הגשת תוצאה למשחקים פעילים */}
+      {match.status === 'PENDING' && match.isMyMatch && (
+        <div style={{
+          marginTop: 12,
+          paddingTop: 12,
+          borderTop: "2px dashed #e0e0e0"
+        }}>
+          <a
+            href={`/submit/${match.id}`}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              padding: "12px 20px",
+              background: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
+              color: "#fff",
+              textDecoration: "none",
+              borderRadius: 12,
+              fontSize: isMobile ? 14 : 16,
+              fontWeight: 700,
+              boxShadow: "0 4px 15px rgba(67, 233, 123, 0.4)",
+              transition: "all 0.3s",
+              cursor: "pointer"
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-2px)";
+              e.currentTarget.style.boxShadow = "0 6px 20px rgba(67, 233, 123, 0.6)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow = "0 4px 15px rgba(67, 233, 123, 0.4)";
+            }}
+          >
+            <span style={{ fontSize: 20 }}>📸</span>
+            הגש תוצאת משחק
+          </a>
+          <div style={{
+            fontSize: 11,
+            color: "#999",
+            textAlign: "center",
+            marginTop: 6
+          }}>
+            חובה להעלות תמונת הוכחה!
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import AdminDashboard from "./pages/AdminDashboard";
 import PlayerDashboard from "./pages/PlayerDashboard";
 import TawkTo from "./components/TawkTo";
+import NotificationPopup from "./components/NotificationPopup";
+import NotifBell from "./components/NotifBell";
 import { api } from "./api";
 import { Toaster } from "react-hot-toast";
 import { startPresence } from "./presence";
@@ -372,6 +374,7 @@ export default function App() {
             }}>
               👤 {me.email}
             </div>
+            <NotifBell />
             <button
               onClick={logout}
               style={{
@@ -442,6 +445,9 @@ export default function App() {
           },
         }}
       />
+      
+      {/* Notification Popup */}
+      <NotificationPopup />
     </div>
   );
 }

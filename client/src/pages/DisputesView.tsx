@@ -25,6 +25,7 @@ interface Submission {
   scoreAway: number;
   pin: string;
   evidencePath?: string;
+  imageAnalysis?: string | any;
   createdAt: string;
 }
 
@@ -409,6 +410,64 @@ export default function DisputesView() {
                                 ? new Date(sub.createdAt).toLocaleString("he-IL") 
                                 : "לא זמין"}
                             </div>
+                            
+                            {/* תצוגת ניתוח תמונה אם קיים */}
+                            {sub.imageAnalysis && (() => {
+                              try {
+                                const analysis = typeof sub.imageAnalysis === 'string' 
+                                  ? JSON.parse(sub.imageAnalysis) 
+                                  : sub.imageAnalysis;
+                                
+                                if (analysis.editSigns && analysis.editSigns.length > 0) {
+                                  return (
+                                    <div style={{
+                                      padding: 10,
+                                      background: "rgba(244, 67, 54, 0.1)",
+                                      borderRadius: 8,
+                                      border: "2px solid #f44336",
+                                      marginBottom: 10
+                                    }}>
+                                      <div style={{
+                                        fontSize: 13,
+                                        fontWeight: 700,
+                                        color: "#c62828",
+                                        marginBottom: 6
+                                      }}>
+                                        ⚠️ זוהו סימני עריכה:
+                                      </div>
+                                      <ul style={{
+                                        fontSize: 11,
+                                        color: "#c62828",
+                                        margin: 0,
+                                        paddingRight: 20
+                                      }}>
+                                        {analysis.editSigns.map((sign: string, idx: number) => (
+                                          <li key={idx}>{sign}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  );
+                                } else if (!analysis.hasExif) {
+                                  return (
+                                    <div style={{
+                                      padding: 8,
+                                      background: "rgba(255, 152, 0, 0.1)",
+                                      borderRadius: 8,
+                                      border: "2px solid #ff9800",
+                                      marginBottom: 10,
+                                      fontSize: 11,
+                                      color: "#e65100"
+                                    }}>
+                                      ℹ️ התמונה חסרה מטא-דאטה (EXIF)
+                                    </div>
+                                  );
+                                }
+                              } catch {
+                                return null;
+                              }
+                              return null;
+                            })()}
+                            
                             {sub.evidencePath && (
                               <a
                                 href={`/${sub.evidencePath}`}

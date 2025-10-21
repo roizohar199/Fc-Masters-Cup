@@ -19,6 +19,9 @@ import { adminUsers } from "./routes/adminUsers.js";
 import { approvalRequests } from "./routes/approvalRequests.js";
 import { tournamentRegistrations } from "./routes/tournamentRegistrations.js";
 import { draw } from "./routes/draw.js";
+import { notificationsRouter } from "./modules/notifications/routes.js";
+import { tournamentsRouter } from "./modules/tournaments/routes.js";
+import { adminRouter } from "./modules/admin/routes.js";
 import { withCookies, requireAuth, requireSuperAdmin, seedAdminFromEnv } from "./auth.js";
 import { logger } from "./logger.js";
 import { fileURLToPath } from "node:url";
@@ -128,6 +131,15 @@ app.use("/api/draw", (req, res, next) => {
   // POST requires admin auth (controlling draw)
   return requireAuth(req, res, () => draw(req, res, next));
 });
+
+// Notifications routes (requires auth)
+app.use("/api", requireAuth, notificationsRouter);
+
+// Tournament selection routes (requires admin auth)
+app.use("/api/tournaments", requireAuth, tournamentsRouter);
+
+// Admin email routes (requires admin auth)
+app.use("/api/admin", requireAuth, adminRouter);
 
 // ✅ API 404 handler - must come AFTER all API routes but BEFORE SPA fallback
 app.use(apiNotFoundHandler);

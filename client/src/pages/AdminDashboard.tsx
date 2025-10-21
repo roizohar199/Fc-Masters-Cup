@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api";
 import { useStore } from "../store";
-import AdvanceWinners from "../components/AdvanceWinners";
 import { TournamentRegistrationsPanel } from "../components/TournamentRegistrationsPanel";
 import { PlayerSelectionPanel } from "../components/admin/PlayerSelectionPanel";
 import { startPresence, onPresenceUpdate } from "../presence";
@@ -52,12 +51,6 @@ export default function AdminDashboard() {
   }>({ tournament: null, registrations: [], totalRegistrations: 0 });
   
   // מצב כפתורים - האם השלב כבר הופעל
-  const [stagesActivated, setStagesActivated] = useState({
-    R16: false,
-    QF: false,
-    SF: false,
-    F: false
-  });
   
   // ניהול משתמשים
   const [users, setUsers] = useState<User[]>([]);
@@ -946,7 +939,6 @@ export default function AdminDashboard() {
   async function seedAndR16() {
     if (!tournamentId) return alert("צור טורניר קודם");
     if (selectedPlayers.length !== 16) return alert("יש לבחור בדיוק 16 שחקנים!");
-    if (stagesActivated.R16) return alert("שלב שמינית הגמר כבר הופעל!");
 
     // אישור לפני יצירת השלב
     if (!confirm("האם אתה בטוח שברצונך ליצור את שלב שמינית הגמר?")) return;
@@ -1001,7 +993,7 @@ export default function AdminDashboard() {
     
     const stage = stageNames[round];
     
-    if (stagesActivated[stage.key as keyof typeof stagesActivated]) {
+    if (false) {
       return alert(`שלב ${stage.to} כבר הופעל!`);
     }
     
@@ -2656,27 +2648,27 @@ export default function AdminDashboard() {
           </button>
           <button
             onClick={seedAndR16}
-            disabled={!tournamentId || selectedPlayers.length !== 16 || stagesActivated.R16}
+            disabled={!tournamentId || selectedPlayers.length !== 16}
             style={{
               padding: 14,
               borderRadius: 10,
               border: "none",
               fontSize: 16,
               fontWeight: 700,
-              background: tournamentId && selectedPlayers.length === 16 && !stagesActivated.R16
+              background: tournamentId && selectedPlayers.length === 16
                 ? "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
                 : "#ccc",
               color: "#fff",
-              cursor: tournamentId && selectedPlayers.length === 16 && !stagesActivated.R16 ? "pointer" : "not-allowed",
-              boxShadow: tournamentId && selectedPlayers.length === 16 && !stagesActivated.R16 ? "0 4px 15px rgba(79, 172, 254, 0.4)" : "none",
+              cursor: tournamentId && selectedPlayers.length === 16 ? "pointer" : "not-allowed",
+              boxShadow: tournamentId && selectedPlayers.length === 16 ? "0 4px 15px rgba(79, 172, 254, 0.4)" : "none",
               transition: "all 0.3s",
               gridColumn: "span 2",
-              opacity: tournamentId && selectedPlayers.length === 16 && !stagesActivated.R16 ? 1 : 0.6
+              opacity: tournamentId && selectedPlayers.length === 16 ? 1 : 0.6
             }}
-            onMouseEnter={e => tournamentId && selectedPlayers.length === 16 && !stagesActivated.R16 && (e.currentTarget.style.transform = "translateY(-2px)")}
+            onMouseEnter={e => tournamentId && selectedPlayers.length === 16 && (e.currentTarget.style.transform = "translateY(-2px)")}
             onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}
           >
-            {stagesActivated.R16 ? "✓ שמינית הגמר הופעלה" : `🎯 הכן שמינית הגמר (${selectedPlayers.length}/16)`}
+            🎯 הכן שמינית הגמר (${selectedPlayers.length}/16)
           </button>
         </div>
       </div>
@@ -3178,100 +3170,6 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      <div style={{
-        backgroundColor: "#fff",
-        padding: 24,
-        borderRadius: 16,
-        boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)"
-      }}>
-        <h3 style={{ fontSize: 22, fontWeight: 700, marginBottom: 16, color: "#333" }}>
-          🏆 העלאת מנצחים לשלב הבא
-        </h3>
-        
-        {/* R16 → QF */}
-        {!stagesActivated.QF && tournamentId && (
-          <div style={{ marginBottom: 24 }}>
-            <h4 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12, color: "#555" }}>
-              R16 → QF (שמינית גמר → רבע גמר)
-            </h4>
-            <AdvanceWinners
-              tournamentId={tournamentId}
-              round="R16"
-              onAdvanceComplete={() => setStagesActivated(prev => ({ ...prev, QF: true }))}
-              isDisabled={stagesActivated.QF}
-            />
-          </div>
-        )}
-        
-        {/* QF → SF */}
-        {stagesActivated.QF && !stagesActivated.SF && tournamentId && (
-          <div style={{ marginBottom: 24 }}>
-            <h4 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12, color: "#555" }}>
-              QF → SF (רבע גמר → חצי גמר)
-            </h4>
-            <AdvanceWinners
-              tournamentId={tournamentId}
-              round="QF"
-              onAdvanceComplete={() => setStagesActivated(prev => ({ ...prev, SF: true }))}
-              isDisabled={stagesActivated.SF}
-            />
-          </div>
-        )}
-        
-        {/* SF → F */}
-        {stagesActivated.SF && !stagesActivated.F && tournamentId && (
-          <div style={{ marginBottom: 24 }}>
-            <h4 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12, color: "#555" }}>
-              SF → F (חצי גמר → גמר)
-            </h4>
-            <AdvanceWinners
-              tournamentId={tournamentId}
-              round="SF"
-              onAdvanceComplete={() => setStagesActivated(prev => ({ ...prev, F: true }))}
-              isDisabled={stagesActivated.F}
-            />
-          </div>
-        )}
-        
-        {/* Status indicators */}
-        <div style={{ marginTop: 20, padding: 16, backgroundColor: "#f8f9fa", borderRadius: 12 }}>
-          <h5 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: "#333" }}>
-            סטטוס שלבים:
-          </h5>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <span style={{
-              padding: "6px 12px",
-              borderRadius: 20,
-              fontSize: 14,
-              backgroundColor: stagesActivated.QF ? "#d4edda" : "#f8d7da",
-              color: stagesActivated.QF ? "#155724" : "#721c24",
-              fontWeight: 500
-            }}>
-              {stagesActivated.QF ? "✓ QF הופעל" : "○ QF ממתין"}
-            </span>
-            <span style={{
-              padding: "6px 12px",
-              borderRadius: 20,
-              fontSize: 14,
-              backgroundColor: stagesActivated.SF ? "#d4edda" : "#f8d7da",
-              color: stagesActivated.SF ? "#155724" : "#721c24",
-              fontWeight: 500
-            }}>
-              {stagesActivated.SF ? "✓ SF הופעל" : "○ SF ממתין"}
-            </span>
-            <span style={{
-              padding: "6px 12px",
-              borderRadius: 20,
-              fontSize: 14,
-              backgroundColor: stagesActivated.F ? "#d4edda" : "#f8d7da",
-              color: stagesActivated.F ? "#155724" : "#721c24",
-              fontWeight: 500
-            }}>
-              {stagesActivated.F ? "✓ גמר הופעל" : "○ גמר ממתין"}
-            </span>
-          </div>
-        </div>
-      </div>
         </>
       )}
     </div>

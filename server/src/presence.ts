@@ -31,6 +31,15 @@ function uidConnId() {
 export function updateUserLogin(email: string) {
   recentLogins.set(email, Date.now());
   console.log(`🔐 User login updated: ${email} at ${new Date().toLocaleTimeString()}`);
+  
+  // ניקוי logins ישנים (מעל 10 דקות)
+  const now = Date.now();
+  const maxAge = 10 * 60 * 1000; // 10 דקות
+  for (const [userEmail, loginTime] of recentLogins.entries()) {
+    if (now - loginTime > maxAge) {
+      recentLogins.delete(userEmail);
+    }
+  }
 }
 
 function parseCookie(header?: string) {
@@ -252,6 +261,17 @@ export function attachPresence(server: HTTPServer) {
       if (!s.isAlive) { client.terminate(); continue; }
       s.isAlive = false; client.ping();
     }
+    
+    // ניקוי recent logins ישנים
+    const now = Date.now();
+    const maxAge = 10 * 60 * 1000; // 10 דקות
+    for (const [userEmail, loginTime] of recentLogins.entries()) {
+      if (now - loginTime > maxAge) {
+        recentLogins.delete(userEmail);
+        console.log(`🧹 Cleaned old login for: ${userEmail}`);
+      }
+    }
+    
     broadcast(wss);
   }, 15_000);
 
@@ -323,20 +343,31 @@ export async function getPresenceData() {
     }
     const presenceMap = new Map(presenceData.map(p => [p.email, p]));
     
-    // שילוב הנתונים עם לוגיקה חדשה שמתחשבת ב-logins
+    // שילוב הנתונים עם לוגיקה מתוקנת
     const users = allUsers.map(user => {
       const presence = presenceMap.get(user.email);
       const now = Date.now();
       const recentLogin = recentLogins.get(user.email);
       
-      // משתמש נחשב אונליין אם:
-      // 1. יש לו WebSocket connection פעיל, או
-      // 2. הוא התחבר לאחרונה (ב-5 דקות האחרונות)
+      // משתמש נחשב אונליין רק אם יש לו WebSocket connection פעיל
+      // recent login משמש רק כגיבוי במקרה של בעיות WebSocket
       const hasWebSocketConnection = presence?.isOnline || false;
-      const hasRecentLogin = recentLogin && (now - recentLogin) <= (5 * 60 * 1000); // 5 דקות
+      const hasRecentLogin = recentLogin && (now - recentLogin) <= (2 * 60 * 1000); // 2 דקות בלבד
       
-      const isOnline = hasWebSocketConnection || hasRecentLogin;
+      // עדיפות ל-WebSocket connection, עם fallback ל-recent login
+      const isOnline = hasWebSocketConnection || (hasRecentLogin && !presence);
       const isActive = presence?.isActive || false;
+      
+      // לוג מפורט לניפוי באגים
+      if (user.email === 'yosiyoviv@gmail.com') {
+        console.log(`🔍 DEBUG Yosi: hasWebSocket=${hasWebSocketConnection}, hasRecentLogin=${hasRecentLogin}, presence=${!!presence}, isOnline=${isOnline}`);
+        if (presence) {
+          console.log(`  WebSocket details: isOnline=${presence.isOnline}, connections=${presence.connections}, lastSeen=${new Date(presence.lastSeen).toLocaleTimeString()}`);
+        }
+        if (recentLogin) {
+          console.log(`  Recent login: ${new Date(recentLogin).toLocaleTimeString()} (${Math.round((now - recentLogin) / 1000)}s ago)`);
+        }
+      }
       
       return {
         id: user.id,

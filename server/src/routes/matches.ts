@@ -40,7 +40,7 @@ matches.get("/:id", (req,res)=>{
   res.json(row);
 });
 
-// Player submit (with token)
+// Player submit (with token) - Legacy endpoint
 matches.post("/:id/submit", upload.single("evidence"), (req,res)=>{
   const match = db.prepare(`SELECT token FROM matches WHERE id=?`).get(req.params.id) as any;
   if (!match) return res.status(404).json({error: "not found"});
@@ -57,6 +57,91 @@ matches.post("/:id/submit", upload.single("evidence"), (req,res)=>{
 
   const result = applySubmission(req.params.id);
   res.json(result);
+});
+
+// Player submit (authenticated) - New improved endpoint
+matches.post("/:id/submit-authenticated", upload.single("evidence"), (req,res)=>{
+  try {
+    // וידוא שהמשחק קיים
+    const match = db.prepare(`SELECT id, homeId, awayId, homePsn, awayPsn, status FROM matches WHERE id=?`).get(req.params.id) as any;
+    if (!match) return res.status(404).json({error: "Match not found"});
+    
+    // אין צורך באימות משתמש - כל אחד יכול להגיש תוצאה עם PIN
+    // הבדיקה היא דרך ה-PIN ושם המשתמש PSN
+    
+    const bodyRaw = { 
+      ...req.body, 
+      scoreHome: Number(req.body.scoreHome), 
+      scoreAway: Number(req.body.scoreAway) 
+    };
+    const parsed = SubmitResultDTO.safeParse(bodyRaw);
+    if (!parsed.success) {
+      return res.status(400).json({error: "Invalid data", details: parsed.error});
+    }
+
+    // שמירת התמונה
+    const filePath = req.file ? req.file.path : undefined;
+    if (!filePath) {
+      return res.status(400).json({error: "Image evidence is required"});
+    }
+
+    // ניתוח התמונה (אם הועבר)
+    let imageAnalysis = null;
+    if (req.body.imageAnalysis) {
+      try {
+        imageAnalysis = JSON.parse(req.body.imageAnalysis);
+      } catch {
+        imageAnalysis = null;
+      }
+    }
+
+    // בדיקה אם יש עריכה בתמונה - אזהרה בלוגים
+    if (imageAnalysis && imageAnalysis.editSigns && imageAnalysis.editSigns.length > 0) {
+      console.warn(`⚠️ EDITED IMAGE DETECTED for match ${req.params.id}`);
+      console.warn(`Reporter: ${parsed.data.reporterPsn}`);
+      console.warn(`Edit signs: ${imageAnalysis.editSigns.join(', ')}`);
+    }
+
+    // שמירת ההגשה
+    const sId = uuid();
+    const submissionData = {
+      id: sId,
+      matchId: req.params.id,
+      reporterPsn: parsed.data.reporterPsn,
+      scoreHome: parsed.data.scoreHome,
+      scoreAway: parsed.data.scoreAway,
+      pin: parsed.data.pin,
+      evidencePath: filePath,
+      imageAnalysis: imageAnalysis ? JSON.stringify(imageAnalysis) : null,
+      createdAt: nowISO()
+    };
+
+    // בדיקה אם הטבלה submissions כוללת עמודת imageAnalysis
+    try {
+      db.prepare(`INSERT INTO submissions (id,matchId,reporterPsn,scoreHome,scoreAway,pin,evidencePath,imageAnalysis,createdAt) VALUES (?,?,?,?,?,?,?,?,?)`)
+        .run(sId, submissionData.matchId, submissionData.reporterPsn, submissionData.scoreHome, submissionData.scoreAway, submissionData.pin, submissionData.evidencePath, submissionData.imageAnalysis, submissionData.createdAt);
+    } catch (err: any) {
+      // אם העמודה לא קיימת, ננסה בלי imageAnalysis
+      if (err.message && err.message.includes('no column named imageAnalysis')) {
+        db.prepare(`INSERT INTO submissions (id,matchId,reporterPsn,scoreHome,scoreAway,pin,evidencePath,createdAt) VALUES (?,?,?,?,?,?,?,?)`)
+          .run(sId, submissionData.matchId, submissionData.reporterPsn, submissionData.scoreHome, submissionData.scoreAway, submissionData.pin, submissionData.evidencePath, submissionData.createdAt);
+      } else {
+        throw err;
+      }
+    }
+
+    const result = applySubmission(req.params.id);
+    
+    // הוספת מידע על זיהוי עריכה לתגובה
+    if (imageAnalysis && imageAnalysis.editSigns && imageAnalysis.editSigns.length > 0) {
+      result.warning = "זוהו סימני עריכה בתמונה - המנהל יבדוק את ההגשה";
+    }
+    
+    res.json(result);
+  } catch (err: any) {
+    console.error("Error in submit-authenticated:", err);
+    res.status(500).json({error: "Internal server error", details: err.message});
+  }
 });
 
 // Get submissions for a match (admin)
