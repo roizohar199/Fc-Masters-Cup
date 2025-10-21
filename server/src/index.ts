@@ -4,6 +4,9 @@ loadEnvSafely();
 
 console.log("ENV check → HOST:", process.env.SMTP_HOST, "| USER:", process.env.SMTP_USER, "| FROM:", process.env.EMAIL_FROM);
 
+import dns from "dns";
+dns.setDefaultResultOrder?.("ipv4first"); // מונע התחברויות IPv6 שיכולות ליפול אצל ספקים
+
 import express from "express";
 import cors from "cors";
 import path from "node:path";

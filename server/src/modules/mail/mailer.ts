@@ -4,76 +4,78 @@ import Database from "better-sqlite3";
 const DB_PATH = process.env.DB_PATH || "./server/tournaments.sqlite";
 const db = new Database(DB_PATH);
 
-// ---- helpers ----
 function getBool(v: any, def=false) {
   if (v === undefined || v === null) return def;
   const s = String(v).toLowerCase();
   return s === "1" || s === "true" || s === "yes";
 }
 
-export function parseAdminEmails(): string[] {
-  const raw = process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || "";
-  return raw.split(",").map(s => s.trim()).filter(Boolean);
+const BASE_HOST = process.env.SMTP_HOST || "smtp.gmail.com";
+const ENV_PORT = Number(process.env.SMTP_PORT || 587);
+const ENV_SECURE = getBool(process.env.SMTP_SECURE, ENV_PORT === 465);
+
+function createTx({ host, port, secure }: { host: string; port: number; secure: boolean; }) {
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure,                // 587=false (STARTTLS), 465=true (SSL)
+    auth: { user: process.env.SMTP_USER!, pass: process.env.SMTP_PASS! },
+    pool: true,
+    maxConnections: 1,
+    maxMessages: 50,
+    tls: {
+      minVersion: "TLSv1.2",
+      servername: host,
+    },
+  });
 }
 
-// ---- transporter ----
-const host = process.env.SMTP_HOST || "smtp.gmail.com";
-const port = Number(process.env.SMTP_PORT || 587);
-const secure = getBool(process.env.SMTP_SECURE, port === 465);
+// טרנספורטר ע"פ ה־ENV
+let transporter = createTx({ host: BASE_HOST, port: ENV_PORT, secure: ENV_SECURE });
 
-export const transporter = nodemailer.createTransport({
-  host,
-  port,
-  secure,                 // 587=false (STARTTLS) / 465=true
-  auth: {
-    user: process.env.SMTP_USER!,
-    pass: process.env.SMTP_PASS!,
-  },
-  // pool עוזר ביציבות עם Gmail
-  pool: true,
-  maxConnections: 1,
-  maxMessages: 50,
-  // logger/debug – הפעל זמנית אם צריך:
-  // logger: true,
-  // debug: true,
-});
-
-// ---- startup verify ----
 export async function verifySmtp() {
-  const summary = {
-    host, port, secure,
-    from: process.env.EMAIL_FROM || process.env.SMTP_FROM || process.env.SMTP_USER,
-    user: process.env.SMTP_USER,
-  };
+  const primary = { host: BASE_HOST, port: ENV_PORT, secure: ENV_SECURE, user: process.env.SMTP_USER };
   try {
     await transporter.verify();
-    console.log("✅ SMTP verify OK", summary);
-    return { ok: true, ...summary };
+    return { ok: true, mode: "primary", ...primary };
   } catch (e:any) {
-    console.error("❌ SMTP verify FAILED", summary, String(e?.message || e));
-    return { ok: false, error: String(e?.message || e), ...summary };
+    // נסה Fallback ל-465 אם נכשל (רק כשלא ניסינו כבר 465)
+    if (ENV_PORT !== 465) {
+      const alt = { host: BASE_HOST, port: 465, secure: true, user: process.env.SMTP_USER };
+      const fallback = createTx(alt);
+      try {
+        await fallback.verify();
+        transporter = fallback; // עבור להשתמש בעתיד
+        return { ok: true, mode: "fallback465", ...alt };
+      } catch (e2:any) {
+        return { ok: false, error_primary: String(e?.message || e), error_fallback: String(e2?.message || e2), ...primary };
+      }
+    }
+    return { ok: false, error_primary: String(e?.message || e), ...primary };
   }
 }
 
-// ---- DB logs ----
-function logEmail(to: string, subject: string, status: "SENT"|"ERROR", extra: {error?: string, messageId?: string} = {}) {
+// לוגים ל-DB
+function ensureLogsTable() {
+  db.prepare(`CREATE TABLE IF NOT EXISTS email_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    to_email TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    status TEXT NOT NULL,
+    error TEXT,
+    message_id TEXT,
+    smtp_response TEXT,
+    created_at DATETIME NOT NULL DEFAULT (datetime('now'))
+  )`).run();
+}
+ensureLogsTable();
+
+function logEmail(to: string, subject: string, status: "SENT"|"ERROR", extra: {error?: string, messageId?: string, response?: string} = {}) {
   try {
     db.prepare(
-      `CREATE TABLE IF NOT EXISTS email_logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        to_email TEXT NOT NULL,
-        subject TEXT NOT NULL,
-        status TEXT NOT NULL,
-        error TEXT,
-        message_id TEXT,
-        created_at DATETIME NOT NULL DEFAULT (datetime('now'))
-      )`
-    ).run();
-
-    db.prepare(
-      `INSERT INTO email_logs (to_email, subject, status, error, message_id)
-       VALUES (?, ?, ?, ?, ?)`
-    ).run(to, subject, status, extra.error ?? null, extra.messageId ?? null);
+      `INSERT INTO email_logs (to_email, subject, status, error, message_id, smtp_response)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    ).run(to, subject, status, extra.error ?? null, extra.messageId ?? null, extra.response ?? null);
   } catch (e) {
     console.error("email_logs insert failed:", e);
   }
@@ -83,12 +85,18 @@ export async function sendMailSafe(to: string, subject: string, html: string) {
   const from = process.env.EMAIL_FROM || process.env.SMTP_FROM || process.env.SMTP_USER!;
   try {
     const info = await transporter.sendMail({ from, to, subject, html });
-    logEmail(to, subject, "SENT", { messageId: info.messageId });
-    return { ok: true, messageId: info.messageId };
+    const response = (info as any)?.response || "";
+    logEmail(to, subject, "SENT", { messageId: info.messageId, response });
+    return { ok: true, messageId: info.messageId, response };
   } catch (e:any) {
     logEmail(to, subject, "ERROR", { error: String(e?.message || e) });
     throw e;
   }
+}
+
+export function parseAdminEmails(): string[] {
+  const raw = process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || "";
+  return raw.split(",").map(s => s.trim()).filter(Boolean);
 }
 
 export async function sendToAdmins(subject: string, html: string) {
