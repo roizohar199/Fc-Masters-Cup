@@ -22,6 +22,7 @@ import { draw } from "./routes/draw.js";
 import { notificationsRouter } from "./modules/notifications/routes.js";
 import { tournamentsRouter } from "./modules/tournaments/routes.js";
 import { adminRouter } from "./modules/admin/routes.js";
+import { smtpAdminRouter } from "./modules/admin/smtp.routes.js";
 import { usersRouter } from "./modules/users/routes.js";
 import { withCookies, requireAuth, requireSuperAdmin, seedAdminFromEnv } from "./auth.js";
 import { logger } from "./logger.js";
@@ -139,6 +140,9 @@ app.use("/api", requireAuth, notificationsRouter);
 // Admin email routes (requires admin auth)
 app.use("/api/admin", requireAuth, adminRouter);
 
+// SMTP Admin routes (requires admin auth)
+app.use("/api/admin/smtp", requireAuth, smtpAdminRouter);
+
 // Users routes (public - basic user info)
 app.use("/api/users", usersRouter);
 
@@ -212,10 +216,17 @@ async function startServer(port: number, retries = 0): Promise<void> {
       logger.info("server", `Environment: ${process.env.NODE_ENV || 'development'}`);
       logger.info("server", `CORS Origin: ${ORIGIN}`);
       logger.info("server", "");
+      logger.info("server", "📧 SMTP Configuration:");
+      logger.info("server", `  - Host: ${process.env.SMTP_HOST || 'smtp.gmail.com'}`);
+      logger.info("server", `  - Port: ${process.env.SMTP_PORT || 587}`);
+      logger.info("server", `  - Secure: ${process.env.SMTP_SECURE || 'false'}`);
+      logger.info("server", `  - From: ${process.env.EMAIL_FROM || process.env.SMTP_USER || 'NOT_SET'}`);
+      logger.info("server", "");
       logger.info("server", "📡 API Routes initialized:");
       logger.info("server", "  - /api/auth (public)");
       logger.info("server", "  - /api/user (requires auth)");
       logger.info("server", "  - /api/admin (requires auth)");
+      logger.info("server", "  - /api/admin/smtp (requires admin auth) - SMTP testing");
       logger.info("server", "  - /api/tournaments (mixed)");
       logger.info("server", "  - /api/tournament-registrations (mixed)");
       logger.info("server", "  - /api/matches (mixed)");

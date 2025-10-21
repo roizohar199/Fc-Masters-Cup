@@ -1,6 +1,6 @@
 import { Router } from "express";
 import Database from "better-sqlite3";
-import { sendMail } from "../mail/mailer.js";
+import { sendMailSafe } from "../mail/mailer.js";
 
 export const adminRouter = Router();
 
@@ -45,13 +45,13 @@ adminRouter.post("/users/:id/email", async (req: any, res) => {
 
     if (!row) return res.status(404).json({ error: "user not found" });
 
-    const messageId = await sendMail(
+    const result = await sendMailSafe(
       row.email,
       subject,
       html
     );
 
-    return res.json({ ok: true, messageId });
+    return res.json(result);
   } catch (err: any) {
     console.error("admin email error:", err);
     return res.status(500).json({ error: "internal_error", details: String(err?.message || err) });

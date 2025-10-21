@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createNotification } from "../notifications/model.js";
-import { sendMail, tournamentSelectionTemplate } from "../mail/mailer.js";
+import { sendMailSafe, tournamentSelectionTemplate } from "../mail/mailer.js";
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -60,7 +60,7 @@ export async function flushEmailQueue() {
   while (emailQueue.length) {
     const m = emailQueue.shift()!;
     try { 
-      await sendMail(m.to, m.subject, m.html); 
+      await sendMailSafe(m.to, m.subject, m.html); 
       console.log(`📧 Email sent to: ${m.to}`);
     } catch(e){ 
       console.error("❌ Email error:", e); 
