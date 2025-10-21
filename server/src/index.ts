@@ -5,26 +5,28 @@ loadEnvSafely();
 
 console.log("ENV check → HOST:", process.env.SMTP_HOST, "| USER:", process.env.SMTP_USER, "| FROM:", process.env.EMAIL_FROM);
 
-// ===== INLINE DB MIGRATION (no external import) =====
+// ===== INLINE DB MIGRATION (alias for path to avoid TS2300 duplicate identifier) =====
 import "dotenv/config";
-import path from "path";
+import { resolve as pResolve } from "path"; // <-- שימוש ב־alias במקום 'path'
 import fs from "fs";
 import Database from "better-sqlite3";
 
-// Resolve DB path robustly in dev/prod (dist)
+// אם יש בקובץ למטה `import path from "path"` או `const path = require("path")` — מחק אותם.
+// מעכשיו משתמשים רק ב-pResolve בתוך בלוק המיגרציה הזה.
+
 function resolveDbPath(): string {
   if (process.env.DB_PATH && process.env.DB_PATH.trim()) return process.env.DB_PATH.trim();
   const candidates = [
-    // when running from dist/
-    path.resolve(__dirname, "../tournaments.sqlite"),
-    // fallback if DB sits next to dist
-    path.resolve(__dirname, "./tournaments.sqlite"),
-    // common cwd locations
-    path.resolve(process.cwd(), "server/tournaments.sqlite"),
-    path.resolve(process.cwd(), "tournaments.sqlite"),
+    // הרצה מתוך dist/
+    pResolve(__dirname, "../tournaments.sqlite"),
+    // fallback
+    pResolve(__dirname, "./tournaments.sqlite"),
+    // cwd אופציות
+    pResolve(process.cwd(), "server/tournaments.sqlite"),
+    pResolve(process.cwd(), "tournaments.sqlite"),
   ];
   for (const p of candidates) if (fs.existsSync(p)) return p;
-  return candidates[0]; // default create-here if none exists
+  return candidates[0]; // יצירה ברירת מחדל אם לא קיים
 }
 
 function hasColumn(db: Database.Database, table: string, column: string): boolean {
@@ -32,7 +34,13 @@ function hasColumn(db: Database.Database, table: string, column: string): boolea
   return rows.some(r => r.name === column);
 }
 
-function ensureColumn(db: Database.Database, table: string, column: string, type: string, defaultExpr?: string) {
+function ensureColumn(
+  db: Database.Database,
+  table: string,
+  column: string,
+  type: string,
+  defaultExpr?: string
+) {
   if (!hasColumn(db, table, column)) {
     const sql = defaultExpr
       ? `ALTER TABLE ${table} ADD COLUMN ${column} ${type} DEFAULT ${defaultExpr};`
@@ -45,13 +53,13 @@ function ensureColumn(db: Database.Database, table: string, column: string, type
 (function runMigrationsInline() {
   const DB_PATH = resolveDbPath();
   if (!fs.existsSync(DB_PATH)) {
-    console.warn(`[migrate] DB not found at ${DB_PATH}. It will be created if missing tables are accessed.`);
+    console.warn(`[migrate] DB not found at ${DB_PATH}. It will be created if needed.`);
   }
 
   const db = new Database(DB_PATH);
   db.exec("BEGIN;");
   try {
-    // Ensure base tables (safe if already exist)
+    // בסיס טבלאות (איידמפוטנטי)
     db.exec(`
       CREATE TABLE IF NOT EXISTS admins (
         id INTEGER PRIMARY KEY,
@@ -64,11 +72,11 @@ function ensureColumn(db: Database.Database, table: string, column: string, type
       );
     `);
 
-    // Ensure required columns
+    // עמודות דרושות
     ensureColumn(db as any, "admins", "display_name", "TEXT");
     ensureColumn(db as any, "users",  "display_name", "TEXT");
 
-    // Optional: initialize display_name from email when empty
+    // אתחול display_name מתוך email אם חסר
     if (hasColumn(db as any, "admins", "email")) {
       db.exec(`UPDATE admins SET display_name = COALESCE(NULLIF(display_name,''), substr(email,1,instr(email,'@')-1))
                WHERE display_name IS NULL OR display_name = '';`);
