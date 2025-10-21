@@ -1,11 +1,13 @@
+// ✅ קובץ: server/src/index.ts
 // טען .env לפני הכל
 import { loadEnvSafely } from "./loadEnv.js";
 loadEnvSafely();
 
 console.log("ENV check → HOST:", process.env.SMTP_HOST, "| USER:", process.env.SMTP_USER, "| FROM:", process.env.EMAIL_FROM);
 
-// הרץ מיגרציה של DB לפני שהשרת מתחיל
-import "./db/migrate";
+// ✅ ייבוא והרצת מיגרציה לפני הפעלת האפליקציה
+import { runMigrations } from "./db/migrate.js";
+runMigrations();
 
 import dns from "dns";
 dns.setDefaultResultOrder?.("ipv4first"); // מונע התחברויות IPv6 שיכולות ליפול אצל ספקים
