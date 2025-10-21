@@ -22,6 +22,7 @@ import { draw } from "./routes/draw.js";
 import { notificationsRouter } from "./modules/notifications/routes.js";
 import { tournamentsRouter } from "./modules/tournaments/routes.js";
 import { adminRouter } from "./modules/admin/routes.js";
+import { usersRouter } from "./modules/users/routes.js";
 import { withCookies, requireAuth, requireSuperAdmin, seedAdminFromEnv } from "./auth.js";
 import { logger } from "./logger.js";
 import { fileURLToPath } from "node:url";
@@ -137,6 +138,9 @@ app.use("/api", requireAuth, notificationsRouter);
 
 // Admin email routes (requires admin auth)
 app.use("/api/admin", requireAuth, adminRouter);
+
+// Users routes (public - basic user info)
+app.use("/api/users", usersRouter);
 
 // ✅ API 404 handler - must come AFTER all API routes but BEFORE SPA fallback
 app.use(apiNotFoundHandler);

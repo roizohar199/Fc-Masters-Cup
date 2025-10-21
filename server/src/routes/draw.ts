@@ -67,18 +67,41 @@ draw.post("/start", async (req, res) => {
 
     const requiredPlayers = round === "R16" ? 16 : round === "QF" ? 8 : 4;
 
+    // If no registrations, try to get all users as fallback (for testing)
+    let players = [];
     if (registrations.length < requiredPlayers) {
-      return res.status(400).json({
-        error: `Not enough registered players. Need ${requiredPlayers}, have ${registrations.length}`,
-      });
-    }
+      logger.warn("draw", `Not enough registered players (${registrations.length}). Trying to get all users as fallback.`);
+      
+      // Get all users as fallback for testing
+      const allUsers = db
+        .prepare(
+          `SELECT id as userId, email, psnUsername 
+           FROM users 
+           WHERE role = 'player' AND status = 'active'
+           ORDER BY createdAt ASC`
+        )
+        .all() as any[];
 
-    // Take the first N players (could be randomized here)
-    const players = registrations.slice(0, requiredPlayers).map((r) => ({
-      id: r.userId,
-      name: r.psnUsername || r.email.split("@")[0],
-      email: r.email,
-    }));
+      if (allUsers.length < requiredPlayers) {
+        return res.status(400).json({
+          error: `Not enough players available. Need ${requiredPlayers}, have ${allUsers.length} total users. Please register more users for tournaments.`,
+        });
+      }
+
+      // Use all users as fallback
+      players = allUsers.slice(0, requiredPlayers).map((u) => ({
+        id: u.userId,
+        name: u.psnUsername || u.email.split("@")[0],
+        email: u.email,
+      }));
+    } else {
+      // Use registered players
+      players = registrations.slice(0, requiredPlayers).map((r) => ({
+        id: r.userId,
+        name: r.psnUsername || r.email.split("@")[0],
+        email: r.email,
+      }));
+    }
 
     // Create draw
     const drawId = randomUUID();
