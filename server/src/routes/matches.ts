@@ -134,10 +134,13 @@ matches.post("/:id/submit-authenticated", upload.single("evidence"), (req,res)=>
     
     // הוספת מידע על זיהוי עריכה לתגובה
     if (imageAnalysis && imageAnalysis.editSigns && imageAnalysis.editSigns.length > 0) {
-      result.warning = "זוהו סימני עריכה בתמונה - המנהל יבדוק את ההגשה";
+      res.json({ 
+        ...result, 
+        warning: "זוהו סימני עריכה בתמונה - המנהל יבדוק את ההגשה" 
+      });
+    } else {
+      res.json(result);
     }
-    
-    res.json(result);
   } catch (err: any) {
     console.error("Error in submit-authenticated:", err);
     res.status(500).json({error: "Internal server error", details: err.message});

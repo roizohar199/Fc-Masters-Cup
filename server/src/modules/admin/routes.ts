@@ -1,34 +1,59 @@
 import { Router } from "express";
-import { sendMail } from "../mail/mailer.js";
 import Database from "better-sqlite3";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-// ESM equivalent of __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, "../../tournaments.sqlite");
-const db = new Database(DB_PATH);
+import { sendMail } from "../mail/mailer.js";
 
 export const adminRouter = Router();
 
+type DbUser = {
+  id: number;
+  email: string;
+  display_name?: string | null;
+  psnUsername?: string | null;
+};
+
+function getDb() {
+  const DB_PATH = process.env.DB_PATH || "./server/tournaments.sqlite";
+  const db = new Database(DB_PATH);
+  db.pragma("foreign_keys = ON");
+  return db;
+}
+
+/**
+ * שליחת מייל ידני למשתמש רשום (Admin/Manager בלבד)
+ * POST /api/admin/users/:id/email
+ * body: { subject: string, html: string }
+ */
 adminRouter.post("/users/:id/email", async (req: any, res) => {
-  if (!req.user || (req.user.role !== "admin" && req.user.role !== "super_admin")) {
-    return res.status(403).json({ error: "forbidden" });
-  }
-  
-  const u = db.prepare("SELECT email, psnUsername FROM users WHERE id=?").get(Number(req.params.id));
-  if (!u) return res.status(404).json({ error: "user not found" });
-
-  const { subject, html } = req.body;
-  if (!subject || !html) return res.status(400).json({ error: "subject & html required" });
-
   try {
-    const id = await sendMail(u.email, subject, html);
-    res.json({ ok: true, messageId: id });
-  } catch (error: any) {
-    console.error("Email sending failed:", error);
-    res.status(500).json({ error: "Failed to send email" });
+    if (!req.user || !(req.user.is_admin || req.user.is_manager)) {
+      return res.status(403).json({ error: "forbidden" });
+    }
+    const userId = Number(req.params.id);
+    if (!Number.isFinite(userId)) {
+      return res.status(400).json({ error: "invalid user id" });
+    }
+
+    const { subject, html } = req.body || {};
+    if (!subject || !html) {
+      return res.status(400).json({ error: "subject & html required" });
+    }
+
+    const db = getDb();
+    const row = db
+      .prepare("SELECT id, email, display_name, psnUsername FROM users WHERE id=?")
+      .get(userId) as DbUser | undefined;
+
+    if (!row) return res.status(404).json({ error: "user not found" });
+
+    const messageId = await sendMail(
+      row.email,
+      subject,
+      html
+    );
+
+    return res.json({ ok: true, messageId });
+  } catch (err: any) {
+    console.error("admin email error:", err);
+    return res.status(500).json({ error: "internal_error", details: String(err?.message || err) });
   }
 });
