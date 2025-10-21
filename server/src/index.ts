@@ -5,9 +5,90 @@ loadEnvSafely();
 
 console.log("ENV check → HOST:", process.env.SMTP_HOST, "| USER:", process.env.SMTP_USER, "| FROM:", process.env.EMAIL_FROM);
 
-// ✅ ייבוא והרצת מיגרציה לפני הפעלת האפליקציה
-import { runMigrations } from "./db/migrate.js";
-runMigrations();
+// ===== INLINE DB MIGRATION (no external import) =====
+import "dotenv/config";
+import path from "path";
+import fs from "fs";
+import Database from "better-sqlite3";
+
+// Resolve DB path robustly in dev/prod (dist)
+function resolveDbPath(): string {
+  if (process.env.DB_PATH && process.env.DB_PATH.trim()) return process.env.DB_PATH.trim();
+  const candidates = [
+    // when running from dist/
+    path.resolve(__dirname, "../tournaments.sqlite"),
+    // fallback if DB sits next to dist
+    path.resolve(__dirname, "./tournaments.sqlite"),
+    // common cwd locations
+    path.resolve(process.cwd(), "server/tournaments.sqlite"),
+    path.resolve(process.cwd(), "tournaments.sqlite"),
+  ];
+  for (const p of candidates) if (fs.existsSync(p)) return p;
+  return candidates[0]; // default create-here if none exists
+}
+
+function hasColumn(db: Database.Database, table: string, column: string): boolean {
+  const rows = db.prepare(`PRAGMA table_info(${table});`).all() as Array<{ name: string }>;
+  return rows.some(r => r.name === column);
+}
+
+function ensureColumn(db: Database.Database, table: string, column: string, type: string, defaultExpr?: string) {
+  if (!hasColumn(db, table, column)) {
+    const sql = defaultExpr
+      ? `ALTER TABLE ${table} ADD COLUMN ${column} ${type} DEFAULT ${defaultExpr};`
+      : `ALTER TABLE ${table} ADD COLUMN ${column} ${type};`;
+    console.log(`[migrate] Adding ${table}.${column} (${type})`);
+    db.exec(sql);
+  }
+}
+
+(function runMigrationsInline() {
+  const DB_PATH = resolveDbPath();
+  if (!fs.existsSync(DB_PATH)) {
+    console.warn(`[migrate] DB not found at ${DB_PATH}. It will be created if missing tables are accessed.`);
+  }
+
+  const db = new Database(DB_PATH);
+  db.exec("BEGIN;");
+  try {
+    // Ensure base tables (safe if already exist)
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS admins (
+        id INTEGER PRIMARY KEY,
+        email TEXT UNIQUE,
+        password_hash TEXT
+      );
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY,
+        email TEXT UNIQUE
+      );
+    `);
+
+    // Ensure required columns
+    ensureColumn(db as any, "admins", "display_name", "TEXT");
+    ensureColumn(db as any, "users",  "display_name", "TEXT");
+
+    // Optional: initialize display_name from email when empty
+    if (hasColumn(db as any, "admins", "email")) {
+      db.exec(`UPDATE admins SET display_name = COALESCE(NULLIF(display_name,''), substr(email,1,instr(email,'@')-1))
+               WHERE display_name IS NULL OR display_name = '';`);
+    }
+    if (hasColumn(db as any, "users", "email")) {
+      db.exec(`UPDATE users SET display_name = COALESCE(NULLIF(display_name,''), substr(email,1,instr(email,'@')-1))
+               WHERE display_name IS NULL OR display_name = '';`);
+    }
+
+    db.exec("COMMIT;");
+    console.log("[migrate] OK ✅");
+  } catch (e) {
+    db.exec("ROLLBACK;");
+    console.error("[migrate] FAILED ❌", e);
+    throw e;
+  } finally {
+    db.close();
+  }
+})();
+// ===== END INLINE DB MIGRATION =====
 
 import dns from "dns";
 dns.setDefaultResultOrder?.("ipv4first"); // מונע התחברויות IPv6 שיכולות ליפול אצל ספקים
