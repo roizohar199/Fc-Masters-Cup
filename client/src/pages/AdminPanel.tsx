@@ -679,7 +679,8 @@ export default function AdminPanel() {
               </thead>
               <tbody>
                 {users.map((user, idx) => (
-                  <tr key={user.id} style={{
+                  <React.Fragment key={user.id}>
+                  <tr style={{
                     borderBottom: "1px solid #f0f0f0",
                     background: idx % 2 === 0 ? "#fff" : "#fafafa",
                     opacity: selectedUsers.has(user.id) ? 0.7 : 1
@@ -820,6 +821,7 @@ export default function AdminPanel() {
                       </td>
                     </tr>
                   )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
