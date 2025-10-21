@@ -113,14 +113,33 @@ auth.get("/me", (req, res) => {
 });
 
 auth.post("/register", limiter, async (req, res) => {
-  console.log('Got hereeee123456');
+  console.log('[AUTH] Register request received:', { email: req.body?.email, psnUsername: req.body?.psnUsername });
+  
   const parsed = RegisterDTO.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "נתונים לא תקינים" });
+  if (!parsed.success) {
+    const errors = parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ');
+    console.log('[AUTH] Validation failed:', errors);
+    return res.status(400).json({ 
+      error: "נתונים לא תקינים", 
+      details: errors,
+      issues: parsed.error.issues 
+    });
+  }
   
   const { email, password, psnUsername } = parsed.data;
+  console.log('[AUTH] Validation passed, attempting to register user');
+  
   const user = await registerUser(email, password, psnUsername);
   
-  if (!user) return res.status(400).json({ error: "כתובת האימייל כבר קיימת במערכת" });
+  if (!user) {
+    console.log('[AUTH] Registration failed - email already exists');
+    return res.status(400).json({ 
+      error: "כתובת האימייל כבר קיימת במערכת",
+      field: "email"
+    });
+  }
+  
+  console.log('[AUTH] User registered successfully:', user.email);
   
   // שליחת מייל למשתמש שההרשמה ממתינה לאישור
   const { sendPendingApprovalEmail, sendAdminApprovalRequest } = await import("../email.js");

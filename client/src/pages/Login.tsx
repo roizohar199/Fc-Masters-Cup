@@ -80,7 +80,24 @@ export default function Login() {
             nav("/", { replace: true });
           }
         } catch (e: any) {
-          throw e; // נזרוק את השגיאה הלאה לטיפול הכללי
+          // טיפול משופר בשגיאות
+          try {
+            const errorData = JSON.parse(e.message);
+            if (errorData.details) {
+              setErr(errorData.details);
+            } else if (errorData.issues && Array.isArray(errorData.issues)) {
+              const messages = errorData.issues.map((i: any) => i.message).join(', ');
+              setErr(messages);
+            } else if (errorData.error) {
+              setErr(errorData.error);
+            } else {
+              setErr("הרשמה נכשלה");
+            }
+          } catch {
+            setErr(e.message || "הרשמה נכשלה");
+          }
+          setLoading(false);
+          return;
         }
       } else if (mode === "forgot") {
         await api("/api/auth/forgot-password", { 

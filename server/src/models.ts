@@ -75,9 +75,9 @@ export const SubmitResultDTO = z.object({
 });
 
 export const RegisterDTO = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-  psnUsername: z.string().min(1).optional(),
+  email: z.string().email("כתובת אימייל לא תקינה"),
+  password: z.string().min(6, "הסיסמה חייבת להכיל לפחות 6 תווים"),
+  psnUsername: z.string().min(3, "שם משתמש PSN חייב להכיל לפחות 3 תווים"),
 });
 
 export const ForgotPasswordDTO = z.object({
