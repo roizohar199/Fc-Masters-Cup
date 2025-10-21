@@ -2,6 +2,9 @@
   "name": "fc-tournament-server",
   "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "clean": "rimraf dist && tsc -b ../tsconfig.server.json --clean || exit 0",
     "build": "npm run clean && tsc -p ../tsconfig.server.json",
