@@ -29,19 +29,45 @@ cat ~/.ssh/gha_ed25519
 
 ### 2️⃣ הוסף Secrets ב-GitHub
 
-עבור ל: **Repository → Settings → Secrets → Actions**
+> 📖 **מדריך מפורט עם צעד-אחר-צעד:** [הוראות-הוספת-Secrets-GitHub.md](./הוראות-הוספת-Secrets-GitHub.md)
 
-לחץ **New repository secret** והוסף:
+עבור ל: **Repository → Settings → Secrets and variables → Actions**
 
-| שם | ערך | דוגמה |
-|----|-----|-------|
-| `SSH_PRIVATE_KEY` | המפתח שהעתקת | `-----BEGIN OPENSSH...` |
-| `SSH_HOST` | IP של השרת | `203.0.113.10` |
-| `SSH_USER` | משתמש SSH | `ubuntu` או `root` |
-| `SSH_PORT` | פורט (אופציונלי) | `22` |
-| `DEPLOY_PATH` | נתיב (אופציונלי) | `/var/www/fcmasters` |
+לחץ **New repository secret** והוסף **בדיוק בסדר הזה**:
 
-⚠️ **חשוב:** העתק את `SSH_PRIVATE_KEY` **בדיוק כמו שהוא** - ללא שינויים!
+#### **סוד #1: SSH_PRIVATE_KEY** (חובה!)
+```
+Name:  SSH_PRIVATE_KEY
+Value: [הדבק את כל תוכן המפתח מ-cat ~/.ssh/gha_ed25519]
+```
+
+**⚠️ חשוב מאוד:**
+- ✅ העתק **הכל** - מ-`-----BEGIN` עד `-----END` (כולל!)
+- ✅ השאר את המבנה בדיוק כמו שהוא (כל השורות)
+- ❌ **אל** תקודד לBase64
+- ❌ **אל** תוסיף רווחים או תווים נוספים
+- ❌ **אל** תשנה את סוף השורות (CRLF/LF)
+
+#### **סוד #2: SSH_HOST** (חובה!)
+```
+Name:  SSH_HOST
+Value: [IP של השרת, לדוגמה: 203.0.113.10]
+```
+
+#### **סוד #3: SSH_USER** (חובה!)
+```
+Name:  SSH_USER
+Value: [שם המשתמש, לדוגמה: ubuntu]
+```
+
+#### סודות אופציונליים (רק אם שונה מברירת מחדל):
+```
+Name:  SSH_PORT
+Value: 22  (רק אם אתה משתמש בפורט אחר!)
+
+Name:  DEPLOY_PATH
+Value: /var/www/fcmasters  (רק אם הנתיב שלך שונה!)
+```
 
 ---
 
@@ -111,6 +137,20 @@ ssh-keyscan your-server >> ~/.ssh/known_hosts
 # Ubuntu/Debian
 sudo apt-get install -y rsync
 ```
+
+### ssh-private-key argument is empty
+זו הבעיה הכי נפוצה!
+
+**פתרון:** המפתח לא הוגדר ב-GitHub Secrets.
+
+👉 **קרא:** [הוראות-הוספת-Secrets-GitHub.md](./הוראות-הוספת-Secrets-GitHub.md)
+
+בקצרה:
+1. Repository → Settings → Secrets → Actions
+2. New repository secret
+3. Name: `SSH_PRIVATE_KEY`
+4. Value: העתק **הכל** מ-`cat ~/.ssh/gha_ed25519` (בשרת)
+5. Add secret
 
 ---
 

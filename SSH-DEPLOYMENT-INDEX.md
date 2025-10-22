@@ -16,6 +16,7 @@
 |------|------|-----------|
 | **[תיקון-SSH-Deploy.md](./תיקון-SSH-Deploy.md)** | התחלה מהירה - 3 שלבים | 5 דקות |
 | **[הוראות-SSH-Key-Setup.md](./הוראות-SSH-Key-Setup.md)** | פקודות להעתקה בשרת | 10 דקות |
+| **[הוראות-הוספת-Secrets-GitHub.md](./הוראות-הוספת-Secrets-GitHub.md)** | ⭐ **איך להוסיף Secrets ב-GitHub** | 7 דקות |
 | **[GITHUB-SSH-DEPLOYMENT-SETUP.md](./GITHUB-SSH-DEPLOYMENT-SETUP.md)** | מדריך מפורט עם פתרון בעיות | 20 דקות |
 
 ---
@@ -41,8 +42,9 @@
 
 ### 🔧 הגדרה ראשונית
 - **[תיקון-SSH-Deploy.md](./תיקון-SSH-Deploy.md)** - מדריך מהיר (עברית)
-- **[GITHUB-SSH-DEPLOYMENT-SETUP.md](./GITHUB-SSH-DEPLOYMENT-SETUP.md)** - מדריך מפורט (אנגלית)
 - **[הוראות-SSH-Key-Setup.md](./הוראות-SSH-Key-Setup.md)** - פקודות לשרת VPS
+- **[הוראות-הוספת-Secrets-GitHub.md](./הוראות-הוספת-Secrets-GitHub.md)** - ⭐ **הוספת Secrets ב-GitHub**
+- **[GITHUB-SSH-DEPLOYMENT-SETUP.md](./GITHUB-SSH-DEPLOYMENT-SETUP.md)** - מדריך מפורט (אנגלית)
 
 ### 🔄 מיגרציה
 - **[MIGRATION-SSH-KEYS.md](./MIGRATION-SSH-KEYS.md)** - מעבר בטוח ממפתחות RSA ל-ed25519
@@ -57,6 +59,8 @@
 
 | הבעיה שלי | הקובץ שיעזור |
 |-----------|--------------|
+| ❌ **ssh-private-key argument is empty** | ⭐ **[הוראות-הוספת-Secrets-GitHub.md](./הוראות-הוספת-Secrets-GitHub.md)** |
+| ❌ Missing SSH_PRIVATE_KEY | ⭐ **[הוראות-הוספת-Secrets-GitHub.md](./הוראות-הוספת-Secrets-GitHub.md)** |
 | ❌ Permission denied (publickey) | [תיקון-SSH-Deploy.md](./תיקון-SSH-Deploy.md) |
 | ❌ Load key: error in libcrypto | [GITHUB-SSH-DEPLOYMENT-SETUP.md](./GITHUB-SSH-DEPLOYMENT-SETUP.md) |
 | ❌ Host key verification failed | [GITHUB-SSH-DEPLOYMENT-SETUP.md](./GITHUB-SSH-DEPLOYMENT-SETUP.md) + סעיף פתרון בעיות |

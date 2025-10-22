@@ -85,6 +85,14 @@ jobs:
     if: ${{ github.ref == 'refs/heads/master' && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     
+    env:
+      # מאפשר שימוש בסוד ברירת-מחדל או סוד חלופי (למשל מה-Environment)
+      SSH_PRIVATE_KEY_EFF: ${{ secrets.SSH_PRIVATE_KEY != '' && secrets.SSH_PRIVATE_KEY || secrets.PROD_SSH_PRIVATE_KEY }}
+      SSH_HOST_EFF:        ${{ secrets.SSH_HOST     != '' && secrets.SSH_HOST     || secrets.VPS_HOST }}
+      SSH_USER_EFF:        ${{ secrets.SSH_USER     != '' && secrets.SSH_USER     || secrets.VPS_USER }}
+      SSH_PORT_EFF:        ${{ secrets.SSH_PORT     != '' && secrets.SSH_PORT     || '22' }}
+      DEPLOY_PATH_EFF:     ${{ secrets.DEPLOY_PATH  != '' && secrets.DEPLOY_PATH  || '/var/www/fcmasters' }}
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -95,62 +103,95 @@ jobs:
           name: build-artifacts
           path: ./artifact
 
-      # טוען את המפתח הפרטי ל-ssh-agent (פותר Permission denied ו-libcrypto errors)
+      # ===== אבטחה: אימות סודות =====
+      - name: Validate required secrets
+        run: |
+          echo "🔍 Validating deployment secrets..."
+          
+          if [ -z "${{ env.SSH_PRIVATE_KEY_EFF }}" ]; then
+            echo "❌ Missing SSH_PRIVATE_KEY (or PROD_SSH_PRIVATE_KEY)"
+            echo "Please add SSH_PRIVATE_KEY to GitHub Secrets:"
+            echo "  Repository → Settings → Secrets → Actions → New repository secret"
+            exit 1
+          fi
+          
+          if [ -z "${{ env.SSH_HOST_EFF }}" ]; then
+            echo "❌ Missing SSH_HOST (or VPS_HOST or PROD_SSH_HOST)"
+            exit 1
+          fi
+          
+          if [ -z "${{ env.SSH_USER_EFF }}" ]; then
+            echo "❌ Missing SSH_USER (or VPS_USER or PROD_SSH_USER)"
+            exit 1
+          fi
+          
+          # הצגת מידע על המפתח (ללא חשיפת תוכן)
+          KEY_LENGTH=$(printf "%s" "${{ env.SSH_PRIVATE_KEY_EFF }}" | wc -c)
+          echo "✅ Secrets validated successfully"
+          echo "   SSH Key length: ${KEY_LENGTH} characters"
+          echo "   SSH Host: ${{ env.SSH_HOST_EFF }}"
+          echo "   SSH User: ${{ env.SSH_USER_EFF }}"
+          echo "   SSH Port: ${{ env.SSH_PORT_EFF }}"
+          echo "   Deploy Path: ${{ env.DEPLOY_PATH_EFF }}"
+        shell: bash
+
+      # ===== טעינת המפתח ל-agent =====
       - name: Start ssh-agent and add key
         uses: webfactory/ssh-agent@v0.8.0
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh-private-key: ${{ env.SSH_PRIVATE_KEY_EFF }}
 
-      # מוסיף את השרת ל-known_hosts (ללא אינטראקציה)
       - name: Add VPS host to known_hosts
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST || secrets.VPS_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -p "$SSH_PORT" "$SSH_HOST" >> ~/.ssh/known_hosts
+          ssh-keyscan -p "${{ env.SSH_PORT_EFF }}" "${{ env.SSH_HOST_EFF }}" >> ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
+          echo "✅ Host ${{ env.SSH_HOST_EFF }} added to known_hosts"
+        shell: bash
 
-      # דפלוי אטומי: העלאה לתיקיית release חדשה והחלפת symlink
+      # ===== דפלוי אטומי =====
       - name: Deploy to VPS (rsync + atomic release)
         env:
-          SSH_HOST: ${{ secrets.SSH_HOST || secrets.VPS_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER || secrets.VPS_USER }}
-          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/var/www/fcmasters' }}
+          HOST: ${{ env.SSH_HOST_EFF }}
+          USER: ${{ env.SSH_USER_EFF }}
+          PORT: ${{ env.SSH_PORT_EFF }}
+          APP_DIR: ${{ env.DEPLOY_PATH_EFF }}
           RUN: ${{ github.run_number }}
         run: |
-          set -e
+          set -euo pipefail
           
-          RELEASE_DIR="${DEPLOY_PATH}/releases/${RUN}"
+          RELEASE_DIR="${APP_DIR}/releases/${RUN}"
           
-          echo "🚀 Deploying build #${RUN} to ${SSH_USER}@${SSH_HOST}:${RELEASE_DIR}"
+          echo "🚀 Deploying build #${RUN} to ${USER}@${HOST}:${RELEASE_DIR}"
           
           # יצירת תיקיית release בשרת
-          ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p ${RELEASE_DIR}"
+          echo "📁 Creating release directory..."
+          ssh -p "$PORT" "$USER@$HOST" "mkdir -p '$RELEASE_DIR'"
           
-          # העלאת artifacts (server/dist + client/dist)
+          # העלאת artifacts
           echo "📦 Uploading build artifacts..."
-          rsync -az -e "ssh -p $SSH_PORT" --delete \
+          rsync -az -e "ssh -p $PORT" --delete \
             --exclude 'node_modules' \
             --exclude '.git' \
             --exclude 'tournaments.sqlite' \
-            ./artifact/ "$SSH_USER@$SSH_HOST:${RELEASE_DIR}/"
+            ./artifact/ "$USER@$HOST:$RELEASE_DIR/"
           
-          echo "⚙️  Running remote deployment commands..."
+          echo "✅ Upload completed"
           
       - name: Install dependencies and switch release
         env:
-          SSH_HOST: ${{ secrets.SSH_HOST || secrets.VPS_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER || secrets.VPS_USER }}
-          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/var/www/fcmasters' }}
+          HOST: ${{ env.SSH_HOST_EFF }}
+          USER: ${{ env.SSH_USER_EFF }}
+          PORT: ${{ env.SSH_PORT_EFF }}
+          APP_DIR: ${{ env.DEPLOY_PATH_EFF }}
           RUN: ${{ github.run_number }}
         run: |
-          ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" bash -lc "
+          echo "⚙️  Running remote deployment commands..."
+          
+          ssh -p "$PORT" "$USER@$HOST" bash -lc "
             set -e
             
-            APP_DIR='${DEPLOY_PATH}'
+            APP_DIR='${APP_DIR}'
             RELEASE_DIR=\"\${APP_DIR}/releases/${RUN}\"
             
             echo '📦 Installing production dependencies...'
@@ -171,7 +212,7 @@ jobs:
             
             # החלפת symlink אטומית
             echo '🔄 Switching to new release...'
-            ln -sfn \"\${RELEASE_DIR}\" \"\${APP_DIR}/current\"
+            ln -sfn \"releases/${RUN}\" \"\${APP_DIR}/current\"
             
             # טעינה מחדש של השירות (graceful reload)
             echo '♻️  Reloading application...'
@@ -190,3 +231,4 @@ jobs:
             
             echo '✅ Deployment completed successfully!'
           "
+        shell: bash
