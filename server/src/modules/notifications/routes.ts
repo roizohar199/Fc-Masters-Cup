@@ -13,7 +13,7 @@ notificationsRouter.get("/me/notifications", (req: any, res) => {
 notificationsRouter.patch("/me/notifications/:id/read", (req: any, res) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ error: "unauthorized" });
-  markRead(userId, Number(req.params.id));
+  markRead(userId, req.params.id);
   res.json({ ok: true });
 });
 

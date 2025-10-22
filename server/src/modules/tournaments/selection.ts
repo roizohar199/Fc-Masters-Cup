@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, "../../tournaments.sqlite");
 const db = new Database(DB_PATH);
 
-export function selectParticipants(tournamentId: number, userIds: number[]) {
+export function selectParticipants(tournamentId: string, userIds: string[]) {
   const now = new Date().toISOString();
   const update = db.prepare(`
     UPDATE tournament_registrations
@@ -20,7 +20,7 @@ export function selectParticipants(tournamentId: number, userIds: number[]) {
   const getUser = db.prepare(`SELECT id, email, psnUsername FROM users WHERE id=?`);
   const getTournament = db.prepare(`SELECT id, title, createdAt FROM tournaments WHERE id=?`);
   
-  const t = db.transaction((ids: number[]) => {
+  const t = db.transaction((ids: string[]) => {
     const tRow = getTournament.get(tournamentId) as any;
     for (const uid of ids) {
       update.run(now, tournamentId, uid);

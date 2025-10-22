@@ -8,8 +8,8 @@ tournamentsRouter.post("/:id/select", async (req: any, res) => {
   if (!req.user || (req.user.role !== "admin" && req.user.role !== "super_admin")) {
     return res.status(403).json({ error: "forbidden" });
   }
-  const id = Number(req.params.id);
-  const userIds: number[] = req.body.userIds || [];
+  const id = req.params.id;
+  const userIds: string[] = req.body.userIds || [];
   if (!userIds.length) return res.status(400).json({ error: "userIds required" });
 
   selectParticipants(id, userIds);

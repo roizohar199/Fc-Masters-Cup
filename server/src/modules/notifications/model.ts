@@ -1,46 +1,50 @@
 import Database from "better-sqlite3";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { randomUUID } from "node:crypto";
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, "../../tournaments.sqlite");
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, "../../../tournaments.sqlite");
 const db = new Database(DB_PATH);
 
 export type Notification = {
-  id: number; 
-  user_id: number; 
+  id: string; 
+  userId: string; 
+  type: string; 
   title: string; 
-  body: string; 
-  kind: string;
-  is_read: 0|1; 
-  created_at: string;
+  message: string; 
+  data?: string;
+  isRead: 0|1; 
+  createdAt: string;
 };
 
-export function createNotification(userId: number, title: string, body: string, kind: string = "info") {
+export function createNotification(userId: string, title: string, message: string, type: string = "info", data?: string) {
   const stmt = db.prepare(
-    "INSERT INTO notifications (user_id, title, body, kind) VALUES (?, ?, ?, ?)"
+    "INSERT INTO notifications (id, userId, type, title, message, data, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)"
   );
-  const res = stmt.run(userId, title, body, kind);
-  return res.lastInsertRowid as number;
+  const id = randomUUID();
+  const now = new Date().toISOString();
+  const res = stmt.run(id, userId, type, title, message, data || null, now);
+  return id;
 }
 
-export function listUnreadForUser(userId: number): Notification[] {
+export function listUnreadForUser(userId: string): Notification[] {
   return db.prepare(
-    "SELECT * FROM notifications WHERE user_id=? AND is_read=0 ORDER BY id DESC LIMIT 20"
+    "SELECT * FROM notifications WHERE userId=? AND isRead=0 ORDER BY createdAt DESC LIMIT 20"
   ).all(userId) as Notification[];
 }
 
-export function markRead(userId: number, id: number) {
+export function markRead(userId: string, id: string) {
   return db.prepare(
-    "UPDATE notifications SET is_read=1 WHERE id=? AND user_id=?"
+    "UPDATE notifications SET isRead=1 WHERE id=? AND userId=?"
   ).run(id, userId);
 }
 
-export function markAllRead(userId: number) {
+export function markAllRead(userId: string) {
   return db.prepare(
-    "UPDATE notifications SET is_read=1 WHERE user_id=? AND is_read=0"
+    "UPDATE notifications SET isRead=1 WHERE userId=? AND isRead=0"
   ).run(userId);
 }

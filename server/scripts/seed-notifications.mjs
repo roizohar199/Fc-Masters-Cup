@@ -1,4 +1,5 @@
 import Database from "better-sqlite3";
+import { randomUUID } from "node:crypto";
 const DB_PATH = process.env.DB_PATH || "./server/tournaments.sqlite";
 const db = new Database(DB_PATH);
 const now = new Date().toISOString();
@@ -16,17 +17,43 @@ function ensureTableExists(name) {
 }
 ["users","tournaments","tournament_registrations","notifications"].forEach(ensureTableExists);
 
-// משתמשים לדוגמה (אם אין)
-const upsertUser = db.prepare(`
-  INSERT INTO users (id, email, passwordHash, role, psnUsername, createdAt)
-  VALUES (?, ?, ?, ?, ?, ?)
-  ON CONFLICT(email) DO UPDATE SET psnUsername=excluded.psnUsername
-  RETURNING id
-`);
+// משתמשים קיימים או חדשים
+const getUserByEmail = db.prepare("SELECT id FROM users WHERE email = ?");
 
-const u1 = upsertUser.get("player1@example.com", "hashed_password", "player", "PlayerOne", now).id;
-const u2 = upsertUser.get("player2@example.com", "hashed_password", "player", "PlayerTwo", now).id;
-const u3 = upsertUser.get("player3@example.com", "hashed_password", "player", "PlayerThree", now).id;
+// נבדוק אם המשתמשים כבר קיימים
+let u1 = getUserByEmail.get("player1@example.com")?.id;
+let u2 = getUserByEmail.get("player2@example.com")?.id;
+let u3 = getUserByEmail.get("player3@example.com")?.id;
+
+// אם הם לא קיימים, ניצור אותם
+if (!u1) {
+  const upsertUser = db.prepare(`
+    INSERT INTO users (id, email, passwordHash, role, psnUsername, createdAt)
+    VALUES (?, ?, ?, ?, ?, ?)
+    RETURNING id
+  `);
+  u1 = upsertUser.get(randomUUID(), "player1@example.com", "hashed_password", "player", "PlayerOne", now)?.id;
+}
+
+if (!u2) {
+  const upsertUser = db.prepare(`
+    INSERT INTO users (id, email, passwordHash, role, psnUsername, createdAt)
+    VALUES (?, ?, ?, ?, ?, ?)
+    RETURNING id
+  `);
+  u2 = upsertUser.get(randomUUID(), "player2@example.com", "hashed_password", "player", "PlayerTwo", now)?.id;
+}
+
+if (!u3) {
+  const upsertUser = db.prepare(`
+    INSERT INTO users (id, email, passwordHash, role, psnUsername, createdAt)
+    VALUES (?, ?, ?, ?, ?, ?)
+    RETURNING id
+  `);
+  u3 = upsertUser.get(randomUUID(), "player3@example.com", "hashed_password", "player", "PlayerThree", now)?.id;
+}
+
+console.log("Users:", { u1, u2, u3 });
 
 // טורניר לדוגמה (אם אין)
 db.exec(`
@@ -47,11 +74,16 @@ const addPart = db.prepare(`
 [ u1, u2, u3 ].forEach((uid, idx) => addPart.run(`reg-${uid}-${tRow.id}`, tRow.id, uid, now, now));
 
 // התראות (לא נקראו) לשחקנים 1–2
-const addNotif = db.prepare(`
-  INSERT INTO notifications (user_id, title, body, kind, is_read, created_at)
-  VALUES (?, ?, ?, 'tournament', 0, ?)
-`);
-addNotif.run(u1, "נבחרת להשתתף בטורניר", `נבחרת לטורניר "${tRow.title}". בהצלחה!`, now);
-addNotif.run(u2, "נבחרת להשתתף בטורניר", `נבחרת לטורניר "${tRow.title}". בהצלחה!`, now);
+if (u1 && u2) {
+  const addNotif = db.prepare(`
+    INSERT INTO notifications (id, userId, type, title, message, isRead, createdAt)
+    VALUES (?, ?, 'tournament', ?, ?, 0, ?)
+  `);
+  addNotif.run(randomUUID(), u1, "נבחרת להשתתף בטורניר", `נבחרת לטורניר "${tRow.title}". בהצלחה!`, now);
+  addNotif.run(randomUUID(), u2, "נבחרת להשתתף בטורניר", `נבחרת לטורניר "${tRow.title}". בהצלחה!`, now);
+  console.log("Created notifications for users:", u1, u2);
+} else {
+  console.log("Skipping notifications - users not found:", { u1, u2 });
+}
 
 console.log("Seed completed:", { tournamentId: tRow.id, users: [u1,u2,u3] });

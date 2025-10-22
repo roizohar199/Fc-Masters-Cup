@@ -427,7 +427,7 @@ tournaments.post("/:id/select", async (req: any, res) => {
   }
   
   const tournamentId = req.params.id;
-  const userIds: number[] = req.body.userIds || [];
+  const userIds: string[] = req.body.userIds || [];
   
   if (!userIds.length) {
     return res.status(400).json({ error: "userIds required" });
@@ -437,7 +437,7 @@ tournaments.post("/:id/select", async (req: any, res) => {
     // Import selection functions dynamically to avoid circular dependencies
     const { selectParticipants, flushEmailQueue } = await import("../modules/tournaments/selection.js");
     
-    selectParticipants(Number(tournamentId), userIds);
+    selectParticipants(tournamentId, userIds);
     await flushEmailQueue();
     
     res.json({ ok: true, message: `Selected ${userIds.length} participants for tournament` });
