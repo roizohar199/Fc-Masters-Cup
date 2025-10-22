@@ -69,7 +69,7 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: build-artifacts
+          name: fcmasters-build
           path: |
             server/dist/
             client/dist/
@@ -82,15 +82,14 @@ jobs:
   deploy:
     name: Deploy to VPS
     needs: build
-    if: ${{ github.ref == 'refs/heads/master' && needs.build.result == 'success' }}
+    if: ${{ github.ref == 'refs/heads/main' && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     
     env:
-      # מאפשר שימוש בסוד ברירת-מחדל או סוד חלופי (למשל מה-Environment)
-      SSH_PRIVATE_KEY_EFF: ${{ secrets.SSH_PRIVATE_KEY != '' && secrets.SSH_PRIVATE_KEY || secrets.PROD_SSH_PRIVATE_KEY }}
-      SSH_HOST_EFF:        ${{ secrets.SSH_HOST     != '' && secrets.SSH_HOST     || secrets.VPS_HOST }}
-      SSH_USER_EFF:        ${{ secrets.SSH_USER     != '' && secrets.SSH_USER     || secrets.VPS_USER }}
-      SSH_PORT_EFF:        ${{ secrets.SSH_PORT     != '' && secrets.SSH_PORT     || '22' }}
+      SSH_PRIVATE_KEY_EFF: ${{ secrets.VPS_SSH_KEY }}
+      SSH_HOST_EFF:        ${{ secrets.VPS_HOST }}
+      SSH_USER_EFF:        ${{ secrets.VPS_USER }}
+      SSH_PORT_EFF:        ${{ secrets.VPS_PORT != '' && secrets.VPS_PORT || '22' }}
       DEPLOY_PATH_EFF:     ${{ secrets.DEPLOY_PATH  != '' && secrets.DEPLOY_PATH  || '/var/www/fcmasters' }}
     
     steps:
@@ -100,39 +99,17 @@ jobs:
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: build-artifacts
+          name: fcmasters-build
           path: ./artifact
 
       # ===== אבטחה: אימות סודות =====
-      - name: Validate required secrets
+      - name: ✅ Validate required secrets (VPS_*)
         run: |
-          echo "🔍 Validating deployment secrets..."
-          
-          if [ -z "${{ env.SSH_PRIVATE_KEY_EFF }}" ]; then
-            echo "❌ Missing SSH_PRIVATE_KEY (or PROD_SSH_PRIVATE_KEY)"
-            echo "Please add SSH_PRIVATE_KEY to GitHub Secrets:"
-            echo "  Repository → Settings → Secrets → Actions → New repository secret"
-            exit 1
-          fi
-          
-          if [ -z "${{ env.SSH_HOST_EFF }}" ]; then
-            echo "❌ Missing SSH_HOST (or VPS_HOST or PROD_SSH_HOST)"
-            exit 1
-          fi
-          
-          if [ -z "${{ env.SSH_USER_EFF }}" ]; then
-            echo "❌ Missing SSH_USER (or VPS_USER or PROD_SSH_USER)"
-            exit 1
-          fi
-          
-          # הצגת מידע על המפתח (ללא חשיפת תוכן)
-          KEY_LENGTH=$(printf "%s" "${{ env.SSH_PRIVATE_KEY_EFF }}" | wc -c)
-          echo "✅ Secrets validated successfully"
-          echo "   SSH Key length: ${KEY_LENGTH} characters"
-          echo "   SSH Host: ${{ env.SSH_HOST_EFF }}"
-          echo "   SSH User: ${{ env.SSH_USER_EFF }}"
-          echo "   SSH Port: ${{ env.SSH_PORT_EFF }}"
-          echo "   Deploy Path: ${{ env.DEPLOY_PATH_EFF }}"
+          echo "Validating deployment secrets..."
+          [ -n "${SSH_PRIVATE_KEY_EFF}" ] || { echo "❌ Missing VPS_SSH_KEY"; exit 1; }
+          [ -n "${SSH_HOST_EFF}" ]        || { echo "❌ Missing VPS_HOST"; exit 1; }
+          [ -n "${SSH_USER_EFF}" ]        || { echo "❌ Missing VPS_USER"; exit 1; }
+          echo "✅ Secrets OK."
         shell: bash
 
       # ===== טעינת המפתח ל-agent =====
@@ -159,76 +136,17 @@ jobs:
           RUN: ${{ github.run_number }}
         run: |
           set -euo pipefail
-          
           RELEASE_DIR="${APP_DIR}/releases/${RUN}"
-          
-          echo "🚀 Deploying build #${RUN} to ${USER}@${HOST}:${RELEASE_DIR}"
-          
-          # יצירת תיקיית release בשרת
-          echo "📁 Creating release directory..."
           ssh -p "$PORT" "$USER@$HOST" "mkdir -p '$RELEASE_DIR'"
-          
-          # העלאת artifacts
-          echo "📦 Uploading build artifacts..."
-          rsync -az -e "ssh -p $PORT" --delete \
-            --exclude 'node_modules' \
-            --exclude '.git' \
-            --exclude 'tournaments.sqlite' \
-            ./artifact/ "$USER@$HOST:$RELEASE_DIR/"
-          
-          echo "✅ Upload completed"
-          
-      - name: Install dependencies and switch release
-        env:
-          HOST: ${{ env.SSH_HOST_EFF }}
-          USER: ${{ env.SSH_USER_EFF }}
-          PORT: ${{ env.SSH_PORT_EFF }}
-          APP_DIR: ${{ env.DEPLOY_PATH_EFF }}
-          RUN: ${{ github.run_number }}
-        run: |
-          echo "⚙️  Running remote deployment commands..."
-          
+          rsync -az -e "ssh -p $PORT" --delete ./artifact/ "$USER@$HOST:$RELEASE_DIR/"
           ssh -p "$PORT" "$USER@$HOST" bash -lc "
             set -e
-            
-            APP_DIR='${APP_DIR}'
-            RELEASE_DIR=\"\${APP_DIR}/releases/${RUN}\"
-            
-            echo '📦 Installing production dependencies...'
-            cd \"\${RELEASE_DIR}/server\"
-            npm ci --only=production --no-audit --fund=false
-            
-            # העתקת .env מהגרסה הנוכחית (אם קיימת)
-            if [ -f \"\${APP_DIR}/current/.env\" ]; then
-              echo '🔐 Copying .env from current release...'
-              cp \"\${APP_DIR}/current/.env\" \"\${RELEASE_DIR}/.env\"
-            fi
-            
-            # העתקת DB קיים (שמירת נתונים)
-            if [ -f \"\${APP_DIR}/current/tournaments.sqlite\" ]; then
-              echo '💾 Copying database from current release...'
-              cp \"\${APP_DIR}/current/tournaments.sqlite\" \"\${RELEASE_DIR}/tournaments.sqlite\"
-            fi
-            
-            # החלפת symlink אטומית
-            echo '🔄 Switching to new release...'
-            ln -sfn \"releases/${RUN}\" \"\${APP_DIR}/current\"
-            
-            # טעינה מחדש של השירות (graceful reload)
-            echo '♻️  Reloading application...'
+            cd '$APP_DIR'
+            ln -sfn 'releases/${RUN}' current
             if command -v pm2 >/dev/null 2>&1; then
-              pm2 reload fcmasters || pm2 start \"\${APP_DIR}/current/server/dist/index.js\" --name fcmasters
+              pm2 reload fcmasters || pm2 start current/server/dist/index.js --name fcmasters
             elif command -v systemctl >/dev/null 2>&1; then
               sudo systemctl reload fcmasters || sudo systemctl restart fcmasters
-            else
-              echo '⚠️  Warning: No process manager found (pm2/systemd). Manual restart needed.'
             fi
-            
-            # ניקוי גרסאות ישנות (שמירת 5 אחרונות)
-            echo '🧹 Cleaning up old releases...'
-            cd \"\${APP_DIR}/releases\"
-            ls -t | tail -n +6 | xargs -r rm -rf
-            
-            echo '✅ Deployment completed successfully!'
           "
         shell: bash
