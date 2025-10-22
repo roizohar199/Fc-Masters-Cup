@@ -361,7 +361,17 @@ admin.get("/tournament-registrations", async (req, res) => {
     `).get() as any;
 
     if (!tournament) {
-      // אם אין טורניר פעיל, מצא את הטורניר האחרון
+      // אם אין טורניר פעיל, נחפש את טורניר ברירת המחדל
+      tournament = db.prepare(`
+        SELECT * FROM tournaments 
+        WHERE id = 'default-tournament'
+        ORDER BY createdAt DESC 
+        LIMIT 1
+      `).get() as any;
+    }
+
+    if (!tournament) {
+      // אם עדיין לא נמצא, מצא את הטורניר האחרון
       tournament = db.prepare(`
         SELECT * FROM tournaments 
         ORDER BY createdAt DESC 
