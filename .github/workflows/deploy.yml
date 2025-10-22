@@ -40,6 +40,8 @@ jobs:
       - name: Install client dependencies
         if: ${{ hashFiles('client/package.json') != '' }}
         working-directory: client
+        env:
+          NPM_CONFIG_OPTIONAL: "true"
         run: |
           if [ -f package-lock.json ]; then
             npm ci --no-audit --fund=false
@@ -63,3 +65,96 @@ jobs:
       - name: Build client
         working-directory: client
         run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            server/dist/
+            client/dist/
+            package.json
+            server/package.json
+            server/package-lock.json
+            .env.example
+          retention-days: 7
+
+  deploy:
+    needs: build
+    if: ${{ github.ref == 'refs/heads/master' && needs.build.result == 'success' }}
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+
+      - name: Deploy to VPS
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          # Setup SSH
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+          
+          # Atomic deployment with releases
+          APP_DIR="/var/www/fcmasters"
+          RELEASE_DIR="$APP_DIR/releases/${{ github.run_number }}"
+          
+          # Create release directory on VPS
+          ssh "$VPS_USER@$VPS_HOST" "mkdir -p $RELEASE_DIR"
+          
+          # Upload files to release directory
+          rsync -az --delete \
+            --exclude 'node_modules' \
+            --exclude '.git' \
+            --exclude 'tournaments.sqlite' \
+            ./ "$VPS_USER@$VPS_HOST:$RELEASE_DIR/"
+          
+          # Install production dependencies and atomic switch
+          ssh "$VPS_USER@$VPS_HOST" << 'ENDSSH'
+          set -e
+          
+          APP_DIR="/var/www/fcmasters"
+          RELEASE_DIR="$APP_DIR/releases/${{ github.run_number }}"
+          
+          # Install production dependencies in release directory
+          cd "$RELEASE_DIR/server"
+          npm ci --only=production --no-audit --fund=false
+          
+          # Copy .env if exists (from current to new release)
+          if [ -f "$APP_DIR/current/.env" ]; then
+            cp "$APP_DIR/current/.env" "$RELEASE_DIR/.env"
+          fi
+          
+          # Copy database if exists (keep existing data)
+          if [ -f "$APP_DIR/current/tournaments.sqlite" ]; then
+            cp "$APP_DIR/current/tournaments.sqlite" "$RELEASE_DIR/tournaments.sqlite"
+          fi
+          
+          # Atomic symlink switch
+          ln -sfn "$RELEASE_DIR" "$APP_DIR/current"
+          
+          # Reload service (graceful reload or restart)
+          if command -v pm2 &> /dev/null; then
+            pm2 reload fcmasters || pm2 restart fcmasters
+          elif systemctl is-active --quiet fcmasters; then
+            sudo systemctl reload fcmasters || sudo systemctl restart fcmasters
+          else
+            echo "Warning: No process manager found. Manual restart may be needed."
+          fi
+          
+          # Cleanup old releases (keep last 5)
+          cd "$APP_DIR/releases"
+          ls -t | tail -n +6 | xargs -r rm -rf
+          
+          echo "✅ Deployment completed successfully!"
+          ENDSSH
