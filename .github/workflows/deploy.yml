@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   workflow_dispatch:
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: '20'
 
-      # build client
+      # ---------- CLIENT ----------
       - name: Install client deps
         working-directory: client
         run: npm ci
@@ -28,20 +28,36 @@ jobs:
         working-directory: client
         run: npm run build
 
-      # (אופציונלי) בדיקות שרת/לינטים
-      - name: Install server deps
+      # ---------- SERVER ----------
+      # מתקינים עם dev כדי לאפשר tsc ואז בונים ומנקים dev
+      - name: Install server deps (with dev)
         working-directory: server
-        run: npm ci --omit=dev
+        run: npm ci
 
-      # שמירת ארטיפקטים לביצת deploy נקייה
+      - name: Build server (TS -> dist)
+        working-directory: server
+        run: |
+          if [ -f package.json ] && cat package.json | jq -e '.scripts.build' > /dev/null 2>&1; then
+            npm run build
+          fi
+          # מסירים devDependencies מה-node_modules כדי לא לשלוח סתם נפח
+          npm prune --omit=dev
+
+      # ---------- PACK ARTIFACTS ----------
       - name: Pack artifacts
         run: |
+          rm -rf _artifact
           mkdir -p _artifact/client/dist
-          mkdir -p _artifact/server
+          mkdir -p _artifact/server/dist
+
+          # client build only
           rsync -a --delete client/dist/ _artifact/client/dist/
-          rsync -a --delete server/ _artifact/server/
-          # לא מעבירים node_modules של client/server
-          rm -rf _artifact/**/node_modules
+
+          # server: dist + מינימום קבצים להפעלה
+          rsync -a server/dist/ _artifact/server/dist/
+          cp server/package.json _artifact/server/package.json
+          [ -f server/package-lock.json ] && cp server/package-lock.json _artifact/server/package-lock.json || true
+          # אם יש קובץ PM2/ENV/CONFIG ספציפי שהשרת צריך, הוסף כאן העתקה שלו
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -66,31 +82,52 @@ jobs:
 
       - name: Known hosts
         run: |
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          PORT=${{ secrets.VPS_PORT || 22 }}
+          ssh-keyscan -p "$PORT" -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
-      # סינכרון בטוח עם rsync: מסנכרנים רק את הארטיפקט, לא את כל ה-Workspace!
-      - name: Rsync server
+      - name: Rsync to server
         run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "mkdir -p /var/www/fcmasters/server /var/www/fcmasters/client/dist"
-          rsync -az --delete \
-            --exclude 'node_modules' \
-            _artifact/server/ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/fcmasters/server/
-          rsync -az --delete \
-            _artifact/client/dist/ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/fcmasters/client/dist/
+          PORT=${{ secrets.VPS_PORT || 22 }}
+          SSH_CMD="ssh -p $PORT"
+          $SSH_CMD ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "mkdir -p /var/www/fcmasters/server /var/www/fcmasters/client/dist"
 
-      - name: Restart PM2 on VPS
+          rsync -az --delete -e "$SSH_CMD" \
+            _artifact/client/dist/ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/fcmasters/client/dist/
+
+          rsync -az --delete -e "$SSH_CMD" \
+            _artifact/server/ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/fcmasters/server/
+
+      - name: Install server deps + restart PM2 on VPS
         run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+          PORT=${{ secrets.VPS_PORT || 22 }}
+          ssh -p "$PORT" ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
           set -euo pipefail
           cd /var/www/fcmasters/server
-          # התקנת תלויות שרת ביעד (אם צריך)
-          [ -f package-lock.json ] && npm ci --omit=dev || true
-          # הפעלה/ריסטארט
-          if pm2 describe fcmasters > /dev/null; then
-            pm2 restart fcmasters --update-env
+
+          # מתקינים prod deps לפי ה-package-lock שהעברנו
+          if [ -f package-lock.json ]; then
+            npm ci --omit=dev
           else
-            # אם יש build ל-TypeScript – ודא שרץ מקובץ הנכון (dist/index.js)
-            pm2 start dist/index.js --name fcmasters || pm2 start index.js --name fcmasters
+            npm install --omit=dev
           fi
-          pm2 save
+
+          # PM2 reload / start
+          if command -v pm2 >/dev/null 2>&1; then
+            if pm2 describe fcmasters > /dev/null 2>&1; then
+              pm2 restart fcmasters --update-env
+            else
+              # נסה קודם dist/index.js, ואם לא קיים אז index.js
+              if [ -f dist/index.js ]; then
+                pm2 start dist/index.js --name fcmasters
+              else
+                pm2 start index.js --name fcmasters
+              fi
+            fi
+            pm2 save
+          else
+            echo "PM2 not found on server. Install with: npm i -g pm2"
+            exit 1
+          fi
           EOF
