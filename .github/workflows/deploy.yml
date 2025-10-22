@@ -63,10 +63,10 @@ jobs:
 
       - name: Deploy to VPS
         env:
-          SSH_HOST_EFF: ${{ secrets.SSH_HOST_EFF }}
-          SSH_USER_EFF: ${{ secrets.SSH_USER_EFF }}
-          SSH_PORT_EFF: ${{ secrets.SSH_PORT_EFF }}
-          SSH_KEY_EFF: ${{ secrets.SSH_KEY_EFF }}
+          SSH_HOST_EFF: ${{ secrets.VPS_HOST }}
+          SSH_USER_EFF: ${{ secrets.VPS_USER }}
+          SSH_PORT_EFF: ${{ secrets.VPS_PORT }}
+          SSH_KEY_EFF: ${{ secrets.VPS_SSH_KEY }}
           DEPLOY_PATH_EFF: ${{ secrets.DEPLOY_PATH_EFF }}
         run: |
           set -euo pipefail
