@@ -1,82 +1,65 @@
-name: Deploy to VPS
+name: Build and Deploy
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
-  deploy:
-    name: Build and Deploy
+  build:
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
-        
-      - name: 🔧 Setup Node.js
+
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version-file: '.nvmrc'
           cache: 'npm'
           cache-dependency-path: |
+            package-lock.json
             server/package-lock.json
             client/package-lock.json
-      
-      - name: 📦 Install server dependencies
-        working-directory: ./server
+
+      # אופציונלי – אם יש תלות בשורש
+      - name: Install root deps
+        if: ${{ hashFiles('package-lock.json') != '' }}
+        run: npm ci --no-audit --fund=false
+
+      - name: Install server dependencies
+        working-directory: server
         run: |
           if [ -f package-lock.json ]; then
-            npm ci
+            npm ci --no-audit --fund=false
           else
-            npm install --no-audit --no-fund
+            npm install --no-audit --fund=false
           fi
-        
-      - name: 🏗️ Build server
-        working-directory: ./server
-        run: npm run build
-        
-      - name: 📦 Install client dependencies
-        working-directory: ./client
+
+      - name: Install client dependencies
+        if: ${{ hashFiles('client/package.json') != '' }}
+        working-directory: client
         run: |
           if [ -f package-lock.json ]; then
-            npm ci
+            npm ci --no-audit --fund=false
           else
-            npm install --no-audit --no-fund
+            npm install --no-audit --fund=false
           fi
-        
-      - name: 🏗️ Build client
-        working-directory: ./client
+
+      - name: Verify server tree
+        working-directory: server
+        run: npm ls >/dev/null
+
+      - name: Verify client tree
+        if: ${{ hashFiles('client/package.json') != '' }}
+        working-directory: client
+        run: npm ls >/dev/null
+
+      - name: Build server
+        working-directory: server
         run: npm run build
-        
-      - name: 🚀 Deploy to VPS
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT }}
-          source: "server/dist/,client/dist/,server/package.json,server/package-lock.json"
-          target: "/var/www/fcmasters/"
-          strip_components: 0
-          
-      - name: 🔄 Install production dependencies and restart
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT }}
-          script: |
-            echo "📂 Navigating to project directory..."
-            cd /var/www/fcmasters/server
-            
-            echo "📦 Installing production dependencies..."
-            npm install --production --omit=dev
-            
-            echo "🔄 Restarting PM2..."
-            pm2 restart fc-masters || pm2 start dist/index.js --name fc-masters
-            pm2 save
-            
-            echo "✅ Deployment completed!"
-            pm2 status
+
+      - name: Build client
+        working-directory: client
+        run: npm run build
