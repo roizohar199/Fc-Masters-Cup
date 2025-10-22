@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -11,97 +11,86 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
 
-      - name: Install root deps
-        run: npm ci
-
-      - name: Install server deps
-        working-directory: server
-        run: npm ci
-
+      # build client
       - name: Install client deps
         working-directory: client
         run: npm ci
-
-      - name: Build server
-        working-directory: server
-        run: npm run build
 
       - name: Build client
         working-directory: client
         run: npm run build
 
-      - name: Prepare artifact
+      # (אופציונלי) בדיקות שרת/לינטים
+      - name: Install server deps
+        working-directory: server
+        run: npm ci --omit=dev
+
+      # שמירת ארטיפקטים לביצת deploy נקייה
+      - name: Pack artifacts
         run: |
-          rm -rf artifact && mkdir -p artifact/server artifact/client
-          cp -r server/dist artifact/server/dist
-          cp server/package.json artifact/server/package.json
-          if [ -f server/package-lock.json ]; then cp server/package-lock.json artifact/server/package-lock.json; fi
-          cp -r client/dist artifact/client/dist
+          mkdir -p _artifact/client/dist
+          mkdir -p _artifact/server
+          rsync -a --delete client/dist/ _artifact/client/dist/
+          rsync -a --delete server/ _artifact/server/
+          # לא מעבירים node_modules של client/server
+          rm -rf _artifact/**/node_modules
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: fcmasters-build
-          path: artifact
+          name: fcmasters-artifact
+          path: _artifact
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: fcmasters-build
-          path: artifact
+          name: fcmasters-artifact
+          path: _artifact
 
-      - name: Deploy to VPS
-        env:
-          SSH_HOST_EFF: ${{ secrets.VPS_HOST }}
-          SSH_USER_EFF: ${{ secrets.VPS_USER }}
-          SSH_PORT_EFF: ${{ secrets.VPS_PORT }}
-          SSH_KEY_EFF: ${{ secrets.VPS_SSH_KEY }}
-          DEPLOY_PATH_EFF: ${{ secrets.DEPLOY_PATH_EFF }}
+      - name: Add SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Known hosts
         run: |
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      # סינכרון בטוח עם rsync: מסנכרנים רק את הארטיפקט, לא את כל ה-Workspace!
+      - name: Rsync server
+        run: |
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "mkdir -p /var/www/fcmasters/server /var/www/fcmasters/client/dist"
+          rsync -az --delete \
+            --exclude 'node_modules' \
+            _artifact/server/ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/fcmasters/server/
+          rsync -az --delete \
+            _artifact/client/dist/ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/fcmasters/client/dist/
+
+      - name: Restart PM2 on VPS
+        run: |
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
           set -euo pipefail
-          HOST="$SSH_HOST_EFF"
-          USER="$SSH_USER_EFF"
-          PORT="${SSH_PORT_EFF:-22}"
-          APP_DIR="$DEPLOY_PATH_EFF"
-          
-          # הגדרת SSH key
-          mkdir -p ~/.ssh
-          echo "$SSH_KEY_EFF" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p "$PORT" "$HOST" >> ~/.ssh/known_hosts
-
-          # גיבוי מהיר לפני עדכון
-          ssh -p "$PORT" -i ~/.ssh/id_rsa "$USER@$HOST" "cd '$APP_DIR' && cp -r server server.backup.$(date +%s) || true"
-          
-          # העלאה ישירה לתיקיית הפרויקט
-          rsync -az -e "ssh -p $PORT -i ~/.ssh/id_rsa" --delete ./artifact/ "$USER@$HOST:$APP_DIR/"
-
-          # התקנת תלויות production
-          ssh -p "$PORT" -i ~/.ssh/id_rsa "$USER@$HOST" bash -lc "
-            set -e
-            cd '$APP_DIR/server'
-            if [ -f package-lock.json ]; then
-              npm ci --omit=dev --no-audit --fund=false
-            else
-              npm install --omit=dev --no-audit --fund=false
-            fi
-
-            # הפעלה מחדש
-            if command -v pm2 >/dev/null 2>&1; then
-              pm2 restart fcmasters --update-env || pm2 start dist/index.js --name fcmasters
-              pm2 save || true
-            elif command -v systemctl >/dev/null 2>&1; then
-              sudo systemctl restart fcmasters
-            fi
-          "
+          cd /var/www/fcmasters/server
+          # התקנת תלויות שרת ביעד (אם צריך)
+          [ -f package-lock.json ] && npm ci --omit=dev || true
+          # הפעלה/ריסטארט
+          if pm2 describe fcmasters > /dev/null; then
+            pm2 restart fcmasters --update-env
+          else
+            # אם יש build ל-TypeScript – ודא שרץ מקובץ הנכון (dist/index.js)
+            pm2 start dist/index.js --name fcmasters || pm2 start index.js --name fcmasters
+          fi
+          pm2 save
+          EOF
