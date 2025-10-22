@@ -1,3 +1,101 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install root deps
+        run: npm ci
+
+      - name: Install server deps
+        working-directory: server
+        run: npm ci
+
+      - name: Install client deps
+        working-directory: client
+        run: npm ci
+
+      - name: Build server
+        working-directory: server
+        run: npm run build
+
+      - name: Build client
+        working-directory: client
+        run: npm run build
+
+      - name: Prepare artifact
+        run: |
+          rm -rf artifact && mkdir -p artifact/server artifact/client
+          cp -r server/dist artifact/server/dist
+          cp server/package.json artifact/server/package.json
+          if [ -f server/package-lock.json ]; then cp server/package-lock.json artifact/server/package-lock.json; fi
+          cp -r client/dist artifact/client/dist
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fcmasters-build
+          path: artifact
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: fcmasters-build
+          path: artifact
+
+      - name: Deploy to VPS
+        env:
+          SSH_HOST_EFF: ${{ secrets.SSH_HOST_EFF }}
+          SSH_USER_EFF: ${{ secrets.SSH_USER_EFF }}
+          SSH_PORT_EFF: ${{ secrets.SSH_PORT_EFF }}
+          DEPLOY_PATH_EFF: ${{ secrets.DEPLOY_PATH_EFF }}
+        run: |
+          set -euo pipefail
+          HOST="$SSH_HOST_EFF"
+          USER="$SSH_USER_EFF"
+          PORT="${SSH_PORT_EFF:-22}"
+          APP_DIR="$DEPLOY_PATH_EFF"
+
+          # גיבוי מהיר לפני עדכון
+          ssh -p "$PORT" "$USER@$HOST" "cd '$APP_DIR' && cp -r server server.backup.$(date +%s) || true"
+          
+          # העלאה ישירה לתיקיית הפרויקט
+          rsync -az -e "ssh -p $PORT" --delete ./artifact/ "$USER@$HOST:$APP_DIR/"
+
+          # התקנת תלויות production
+          ssh -p "$PORT" "$USER@$HOST" bash -lc "
+            set -e
+            cd '$APP_DIR/server'
+            if [ -f package-lock.json ]; then
+              npm ci --omit=dev --no-audit --fund=false
+            else
+              npm install --omit=dev --no-audit --fund=false
+            fi
+
+            # הפעלה מחדש
+            if command -v pm2 >/dev/null 2>&1; then
+              pm2 restart fcmasters --update-env || pm2 start dist/index.js --name fcmasters
+              pm2 save || true
+            elif command -v systemctl >/dev/null 2>&1; then
+              sudo systemctl restart fcmasters
+            fi
+          "
 name: Build and Deploy
 
 on:

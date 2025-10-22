@@ -42,7 +42,7 @@ print_gray() {
 
 # רשימת תהליכים לעצירה (כל השמות הלא נכונים)
 processes_to_stop=(
-    "fcmasters"
+    "fc-masters"
     "fc-masters-cup"
     "fc-masters-backend"
     "fc-masters-cup-backend"
@@ -73,27 +73,27 @@ for process_name in "${processes_to_stop[@]}"; do
     fi
 done
 
-# וידוא ש-fc-masters רץ
-print_info "בודק תהליך fc-masters..."
+# וידוא ש-fcmasters רץ
+print_info "בודק תהליך fcmasters..."
 
-if pm2 list | grep -q "fc-masters"; then
-    print_success "תהליך fc-masters קיים"
+if pm2 list | grep -q "fcmasters"; then
+    print_success "תהליך fcmasters קיים"
     
     # בדיקה אם הוא רץ
-    if pm2 list | grep "fc-masters" | grep -q "online"; then
-        print_success "תהליך fc-masters רץ"
+    if pm2 list | grep "fcmasters" | grep -q "online"; then
+        print_success "תהליך fcmasters רץ"
     else
-        print_warning "תהליך fc-masters לא רץ - מפעיל מחדש"
-        pm2 restart fc-masters
+        print_warning "תהליך fcmasters לא רץ - מפעיל מחדש"
+        pm2 restart fcmasters
     fi
 else
-    print_error "תהליך fc-masters לא קיים!"
-    print_warning "יוצר תהליך fc-masters חדש..."
+    print_error "תהליך fcmasters לא קיים!"
+    print_warning "יוצר תהליך fcmasters חדש..."
     
     # בדיקה אם קיים קובץ dist
     if [ -f "server/dist/index.js" ]; then
-        pm2 start server/dist/index.js --name fc-masters
-        print_success "תהליך fc-masters נוצר"
+        pm2 start server/dist/index.js --name fcmasters
+        print_success "תהליך fcmasters נוצר"
     else
         print_error "קובץ server/dist/index.js לא קיים!"
         print_warning "הרץ קודם: npm run build"
@@ -110,10 +110,10 @@ pm2 list
 
 echo ""
 print_success "🎉 ניקוי PM2 הושלם!"
-print_success "✅ רק תהליך fc-masters אמור לרוץ עכשיו"
+print_success "✅ רק תהליך fcmasters אמור לרוץ עכשיו"
 echo ""
 print_info "פקודות שימושיות:"
-echo "  - צפה בלוגים: pm2 logs fc-masters"
-echo "  - הפעל מחדש: pm2 restart fc-masters"
+echo "  - צפה בלוגים: pm2 logs fcmasters"
+echo "  - הפעל מחדש: pm2 restart fcmasters"
 echo "  - סטטוס: pm2 status"
-echo "  - עצור: pm2 stop fc-masters"
+echo "  - עצור: pm2 stop fcmasters"
