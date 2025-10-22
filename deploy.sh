@@ -96,6 +96,15 @@ print_success "Client code built successfully"
 print_warning "⚠️  Skipping Nginx configuration update (manual config preserved)"
 print_warning "⚠️  Skipping .env file update (existing environment preserved)"
 
+# Clean up any duplicate PM2 processes first
+print_status "Cleaning up duplicate PM2 processes..."
+pm2 stop fcmasters 2>/dev/null || true
+pm2 delete fcmasters 2>/dev/null || true
+pm2 stop fc-masters-cup 2>/dev/null || true
+pm2 delete fc-masters-cup 2>/dev/null || true
+pm2 stop fc-masters-backend 2>/dev/null || true
+pm2 delete fc-masters-backend 2>/dev/null || true
+
 # Restart PM2
 print_status "Restarting application..."
 cd "$PROJECT_DIR/server"
