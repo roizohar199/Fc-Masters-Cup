@@ -66,6 +66,7 @@ jobs:
           SSH_HOST_EFF: ${{ secrets.SSH_HOST_EFF }}
           SSH_USER_EFF: ${{ secrets.SSH_USER_EFF }}
           SSH_PORT_EFF: ${{ secrets.SSH_PORT_EFF }}
+          SSH_KEY_EFF: ${{ secrets.SSH_KEY_EFF }}
           DEPLOY_PATH_EFF: ${{ secrets.DEPLOY_PATH_EFF }}
         run: |
           set -euo pipefail
@@ -73,15 +74,21 @@ jobs:
           USER="$SSH_USER_EFF"
           PORT="${SSH_PORT_EFF:-22}"
           APP_DIR="$DEPLOY_PATH_EFF"
+          
+          # הגדרת SSH key
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY_EFF" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p "$PORT" "$HOST" >> ~/.ssh/known_hosts
 
           # גיבוי מהיר לפני עדכון
-          ssh -p "$PORT" "$USER@$HOST" "cd '$APP_DIR' && cp -r server server.backup.$(date +%s) || true"
+          ssh -p "$PORT" -i ~/.ssh/id_rsa "$USER@$HOST" "cd '$APP_DIR' && cp -r server server.backup.$(date +%s) || true"
           
           # העלאה ישירה לתיקיית הפרויקט
-          rsync -az -e "ssh -p $PORT" --delete ./artifact/ "$USER@$HOST:$APP_DIR/"
+          rsync -az -e "ssh -p $PORT -i ~/.ssh/id_rsa" --delete ./artifact/ "$USER@$HOST:$APP_DIR/"
 
           # התקנת תלויות production
-          ssh -p "$PORT" "$USER@$HOST" bash -lc "
+          ssh -p "$PORT" -i ~/.ssh/id_rsa "$USER@$HOST" bash -lc "
             set -e
             cd '$APP_DIR/server'
             if [ -f package-lock.json ]; then
