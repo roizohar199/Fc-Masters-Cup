@@ -107,7 +107,7 @@ chmod 600 ~/.ssh/authorized_keys
 ### 3. הוסף Secrets ל-GitHub
 גש ל:
 ```
-https://github.com/roizohar199/Fc-Masters-Cup/settings/secrets/actions
+https://github.com/roizohar199/fcmasters/settings/secrets/actions
 ```
 
 הוסף:

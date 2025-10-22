@@ -50,7 +50,7 @@ chmod 600 ~/.ssh/authorized_keys
 
 1. **גש ל-GitHub:**
    ```
-   https://github.com/roizohar199/Fc-Masters-Cup/settings/secrets/actions
+   https://github.com/roizohar199/fcmasters/settings/secrets/actions
    ```
 
 2. **לחץ:** `New repository secret`
@@ -127,7 +127,7 @@ git push origin master
 
 ### 1. בדוק ב-GitHub Actions:
 ```
-https://github.com/roizohar199/Fc-Masters-Cup/actions
+https://github.com/roizohar199/fcmasters/actions
 ```
 
 תראה את ה-deployment רץ בזמן אמת!

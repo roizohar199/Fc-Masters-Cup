@@ -12,7 +12,7 @@ ssh root@your-server-ip
 cd /var/www/fcmasters
 
 # 3. הורד את הסקריפט (או העתק ידנית)
-wget https://raw.githubusercontent.com/roizohar199/Fc-Masters-Cup/master/setup-server-for-websocket.sh
+wget https://raw.githubusercontent.com/roizohar199/fcmasters/master/setup-server-for-websocket.sh
 
 # 4. הרץ את הסקריפט
 chmod +x setup-server-for-websocket.sh
@@ -192,7 +192,7 @@ pm2 logs fc-masters
 ---
 
 **יש בעיה?** בדוק את הלוגים:
-- GitHub Actions: https://github.com/YOUR-USERNAME/Fc-Masters-Cup/actions
+- GitHub Actions: https://github.com/roizohar199/fcmasters/actions
 - Nginx: `sudo tail -f /var/log/nginx/error.log`
 - Server: `pm2 logs fc-masters`
 

@@ -69,7 +69,7 @@ chmod 700 ~/.ssh
 
 **גש לדף זה:**
 ```
-https://github.com/roizohar199/Fc-Masters-Cup/settings/secrets/actions
+https://github.com/roizohar199/fcmasters/settings/secrets/actions
 ```
 
 **לחץ 4 פעמים על `New repository secret` והוסף:**
@@ -146,7 +146,7 @@ git push origin master
 ### צפה ב-deployment בזמן אמת:
 
 ```
-https://github.com/roizohar199/Fc-Masters-Cup/actions
+https://github.com/roizohar199/fcmasters/actions
 ```
 
 אתה תראה:
@@ -166,7 +166,7 @@ https://github.com/roizohar199/Fc-Masters-Cup/actions
 
 ### 1. GitHub Actions:
 ```
-https://github.com/roizohar199/Fc-Masters-Cup/actions
+https://github.com/roizohar199/fcmasters/actions
 ```
 צריך להיות **ירוק ✅**
 
@@ -216,7 +216,7 @@ git push origin master
 
 **1. בדוק את הלוגים:**
 ```
-https://github.com/roizohar199/Fc-Masters-Cup/actions
+https://github.com/roizohar199/fcmasters/actions
 ```
 לחץ על הריצה האדומה ובדוק את השגיאה
 

@@ -2,7 +2,7 @@
 
 # 🎯 התחל כאן - הגדרת Deployment אוטומטי
 
-**זמן: 10 דקות** | **GitHub Repository:** https://github.com/roizohar199/Fc-Masters-Cup
+**זמן: 10 דקות** | **GitHub Repository:** https://github.com/roizohar199/fcmasters
 
 ---
 
@@ -53,7 +53,7 @@ npm run deploy:setup
 
 גש ל:
 ```
-https://github.com/roizohar199/Fc-Masters-Cup/settings/secrets/actions
+https://github.com/roizohar199/fcmasters/settings/secrets/actions
 ```
 
 הוסף 4 Secrets (הסקריפט יציג את הערכים):
@@ -103,7 +103,7 @@ git push origin master
 
 **ותראה את ה-deployment רץ אוטומטית ב:**
 ```
-https://github.com/roizohar199/Fc-Masters-Cup/actions
+https://github.com/roizohar199/fcmasters/actions
 ```
 
 ---
@@ -118,7 +118,7 @@ https://github.com/roizohar199/Fc-Masters-Cup/actions
 
 ### שאלה: איך אני יודע שזה עבד?
 **תשובה:** 
-1. גש ל: https://github.com/roizohar199/Fc-Masters-Cup/actions
+1. גש ל: https://github.com/roizohar199/fcmasters/actions
 2. תראה "Deploy to Hostinger VPS" ירוק ✅
 
 ---

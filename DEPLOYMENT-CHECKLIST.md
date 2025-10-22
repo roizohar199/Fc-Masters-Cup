@@ -80,7 +80,7 @@
 
 ### הוסף ל-GitHub:
 
-- [ ] גש ל: `https://github.com/roizohar199/Fc-Masters-Cup/settings/secrets/actions`
+- [ ] גש ל: `https://github.com/roizohar199/fcmasters/settings/secrets/actions`
 - [ ] לחץ: **New repository secret**
 
 הוסף 4 Secrets:
@@ -215,7 +215,7 @@
 
 ### ב-GitHub:
 
-- [ ] גש ל: `https://github.com/roizohar199/Fc-Masters-Cup`
+- [ ] גש ל: `https://github.com/roizohar199/fcmasters`
 - [ ] לחץ על: **Actions** (בתפריט העליון)
 - [ ] תראה: **Deploy to Hostinger VPS** (רץ עכשיו)
 - [ ] **לחץ עליו** לראות לוגים

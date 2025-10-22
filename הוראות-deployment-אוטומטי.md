@@ -2,7 +2,7 @@
 
 # 🚀 הוראות Deployment אוטומטי - רועי זוהר
 
-**Repository:** https://github.com/roizohar199/Fc-Masters-Cup  
+**Repository:** https://github.com/roizohar199/fcmasters  
 **זמן ביצוע:** 10-15 דקות
 
 ---
@@ -81,7 +81,7 @@ ssh-rsa AAAA...
 הסקריפט יציג לך את ה-Private Key.
 
 **אתה תצטרך:**
-1. לך ל: https://github.com/roizohar199/Fc-Masters-Cup/settings/secrets/actions
+1. לך ל: https://github.com/roizohar199/fcmasters/settings/secrets/actions
 2. לחץ **New repository secret** 4 פעמים והוסף:
 
 **Secret 1:**
@@ -136,14 +136,14 @@ git push origin master
 ```
 
 **עכשיו תראה את זה רץ:**
-https://github.com/roizohar199/Fc-Masters-Cup/actions
+https://github.com/roizohar199/fcmasters/actions
 
 ---
 
 ## ✅ איך אני יודע שזה עבד?
 
 ### ב-GitHub:
-1. גש ל: https://github.com/roizohar199/Fc-Masters-Cup/actions
+1. גש ל: https://github.com/roizohar199/fcmasters/actions
 2. תראה **"Deploy to Hostinger VPS"**
 3. הכל צריך להיות **ירוק** ✅
 

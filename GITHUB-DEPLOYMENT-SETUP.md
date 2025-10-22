@@ -113,7 +113,7 @@ cat $HOME\.ssh\github_actions_rsa
 
 1. **גש לריפו שלך ב-GitHub**:
    ```
-   https://github.com/roizohar199/Fc-Masters-Cup
+   https://github.com/roizohar199/fcmasters
    ```
 
 2. **לחץ על**: `Settings` (בתפריט העליון)
