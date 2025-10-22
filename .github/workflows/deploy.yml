@@ -2,8 +2,13 @@ name: Build and Deploy
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ "**" ]   # נריץ build על כל ענף
   workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: "Run deploy even if not on main?"
+        required: false
+        default: "false"
 
 jobs:
   build:
@@ -82,8 +87,16 @@ jobs:
   deploy:
     name: Deploy to VPS
     needs: build
-    if: ${{ github.ref == 'refs/heads/main' && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
+    # רץ אם ה-build הצליח וגם:
+    # - אנחנו על main/master, או
+    # - הופעל ידנית וביקשנו force_deploy=true
+    if: >
+      needs.build.result == 'success' && (
+        github.ref_name == 'main' ||
+        github.ref_name == 'master' ||
+        (github.event_name == 'workflow_dispatch' && inputs.force_deploy == 'true')
+      )
     
     env:
       SSH_PRIVATE_KEY_EFF: ${{ secrets.VPS_SSH_KEY }}
@@ -93,6 +106,15 @@ jobs:
       DEPLOY_PATH_EFF:     ${{ secrets.DEPLOY_PATH  != '' && secrets.DEPLOY_PATH  || '/var/www/fcmasters' }}
     
     steps:
+      - name: Debug context
+        run: |
+          echo "event_name=${{ github.event_name }}"
+          echo "ref=${{ github.ref }}"
+          echo "ref_name=${{ github.ref_name }}"
+          echo "base_ref=${{ github.base_ref }}"
+          echo "head_ref=${{ github.head_ref }}"
+          echo "force_deploy=${{ inputs.force_deploy }}"
+
       - name: Checkout code
         uses: actions/checkout@v4
 
