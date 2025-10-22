@@ -80,6 +80,7 @@ jobs:
           retention-days: 7
 
   deploy:
+    name: Deploy to VPS
     needs: build
     if: ${{ github.ref == 'refs/heads/master' && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
@@ -92,69 +93,100 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
+          path: ./artifact
 
-      - name: Deploy to VPS
+      # טוען את המפתח הפרטי ל-ssh-agent (פותר Permission denied ו-libcrypto errors)
+      - name: Start ssh-agent and add key
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # מוסיף את השרת ל-known_hosts (ללא אינטראקציה)
+      - name: Add VPS host to known_hosts
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ secrets.VPS_USER }}
+          SSH_HOST: ${{ secrets.SSH_HOST || secrets.VPS_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
         run: |
-          # Setup SSH
           mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+          ssh-keyscan -p "$SSH_PORT" "$SSH_HOST" >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      # דפלוי אטומי: העלאה לתיקיית release חדשה והחלפת symlink
+      - name: Deploy to VPS (rsync + atomic release)
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST || secrets.VPS_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER || secrets.VPS_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/var/www/fcmasters' }}
+          RUN: ${{ github.run_number }}
+        run: |
+          set -e
           
-          # Atomic deployment with releases
-          APP_DIR="/var/www/fcmasters"
-          RELEASE_DIR="$APP_DIR/releases/${{ github.run_number }}"
+          RELEASE_DIR="${DEPLOY_PATH}/releases/${RUN}"
           
-          # Create release directory on VPS
-          ssh "$VPS_USER@$VPS_HOST" "mkdir -p $RELEASE_DIR"
+          echo "🚀 Deploying build #${RUN} to ${SSH_USER}@${SSH_HOST}:${RELEASE_DIR}"
           
-          # Upload files to release directory
-          rsync -az --delete \
+          # יצירת תיקיית release בשרת
+          ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p ${RELEASE_DIR}"
+          
+          # העלאת artifacts (server/dist + client/dist)
+          echo "📦 Uploading build artifacts..."
+          rsync -az -e "ssh -p $SSH_PORT" --delete \
             --exclude 'node_modules' \
             --exclude '.git' \
             --exclude 'tournaments.sqlite' \
-            ./ "$VPS_USER@$VPS_HOST:$RELEASE_DIR/"
+            ./artifact/ "$SSH_USER@$SSH_HOST:${RELEASE_DIR}/"
           
-          # Install production dependencies and atomic switch
-          ssh "$VPS_USER@$VPS_HOST" << 'ENDSSH'
-          set -e
+          echo "⚙️  Running remote deployment commands..."
           
-          APP_DIR="/var/www/fcmasters"
-          RELEASE_DIR="$APP_DIR/releases/${{ github.run_number }}"
-          
-          # Install production dependencies in release directory
-          cd "$RELEASE_DIR/server"
-          npm ci --only=production --no-audit --fund=false
-          
-          # Copy .env if exists (from current to new release)
-          if [ -f "$APP_DIR/current/.env" ]; then
-            cp "$APP_DIR/current/.env" "$RELEASE_DIR/.env"
-          fi
-          
-          # Copy database if exists (keep existing data)
-          if [ -f "$APP_DIR/current/tournaments.sqlite" ]; then
-            cp "$APP_DIR/current/tournaments.sqlite" "$RELEASE_DIR/tournaments.sqlite"
-          fi
-          
-          # Atomic symlink switch
-          ln -sfn "$RELEASE_DIR" "$APP_DIR/current"
-          
-          # Reload service (graceful reload or restart)
-          if command -v pm2 &> /dev/null; then
-            pm2 reload fcmasters || pm2 restart fcmasters
-          elif systemctl is-active --quiet fcmasters; then
-            sudo systemctl reload fcmasters || sudo systemctl restart fcmasters
-          else
-            echo "Warning: No process manager found. Manual restart may be needed."
-          fi
-          
-          # Cleanup old releases (keep last 5)
-          cd "$APP_DIR/releases"
-          ls -t | tail -n +6 | xargs -r rm -rf
-          
-          echo "✅ Deployment completed successfully!"
-          ENDSSH
+      - name: Install dependencies and switch release
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST || secrets.VPS_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER || secrets.VPS_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/var/www/fcmasters' }}
+          RUN: ${{ github.run_number }}
+        run: |
+          ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" bash -lc "
+            set -e
+            
+            APP_DIR='${DEPLOY_PATH}'
+            RELEASE_DIR=\"\${APP_DIR}/releases/${RUN}\"
+            
+            echo '📦 Installing production dependencies...'
+            cd \"\${RELEASE_DIR}/server\"
+            npm ci --only=production --no-audit --fund=false
+            
+            # העתקת .env מהגרסה הנוכחית (אם קיימת)
+            if [ -f \"\${APP_DIR}/current/.env\" ]; then
+              echo '🔐 Copying .env from current release...'
+              cp \"\${APP_DIR}/current/.env\" \"\${RELEASE_DIR}/.env\"
+            fi
+            
+            # העתקת DB קיים (שמירת נתונים)
+            if [ -f \"\${APP_DIR}/current/tournaments.sqlite\" ]; then
+              echo '💾 Copying database from current release...'
+              cp \"\${APP_DIR}/current/tournaments.sqlite\" \"\${RELEASE_DIR}/tournaments.sqlite\"
+            fi
+            
+            # החלפת symlink אטומית
+            echo '🔄 Switching to new release...'
+            ln -sfn \"\${RELEASE_DIR}\" \"\${APP_DIR}/current\"
+            
+            # טעינה מחדש של השירות (graceful reload)
+            echo '♻️  Reloading application...'
+            if command -v pm2 >/dev/null 2>&1; then
+              pm2 reload fcmasters || pm2 start \"\${APP_DIR}/current/server/dist/index.js\" --name fcmasters
+            elif command -v systemctl >/dev/null 2>&1; then
+              sudo systemctl reload fcmasters || sudo systemctl restart fcmasters
+            else
+              echo '⚠️  Warning: No process manager found (pm2/systemd). Manual restart needed.'
+            fi
+            
+            # ניקוי גרסאות ישנות (שמירת 5 אחרונות)
+            echo '🧹 Cleaning up old releases...'
+            cd \"\${APP_DIR}/releases\"
+            ls -t | tail -n +6 | xargs -r rm -rf
+            
+            echo '✅ Deployment completed successfully!'
+          "
