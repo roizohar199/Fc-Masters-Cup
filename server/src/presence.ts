@@ -93,6 +93,22 @@ function snapshot() {
     console.log(`📊 Snapshot: ${up.email} - isOnline=${up.isOnline}, isActive=${isActive}, connections=${up.conns.size}, lastActivity=${new Date(up.lastActivity).toLocaleTimeString()}`);
   }
   
+  // הוסף משתמשים עם recent login שאין להם WebSocket connection
+  for (const [email, loginTime] of recentLogins.entries()) {
+    const isAlreadyInResult = result.some(r => r.email === email);
+    if (!isAlreadyInResult && (now - loginTime) <= (2 * 60 * 1000)) { // 2 דקות
+      console.log(`🔍 Adding recent login user: ${email} (${Math.round((now - loginTime) / 1000)}s ago)`);
+      result.push({
+        uid: email, // fallback למקרה שאין uid
+        email: email,
+        lastSeen: loginTime,
+        isOnline: true,
+        isActive: false,
+        connections: 0
+      });
+    }
+  }
+  
   console.log(`📊 Snapshot result: ${result.length} users total (${result.filter(u => u.isOnline).length} online)`);
   return result;
 }
@@ -310,9 +326,26 @@ export function broadcastEvent(type: string, data: any) {
 export async function getOnlineUserIds(): Promise<string[]> {
   try {
     const presenceData = snapshot();
-    return presenceData
-      .filter(p => p.isOnline)
-      .map(p => p.uid);
+    const onlineUsers = presenceData.filter(p => p.isOnline);
+    
+    // נמיר email ל-id מהמסד נתונים
+    const db = (await import("./db.js")).default;
+    const userIds: string[] = [];
+    
+    for (const user of onlineUsers) {
+      try {
+        const dbUser = db.prepare("SELECT id FROM users WHERE email = ?").get(user.email) as any;
+        if (dbUser) {
+          userIds.push(dbUser.id);
+          console.log(`🔍 Online user: ${user.email} -> ${dbUser.id}`);
+        }
+      } catch (dbError) {
+        console.warn(`[PRESENCE] Failed to get user ID for email ${user.email}:`, dbError);
+      }
+    }
+    
+    console.log(`📊 getOnlineUserIds returning ${userIds.length} online user IDs:`, userIds);
+    return userIds;
   } catch (error) {
     console.warn("[PRESENCE] Failed to get online user IDs:", error);
     return [];
@@ -349,13 +382,12 @@ export async function getPresenceData() {
       const now = Date.now();
       const recentLogin = recentLogins.get(user.email);
       
-      // משתמש נחשב אונליין רק אם יש לו WebSocket connection פעיל
-      // recent login משמש רק כגיבוי במקרה של בעיות WebSocket
+      // משתמש נחשב אונליין אם יש לו WebSocket connection פעיל או recent login
       const hasWebSocketConnection = presence?.isOnline || false;
       const hasRecentLogin = recentLogin && (now - recentLogin) <= (2 * 60 * 1000); // 2 דקות בלבד
       
-      // עדיפות ל-WebSocket connection, עם fallback ל-recent login
-      const isOnline = hasWebSocketConnection || (hasRecentLogin && !presence);
+      // משתמש אונליין אם יש לו WebSocket connection או recent login
+      const isOnline = hasWebSocketConnection || hasRecentLogin;
       const isActive = presence?.isActive || false;
       
       // לוג מפורט לניפוי באגים

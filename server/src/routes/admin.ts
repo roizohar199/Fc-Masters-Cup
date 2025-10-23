@@ -85,7 +85,7 @@ admin.get("/users/online-status", async (req, res) => {
     
     res.json({
       allUsers: usersWithStatus,
-      onlineUsers,
+      onlineUsers: onlineUsers.map(user => user.id), // מחזיר רק את ה-ID-ים
       total: allUsers.length,
       online: onlineUsers.length
     });
