@@ -98,9 +98,9 @@ export default function MatchCard({ match, homePlayer, awayPlayer, onRefresh }: 
             : "transparent",
           borderRadius: "8px 8px 0 0"
         }}>
-          <div style={{ fontWeight: 600, fontSize: 15 }}>
+          <div style={{ fontWeight: 600, fontSize: 15, color: "#000" }}>
             {homePlayer?.displayName || "TBD"}
-            <div style={{ fontSize: 12, color: "#666", fontWeight: 400 }}>
+            <div style={{ fontSize: 12, color: "#333", fontWeight: 400 }}>
               {homePlayer?.psn}
             </div>
           </div>
@@ -128,9 +128,9 @@ export default function MatchCard({ match, homePlayer, awayPlayer, onRefresh }: 
             : "transparent",
           borderRadius: "0 0 8px 8px"
         }}>
-          <div style={{ fontWeight: 600, fontSize: 15 }}>
+          <div style={{ fontWeight: 600, fontSize: 15, color: "#000" }}>
             {awayPlayer?.displayName || "TBD"}
-            <div style={{ fontSize: 12, color: "#666", fontWeight: 400 }}>
+            <div style={{ fontSize: 12, color: "#333", fontWeight: 400 }}>
               {awayPlayer?.psn}
             </div>
           </div>

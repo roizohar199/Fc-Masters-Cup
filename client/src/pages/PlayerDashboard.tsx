@@ -5,8 +5,11 @@ import { useStore } from "../store";
 import PlayerDashboardChampions from "../components/PlayerDashboardChampions";
 import { TournamentSignupCard } from "../components/TournamentSignupCard";
 import { NotificationBanner } from "../components/NotificationBanner";
+import { GlobalTelegramLink } from "../components/GlobalTelegramLink";
 import { getRoundName } from "../utils/rounds";
 import "../styles/championsLeague.css";
+import { PlayerTournamentStatus } from "../components/PlayerTournamentStatus";
+import { PlayerNotifications } from "../components/PlayerNotifications";
 
 interface PlayerInfo {
   email: string;
@@ -80,21 +83,23 @@ export default function PlayerDashboard() {
       if (tournaments && tournaments.length > 0) {
         let selectedTournament;
         
-        // נחפש טורניר עם קישור טלגרם (עדיפות ראשונה)
-        const tournamentWithTelegram = tournaments.find(t => t.telegramLink && t.telegramLink.trim() !== "");
-        
-        if (tournamentWithTelegram) {
-          selectedTournament = tournamentWithTelegram;
-          console.log("🎯 נמצא טורניר עם קישור טלגרם:", selectedTournament);
-        }
         // אם יש tournamentId ב-store, נחפש את הטורניר הספציפי
-        else if (tournamentId) {
+        if (tournamentId && tournamentId !== "default") {
           selectedTournament = tournaments.find(t => t.id === tournamentId);
           console.log("🎯 חיפוש טורניר לפי ID:", tournamentId);
           console.log("🎯 טורניר שנמצא:", selectedTournament);
         }
         
-        // אם לא מצאנו או שאין tournamentId, ניקח את הטורניר האחרון
+        // אם לא מצאנו, נחפש טורניר עם קישור טלגרם (עדיפות ראשונה)
+        if (!selectedTournament) {
+          const tournamentWithTelegram = tournaments.find(t => t.telegramLink && t.telegramLink.trim() !== "");
+          if (tournamentWithTelegram) {
+            selectedTournament = tournamentWithTelegram;
+            console.log("🎯 נמצא טורניר עם קישור טלגרם:", selectedTournament);
+          }
+        }
+        
+        // אם עדיין לא מצאנו, ניקח את הטורניר האחרון
         if (!selectedTournament) {
           selectedTournament = tournaments[tournaments.length - 1];
           console.log("🎯 לא נמצא טורניר ספציפי, לוקח את האחרון:", selectedTournament);
@@ -219,6 +224,69 @@ export default function PlayerDashboard() {
         getParallelMatches={getParallelMatches}
         getMatchResult={getMatchResult}
       />
+
+      {/* קישור טלגרם כללי לתמיכה */}
+      <GlobalTelegramLink isMobile={isMobile} />
+      
+      {/* סטטוס הרישום וההגרלה */}
+      <PlayerTournamentStatus 
+        tournament={tournament}
+        myMatches={myMatches}
+        isMobile={isMobile}
+      />
+      
+      {/* הודעות למשתמש */}
+      <PlayerNotifications isMobile={isMobile} />
+      
+      {/* קישור טלגרם של הטורניר הספציפי */}
+      {tournament?.telegramLink && (
+        <div style={{
+          backgroundColor: "#e3f2fd",
+          padding: isMobile ? 16 : 20,
+          borderRadius: isMobile ? 12 : 16,
+          border: "2px solid #2196f3",
+          marginBottom: isMobile ? 16 : 24
+        }}>
+          <div style={{ 
+            display: "flex", 
+            flexDirection: isMobile ? "column" : "row",
+            alignItems: isMobile ? "stretch" : "center", 
+            gap: isMobile ? 16 : 12, 
+            justifyContent: "space-between" 
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 12 }}>
+              <div style={{ fontSize: isMobile ? 28 : 36 }}>🏆</div>
+              <div>
+                <h3 style={{ fontSize: isMobile ? 16 : 20, fontWeight: 700, color: "#1565c0", margin: 0 }}>
+                  קבוצת הטורניר
+                </h3>
+                <p style={{ fontSize: isMobile ? 12 : 14, color: "#1976d2", margin: "4px 0 0 0" }}>
+                  הצטרף לקבוצת הטלגרם של הטורניר לתשלום ומידע
+                </p>
+              </div>
+            </div>
+            <a 
+              href={tournament.telegramLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                padding: isMobile ? "12px 20px" : "12px 24px",
+                background: "#2196f3",
+                color: "#fff",
+                textDecoration: "none",
+                borderRadius: 10,
+                fontWeight: 700,
+                fontSize: isMobile ? 14 : 15,
+                textAlign: "center",
+                display: "inline-block",
+                minWidth: isMobile ? "auto" : "140px"
+              }}
+            >
+              הצטרף לטורניר 📱
+            </a>
+          </div>
+        </div>
+      )}
       
       {/* הגרסה הישנה (מוסתרת) */}
       <div style={{ display: "none" }}>

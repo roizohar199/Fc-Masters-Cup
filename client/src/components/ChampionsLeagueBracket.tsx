@@ -343,7 +343,8 @@ export default function ChampionsLeagueBracket({ matches, players, onRefresh }: 
                     maxWidth: 100,
                     overflow: "hidden",
                     textOverflow: "ellipsis",
-                    whiteSpace: "nowrap"
+                    whiteSpace: "nowrap",
+                    color: "#000"
                   }}>
                     {homePlayer?.psn || 'TBD'}
                   </span>
@@ -368,7 +369,8 @@ export default function ChampionsLeagueBracket({ matches, players, onRefresh }: 
                     maxWidth: 100,
                     overflow: "hidden",
                     textOverflow: "ellipsis",
-                    whiteSpace: "nowrap"
+                    whiteSpace: "nowrap",
+                    color: "#000"
                   }}>
                     {awayPlayer?.psn || 'TBD'}
                   </span>

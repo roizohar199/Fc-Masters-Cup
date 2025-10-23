@@ -164,7 +164,7 @@ export default function PlayersList({ players, isMobile = false }: PlayersListPr
                 style={{
                   fontSize: isMobile ? 14 : 16,
                   fontWeight: 700,
-                  color: "#333",
+                  color: "#000",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap"
@@ -176,7 +176,7 @@ export default function PlayersList({ players, isMobile = false }: PlayersListPr
                 <div
                   style={{
                     fontSize: isMobile ? 11 : 12,
-                    color: "#666",
+                    color: "#333",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap"

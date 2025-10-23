@@ -31,6 +31,7 @@ export default function AdminDashboard() {
   const [nextTournamentDate, setNextTournamentDate] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [telegramLink, setTelegramLink] = useState("");
+  const [globalTelegramLink, setGlobalTelegramLink] = useState("");
   
   // הוספת מנהל חדש
   const [newAdminEmail, setNewAdminEmail] = useState("");
@@ -117,6 +118,7 @@ export default function AdminDashboard() {
     loadUsers();
     loadTournaments();
     loadTournamentRegistrations();
+    loadGlobalTelegramLink();
   }, []);
 
   async function loadCurrentUser() {
@@ -502,6 +504,35 @@ export default function AdminDashboard() {
       await loadTournaments();
     } catch (error: any) {
       alert(`❌ שגיאה במחיקת הטורניר: ${error.message}`);
+    }
+  }
+
+  // טעינת קישור טלגרם כללי
+  async function loadGlobalTelegramLink() {
+    try {
+      const response = await api("/api/settings/global_telegram_link");
+      if (response.ok && response.setting) {
+        setGlobalTelegramLink(response.setting.value || "");
+      }
+    } catch (error) {
+      console.log("קישור טלגרם כללי לא נמצא או שגיאה בטעינה");
+    }
+  }
+
+  // שמירת קישור טלגרם כללי
+  async function saveGlobalTelegramLink() {
+    try {
+      await api("/api/settings", {
+        method: "POST",
+        body: {
+          key: "global_telegram_link",
+          value: globalTelegramLink,
+          description: "קישור טלגרם כללי לתמיכה ושאלות"
+        }
+      });
+      alert("✅ קישור הטלגרם הכללי נשמר בהצלחה!");
+    } catch (error: any) {
+      alert(`❌ שגיאה בשמירת הקישור: ${error.message}`);
     }
   }
 
@@ -2902,6 +2933,58 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* ניהול קישור טלגרם כללי */}
+      <div style={{
+        backgroundColor: "#fff",
+        padding: 24,
+        borderRadius: 16,
+        boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
+        marginBottom: 24
+      }}>
+        <h3 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 16px 0", color: "#333" }}>
+          💬 קישור טלגרם כללי לתמיכה
+        </h3>
+        <p style={{ fontSize: 14, color: "#666", margin: "0 0 16px 0" }}>
+          קישור זה יופיע תמיד בדף המשתמש הרגיל לצורך תמיכה ושאלות
+        </p>
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <input
+            type="text"
+            value={globalTelegramLink}
+            onChange={e => setGlobalTelegramLink(e.target.value)}
+            placeholder="קישור לקבוצת טלגרם כללית (לדוגמה: https://t.me/...)"
+            style={{
+              flex: 1,
+              padding: 14,
+              borderRadius: 10,
+              border: "2px solid #e0e0e0",
+              fontSize: 15,
+              backgroundColor: "rgba(255, 255, 255, 0.95)",
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)"
+            }}
+          />
+          <button
+            onClick={saveGlobalTelegramLink}
+            style={{
+              padding: "14px 24px",
+              borderRadius: 10,
+              border: "none",
+              fontSize: 15,
+              fontWeight: 700,
+              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              color: "#fff",
+              cursor: "pointer",
+              boxShadow: "0 4px 15px rgba(102, 126, 234, 0.4)",
+              transition: "all 0.3s"
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"}
+            onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}
+          >
+            💾 שמור
+          </button>
+        </div>
+      </div>
 
       <div style={{
         backgroundColor: "#fff",
