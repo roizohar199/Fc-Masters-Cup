@@ -20,6 +20,13 @@ jobs:
         with:
           node-version: '20'
 
+          - name: Deploy build to Hostinger
+  run: |
+    rsync -avz --delete _artifact/client/dist/ root@${{ secrets.SSH_HOST }}:/var/www/fcmasters/client/dist/
+    rsync -avz --delete _artifact/server/      root@${{ secrets.SSH_HOST }}:/var/www/fcmasters/server/
+    ssh -p ${{ secrets.SSH_PORT }} root@${{ secrets.SSH_HOST }} "pm2 restart fcmasters && pm2 save"
+
+    
       # ---------- CLIENT ----------
       - name: Install client deps
         working-directory: client
@@ -115,8 +122,31 @@ jobs:
 
           $SSH_CMD "$USER@$HOST" "mkdir -p /var/www/fcmasters/server /var/www/fcmasters/client/dist"
 
-          rsync -az --delete -e "$SSH_CMD" _artifact/client/dist/ "$USER@$HOST:/var/www/fcmasters/client/dist/"
-          rsync -az --delete -e "$SSH_CMD" _artifact/server/ "$USER@$HOST:/var/www/fcmasters/server/"
+          echo "🔄 Syncing client files..."
+          rsync -avz --delete -e "$SSH_CMD" _artifact/client/dist/ "$USER@$HOST:/var/www/fcmasters/client/dist/"
+          
+          echo "🔄 Syncing server files..."
+          rsync -avz --delete -e "$SSH_CMD" _artifact/server/ "$USER@$HOST:/var/www/fcmasters/server/"
+
+      # בדיקת העלאה
+      - name: Verify deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          HOST="${{ secrets.VPS_HOST }}"
+          USER="${{ secrets.VPS_USER }}"
+          PORT="${{ secrets.VPS_PORT }}"
+          : "${PORT:=22}"
+          
+          echo "🔍 Verifying deployment..."
+          ssh -p "$PORT" "$USER@$HOST" << 'EOF'
+          echo "=== Server dist directory ==="
+          ls -la /var/www/fcmasters/server/dist/ | head -10
+          echo "=== index.js timestamp ==="
+          stat /var/www/fcmasters/server/dist/index.js
+          echo "=== Current time ==="
+          date
+          EOF
 
       # התקנת תלויות והפעלת PM2
       - name: Install server deps + restart PM2
@@ -132,25 +162,45 @@ jobs:
           set -euo pipefail
           cd /var/www/fcmasters/server
 
+          echo "📦 Installing server dependencies..."
           if [ -f package-lock.json ]; then
             npm ci --omit=dev
           else
             npm install --omit=dev
           fi
 
+          echo "🔍 Verifying dist files exist..."
+          if [ ! -f dist/index.js ]; then
+            echo "❌ ERROR: dist/index.js not found!"
+            echo "Contents of server directory:"
+            ls -la
+            echo "Contents of dist directory:"
+            ls -la dist/ || echo "dist directory does not exist"
+            exit 1
+          fi
+
+          echo "📊 File timestamps before PM2 restart:"
+          stat dist/index.js
+
           if command -v pm2 >/dev/null 2>&1; then
+            echo "🔄 Managing PM2 process..."
+            
+            # עצירת התהליך הישן אם קיים
             if pm2 describe fcmasters >/dev/null 2>&1; then
-              pm2 restart fcmasters --update-env
-            else
-              if [ -f dist/index.js ]; then
-                pm2 start dist/index.js --name fcmasters
-              else
-                pm2 start index.js --name fcmasters
-              fi
+              echo "⏹️ Stopping existing fcmasters process..."
+              pm2 stop fcmasters || true
+              pm2 delete fcmasters || true
             fi
+            
+            echo "🚀 Starting new fcmasters process..."
+            pm2 start dist/index.js --name fcmasters
             pm2 save
+            
+            echo "📊 PM2 status after restart:"
+            pm2 list
+            pm2 logs fcmasters --lines 10
           else
-            echo "PM2 not found on server. Install with: npm i -g pm2"
+            echo "❌ PM2 not found on server. Install with: npm i -g pm2"
             exit 1
           fi
           EOF
