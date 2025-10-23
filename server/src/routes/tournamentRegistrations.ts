@@ -594,7 +594,7 @@ tournamentRegistrations.post("/:id/select-players", requireAuth, async (req, res
         tournamentId,
         tournamentTitle,
         tournamentDate,
-        telegramLink,
+        telegramLink: telegramLink || undefined,
         prizeFirst,
         prizeSecond
       };
@@ -619,7 +619,7 @@ tournamentRegistrations.post("/:id/select-players", requireAuth, async (req, res
         userName: user.psnUsername || user.email,
         tournamentTitle,
         tournamentDate,
-        telegramLink,
+        telegramLink: telegramLink || undefined,
         prizeFirst,
         prizeSecond
       });
