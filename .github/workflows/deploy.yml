@@ -8,7 +8,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,13 +19,6 @@ jobs:
         with:
           node-version: '20'
 
-          - name: Deploy build to Hostinger
-  run: |
-    rsync -avz --delete _artifact/client/dist/ root@${{ secrets.SSH_HOST }}:/var/www/fcmasters/client/dist/
-    rsync -avz --delete _artifact/server/      root@${{ secrets.SSH_HOST }}:/var/www/fcmasters/server/
-    ssh -p ${{ secrets.SSH_PORT }} root@${{ secrets.SSH_HOST }} "pm2 restart fcmasters && pm2 save"
-
-    
       # ---------- CLIENT ----------
       - name: Install client deps
         working-directory: client
@@ -41,13 +33,11 @@ jobs:
         working-directory: server
         run: npm ci
 
-      - name: Build server (TS -> dist)
+      - name: Build server (TS -> dist) + prune dev
         working-directory: server
         shell: bash
         run: |
-          if [ -f package.json ] && cat package.json | jq -e '.scripts.build' > /dev/null 2>&1; then
-            npm run build
-          fi
+          npm run build || echo "no build script"
           npm prune --omit=dev
 
       # ---------- PACK ARTIFACTS ----------
@@ -57,13 +47,9 @@ jobs:
           rm -rf _artifact
           mkdir -p _artifact/client/dist
           mkdir -p _artifact/server/dist
-
-          # client build
           rsync -a --delete client/dist/ _artifact/client/dist/
-
-          # server
-          rsync -a server/dist/ _artifact/server/dist/
-          cp server/package.json _artifact/server/package.json
+          rsync -a server/dist/        _artifact/server/dist/
+          cp server/package.json       _artifact/server/package.json
           [ -f server/package-lock.json ] && cp server/package-lock.json _artifact/server/package-lock.json || true
 
       - name: Upload artifact
@@ -75,7 +61,6 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
@@ -88,7 +73,6 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
 
-      # מוסיפים known_hosts כדי למנוע עצירה באימות
       - name: Add host to known_hosts
         shell: bash
         run: |
@@ -99,7 +83,6 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -p "$PORT" -H "$HOST" >> ~/.ssh/known_hosts
 
-      # בדיקה שחיבור ה-SSH תקין
       - name: Test SSH connection
         shell: bash
         run: |
@@ -109,7 +92,6 @@ jobs:
           : "${PORT:=22}"
           ssh -p "$PORT" "$USER@$HOST" "echo '✅ SSH OK'; uname -a"
 
-      # שליחת קבצים לשרת
       - name: Rsync to server
         shell: bash
         run: |
@@ -121,34 +103,11 @@ jobs:
           SSH_CMD="ssh -p $PORT"
 
           $SSH_CMD "$USER@$HOST" "mkdir -p /var/www/fcmasters/server /var/www/fcmasters/client/dist"
-
           echo "🔄 Syncing client files..."
           rsync -avz --delete -e "$SSH_CMD" _artifact/client/dist/ "$USER@$HOST:/var/www/fcmasters/client/dist/"
-          
-          echo "🔄 Syncing server files..."
+          echo "🔄 Syncing server files (dist + package files)..."
           rsync -avz --delete -e "$SSH_CMD" _artifact/server/ "$USER@$HOST:/var/www/fcmasters/server/"
 
-      # בדיקת העלאה
-      - name: Verify deployment
-        shell: bash
-        run: |
-          set -euo pipefail
-          HOST="${{ secrets.VPS_HOST }}"
-          USER="${{ secrets.VPS_USER }}"
-          PORT="${{ secrets.VPS_PORT }}"
-          : "${PORT:=22}"
-          
-          echo "🔍 Verifying deployment..."
-          ssh -p "$PORT" "$USER@$HOST" << 'EOF'
-          echo "=== Server dist directory ==="
-          ls -la /var/www/fcmasters/server/dist/ | head -10
-          echo "=== index.js timestamp ==="
-          stat /var/www/fcmasters/server/dist/index.js
-          echo "=== Current time ==="
-          date
-          EOF
-
-      # התקנת תלויות והפעלת PM2
       - name: Install server deps + restart PM2
         shell: bash
         run: |
@@ -169,36 +128,16 @@ jobs:
             npm install --omit=dev
           fi
 
-          echo "🔍 Verifying dist files exist..."
           if [ ! -f dist/index.js ]; then
             echo "❌ ERROR: dist/index.js not found!"
-            echo "Contents of server directory:"
-            ls -la
-            echo "Contents of dist directory:"
-            ls -la dist/ || echo "dist directory does not exist"
             exit 1
           fi
 
-          echo "📊 File timestamps before PM2 restart:"
-          stat dist/index.js
-
           if command -v pm2 >/dev/null 2>&1; then
-            echo "🔄 Managing PM2 process..."
-            
-            # עצירת התהליך הישן אם קיים
-            if pm2 describe fcmasters >/dev/null 2>&1; then
-              echo "⏹️ Stopping existing fcmasters process..."
-              pm2 stop fcmasters || true
-              pm2 delete fcmasters || true
-            fi
-            
-            echo "🚀 Starting new fcmasters process..."
+            pm2 delete fcmasters || true
             pm2 start dist/index.js --name fcmasters
             pm2 save
-            
-            echo "📊 PM2 status after restart:"
             pm2 list
-            pm2 logs fcmasters --lines 10
           else
             echo "❌ PM2 not found on server. Install with: npm i -g pm2"
             exit 1
