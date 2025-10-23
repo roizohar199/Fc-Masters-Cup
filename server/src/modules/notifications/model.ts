@@ -48,3 +48,15 @@ export function markAllRead(userId: string) {
     "UPDATE notifications SET isRead=1 WHERE userId=? AND isRead=0"
   ).run(userId);
 }
+
+export function deleteNotificationsByTournamentId(tournamentId: string) {
+  return db.prepare(
+    "DELETE FROM notifications WHERE data LIKE ?"
+  ).run(`%"tournamentId":"${tournamentId}"%`);
+}
+
+export function deleteNotification(notificationId: string, userId: string) {
+  return db.prepare(
+    "DELETE FROM notifications WHERE id=? AND userId=?"
+  ).run(notificationId, userId);
+}

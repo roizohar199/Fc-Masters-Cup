@@ -5,6 +5,7 @@ import { uuid, genToken, genPin } from "../utils/ids.js";
 import { nowISO } from "../lib/util.js";
 import { generateRoundOf16, advanceWinners } from "../lib/bracket.js";
 import type { AdvancePreviewBody, AdvanceConfirmBody, AdvanceRevertBody } from "../types/dtos.js";
+import { deleteNotificationsByTournamentId } from "../modules/notifications/model.js";
 
 export const tournaments = Router();
 
@@ -370,6 +371,10 @@ tournaments.delete("/:id", (req, res) => {
     matchIds.forEach((match) => {
       db.prepare("DELETE FROM submissions WHERE matchId=?").run(match.id);
     });
+    
+    // מחיקת הודעות קשורות לטורניר
+    const deletedNotifications = deleteNotificationsByTournamentId(id);
+    console.log(`🗑️ נמחקו ${deletedNotifications.changes} הודעות קשורות לטורניר ${id}`);
     
     // מחיקת השחקנים של הטורניר (אם יש טבלה כזו)
     // db.prepare("DELETE FROM tournament_players WHERE tournamentId=?").run(id);
