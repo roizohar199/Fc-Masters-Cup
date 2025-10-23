@@ -158,25 +158,24 @@ jobs:
           HOST="${{ secrets.VPS_HOST }}"
           USER="${{ secrets.VPS_USER }}"
           PORT="${{ secrets.VPS_PORT }}"
-          : "${PORT:=22}"
           ADMIN_EMAIL="${{ secrets.ADMIN_EMAIL }}"
-          ssh -p "$PORT" "$USER@$HOST" bash -lc "
-            set -e
-            DB='/var/www/fcmasters/server/tournaments.sqlite'
-            if [ -f \"\$DB\" ] && command -v sqlite3 >/dev/null 2>&1; then
-              sqlite3 \"\$DB\" \"
-                UPDATE users
-                SET role='admin',
-                    isSuperAdmin=1,
-                    status='active',
-                    approvalStatus='approved'
-                WHERE email='\$ADMIN_EMAIL';
-              \"
-              echo '🔒 ensured superadmin for' \"\$ADMIN_EMAIL\"
-            else
-              echo '⚠️ DB or sqlite3 not found, skipping ensure-superadmin'
-            fi
-          "
+          : "${PORT:=22}"
+          ssh -p "$PORT" "$USER@$HOST" << EOF
+          set -euo pipefail
+          DB='/var/www/fcmasters/server/tournaments.sqlite'
+          ADMIN_EMAIL='$ADMIN_EMAIL'
+          if [ -f "\$DB" ] && command -v sqlite3 >/dev/null 2>&1; then
+            sqlite3 "\$DB" "UPDATE users
+              SET role='admin',
+                  isSuperAdmin=1,
+                  status='active',
+                  approvalStatus='approved'
+              WHERE email='\$ADMIN_EMAIL';"
+            echo "🔒 ensured superadmin for \$ADMIN_EMAIL"
+          else
+            echo "⚠️ DB or sqlite3 not found, skipping ensure-superadmin"
+          fi
+          EOF
 
       # ---------- INSTALL & PM2 ----------
       - name: Install server deps + restart PM2
