@@ -50,9 +50,21 @@ export function markAllRead(userId: string) {
 }
 
 export function deleteNotificationsByTournamentId(tournamentId: string) {
-  return db.prepare(
+  // מחפש הודעות שמכילות את ה-tournamentId ב-JSON data
+  // גם מוחק הודעות ישנות שקשורות לטורניר (לפי title)
+  const result1 = db.prepare(
     "DELETE FROM notifications WHERE data LIKE ?"
   ).run(`%"tournamentId":"${tournamentId}"%`);
+  
+  // מחיקת הודעות ישנות שקשורות לטורניר (לפי title בהודעה)
+  const result2 = db.prepare(
+    "DELETE FROM notifications WHERE title LIKE ? AND data IS NULL"
+  ).run(`%${tournamentId}%`);
+  
+  const totalDeleted = result1.changes + result2.changes;
+  console.log(`🗑️ Deleted ${totalDeleted} notifications for tournament ${tournamentId} (${result1.changes} with data, ${result2.changes} old format)`);
+  
+  return { changes: totalDeleted };
 }
 
 export function deleteNotification(notificationId: string, userId: string) {

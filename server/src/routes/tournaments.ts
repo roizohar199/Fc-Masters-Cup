@@ -346,7 +346,7 @@ tournaments.put("/:id", (req, res) => {
 });
 
 // Delete tournament (super admin only)
-tournaments.delete("/:id", (req, res) => {
+tournaments.delete("/:id", async (req, res) => {
   const { id } = req.params;
   const userEmail = (req as any).user?.email;
   
@@ -375,6 +375,9 @@ tournaments.delete("/:id", (req, res) => {
     // מחיקת הודעות קשורות לטורניר
     const deletedNotifications = deleteNotificationsByTournamentId(id);
     console.log(`🗑️ נמחקו ${deletedNotifications.changes} הודעות קשורות לטורניר ${id}`);
+    
+    // הודעת לוג על מחיקת הודעות
+    console.log(`📡 הודעות קשורות לטורניר ${id} נמחקו - המשתמשים יראו עדכון ברענון הבא`);
     
     // מחיקת השחקנים של הטורניר (אם יש טבלה כזו)
     // db.prepare("DELETE FROM tournament_players WHERE tournamentId=?").run(id);

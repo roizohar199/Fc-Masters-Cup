@@ -293,7 +293,21 @@ export function attachPresence(server: HTTPServer) {
 
   wss.on("close", () => clearInterval(iv));
 
-  return { getOnline: snapshot, wss };
+  return { 
+    getOnline: snapshot, 
+    wss,
+    broadcastToUsers: (userIds: string[], message: any) => broadcastToUsers(wss, userIds, message)
+  };
+}
+
+// Export the broadcastToUsers function separately for easier access
+export function broadcastToUsers(wss: WebSocketServer, userIds: string[], message: any) {
+  const payload = JSON.stringify(message);
+  for (const client of wss.clients) {
+    if (client.readyState === WebSocket.OPEN && (client as any).uid && userIds.includes((client as any).uid)) {
+      client.send(payload);
+    }
+  }
 }
 
 
