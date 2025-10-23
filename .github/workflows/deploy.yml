@@ -82,13 +82,18 @@ jobs:
 
       - name: Known hosts
         run: |
-          PORT=${{ secrets.VPS_PORT || 22 }}
-          ssh-keyscan -p "$PORT" -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          set -euo pipefail
+          PORT="${{ secrets.VPS_PORT }}"
+          PORT="${PORT:-22}"
+          ssh-keyscan -p "$PORT" -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Rsync to server
         run: |
-          PORT=${{ secrets.VPS_PORT || 22 }}
+          set -euo pipefail
+          PORT="${{ secrets.VPS_PORT }}"
+          PORT="${PORT:-22}"
           SSH_CMD="ssh -p $PORT"
+
           $SSH_CMD ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "mkdir -p /var/www/fcmasters/server /var/www/fcmasters/client/dist"
 
           rsync -az --delete -e "$SSH_CMD" \
@@ -101,24 +106,23 @@ jobs:
 
       - name: Install server deps + restart PM2 on VPS
         run: |
-          PORT=${{ secrets.VPS_PORT || 22 }}
+          set -euo pipefail
+          PORT="${{ secrets.VPS_PORT }}"
+          PORT="${PORT:-22}"
           ssh -p "$PORT" ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
           set -euo pipefail
           cd /var/www/fcmasters/server
 
-          # מתקינים prod deps לפי ה-package-lock שהעברנו
           if [ -f package-lock.json ]; then
             npm ci --omit=dev
           else
             npm install --omit=dev
           fi
 
-          # PM2 reload / start
           if command -v pm2 >/dev/null 2>&1; then
-            if pm2 describe fcmasters > /dev/null 2>&1; then
+            if pm2 describe fcmasters >/dev/null 2>&1; then
               pm2 restart fcmasters --update-env
             else
-              # נסה קודם dist/index.js, ואם לא קיים אז index.js
               if [ -f dist/index.js ]; then
                 pm2 start dist/index.js --name fcmasters
               else

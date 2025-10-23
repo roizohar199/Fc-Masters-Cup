@@ -19,12 +19,12 @@ server {
     server_name k-rstudio.com www.k-rstudio.com;
 
     # SSL (Let's Encrypt) – עדכן לנתיבים שלך
-    ssl_certificate     /etc/letsencrypt/live/k-rstudio.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/k-rstudio.com/privkey.pem;
+    ssl_certificate     /etc/letsencrypt/live/www.k-rstudio.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/www.k-rstudio.com/privkey.pem;
     # אם קיים אצלך קובץ ברירת-מחדל של LE, עדיף לכלול:
     # include /etc/letsencrypt/options-ssl-nginx.conf;
     # להשלמת שרשרת ו-OCSP Stapling:
-    # ssl_trusted_certificate /etc/letsencrypt/live/k-rstudio.com/chain.pem;
+    # ssl_trusted_certificate /etc/letsencrypt/live/www.k-rstudio.com/chain.pem;
     # ssl_stapling on;
     # ssl_stapling_verify on;
 
@@ -116,4 +116,8 @@ server {
         # types { }
         # default_type application/octet-stream;
     }
+
+    # לוגים
+    error_log /var/log/nginx/fcmasters_error.log;
+    access_log /var/log/nginx/fcmasters_access.log;
 }

@@ -8,7 +8,7 @@ map $http_upgrade $connection_upgrade {
 server {
     listen 80;
     listen [::]:80;
-    server_name k-rstudio.com www.k-rstudio.com;
+    server_name fcmasters.com www.fcmasters.com;
     return 301 https://$host$request_uri;
 }
 
@@ -16,15 +16,15 @@ server {
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
-    server_name k-rstudio.com www.k-rstudio.com;
+    server_name fcmasters.com www.fcmasters.com;
 
     # SSL (Let's Encrypt) – עדכן לנתיבים שלך
-    ssl_certificate     /etc/letsencrypt/live/k-rstudio.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/k-rstudio.com/privkey.pem;
+    ssl_certificate     /etc/letsencrypt/live/fcmasters.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/fcmasters.com/privkey.pem;
     # אם קיים אצלך קובץ ברירת-מחדל של LE, עדיף לכלול:
     # include /etc/letsencrypt/options-ssl-nginx.conf;
     # להשלמת שרשרת ו-OCSP Stapling:
-    # ssl_trusted_certificate /etc/letsencrypt/live/k-rstudio.com/chain.pem;
+    # ssl_trusted_certificate /etc/letsencrypt/live/fcmasters.com/chain.pem;
     # ssl_stapling on;
     # ssl_stapling_verify on;
 
@@ -107,7 +107,7 @@ server {
         proxy_buffering off;
     }
 
-    # --------- Uploads ----------
+        # --------- Uploads ----------
     # וודא שזה הנתיב הנכון שהשרת שלך כותב אליו בפרודקשן
     location /uploads/ {
         alias /var/www/fcmasters/server/src/uploads/;

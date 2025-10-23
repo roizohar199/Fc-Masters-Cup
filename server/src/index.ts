@@ -3,7 +3,14 @@
 import { loadEnvSafely } from "./loadEnv.js";
 loadEnvSafely();
 
-console.log("ENV check → HOST:", process.env.SMTP_HOST, "| USER:", process.env.SMTP_USER, "| FROM:", process.env.EMAIL_FROM);
+console.log(
+  "ENV check → HOST:",
+  process.env.SMTP_HOST,
+  "| USER:",
+  process.env.SMTP_USER,
+  "| FROM:",
+  process.env.EMAIL_FROM
+);
 
 // ===== INLINE DB MIGRATION (alias for path to avoid TS2300 duplicate identifier) =====
 import "dotenv/config";
@@ -15,7 +22,8 @@ import Database from "better-sqlite3";
 // מעכשיו משתמשים רק ב-pResolve בתוך בלוק המיגרציה הזה.
 
 function resolveDbPath(): string {
-  if (process.env.DB_PATH && process.env.DB_PATH.trim()) return process.env.DB_PATH.trim();
+  if (process.env.DB_PATH && process.env.DB_PATH.trim())
+    return process.env.DB_PATH.trim();
   const candidates = [
     // הרצה מתוך dist/
     pResolve(__dirname, "../tournaments.sqlite"),
@@ -30,8 +38,10 @@ function resolveDbPath(): string {
 }
 
 function hasColumn(db: Database.Database, table: string, column: string): boolean {
-  const rows = db.prepare(`PRAGMA table_info(${table});`).all() as Array<{ name: string }>;
-  return rows.some(r => r.name === column);
+  const rows = db
+    .prepare(`PRAGMA table_info(${table});`)
+    .all() as Array<{ name: string }>;
+  return rows.some((r) => r.name === column);
 }
 
 function ensureColumn(
@@ -53,7 +63,9 @@ function ensureColumn(
 (function runMigrationsInline() {
   const DB_PATH = resolveDbPath();
   if (!fs.existsSync(DB_PATH)) {
-    console.warn(`[migrate] DB not found at ${DB_PATH}. It will be created if needed.`);
+    console.warn(
+      `[migrate] DB not found at ${DB_PATH}. It will be created if needed.`
+    );
   }
 
   const db = new Database(DB_PATH);
@@ -74,16 +86,20 @@ function ensureColumn(
 
     // עמודות דרושות
     ensureColumn(db as any, "admins", "display_name", "TEXT");
-    ensureColumn(db as any, "users",  "display_name", "TEXT");
+    ensureColumn(db as any, "users", "display_name", "TEXT");
 
     // אתחול display_name מתוך email אם חסר
     if (hasColumn(db as any, "admins", "email")) {
-      db.exec(`UPDATE admins SET display_name = COALESCE(NULLIF(display_name,''), substr(email,1,instr(email,'@')-1))
-               WHERE display_name IS NULL OR display_name = '';`);
+      db.exec(
+        `UPDATE admins SET display_name = COALESCE(NULLIF(display_name,''), substr(email,1,instr(email,'@')-1))
+         WHERE display_name IS NULL OR display_name = '';`
+      );
     }
     if (hasColumn(db as any, "users", "email")) {
-      db.exec(`UPDATE users SET display_name = COALESCE(NULLIF(display_name,''), substr(email,1,instr(email,'@')-1))
-               WHERE display_name IS NULL OR display_name = '';`);
+      db.exec(
+        `UPDATE users SET display_name = COALESCE(NULLIF(display_name,''), substr(email,1,instr(email,'@')-1))
+         WHERE display_name IS NULL OR display_name = '';`
+      );
     }
 
     db.exec("COMMIT;");
@@ -137,52 +153,68 @@ const __dirname = dirname(__filename);
 const app = express();
 
 // אנחנו מאחורי Nginx - trust proxy headers
-app.set('trust proxy', 1);
+app.set("trust proxy", 1);
 
 // Rate Limiting - prevent abuse
 // בפיתוח: מקל, בפרודקשן: חמור
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = process.env.NODE_ENV === "production";
 
-// Rate limiting disabled - no limits
-const apiLimiter = (req: any, res: any, next: any) => next();
+// Rate limiting disabled - no limits כרגע
+const apiLimiter = (_req: any, _res: any, next: any) => next();
+const authLimiter = (_req: any, _res: any, next: any) => next();
 
-// Rate limiting disabled - no limits
-const authLimiter = (req: any, res: any, next: any) => next();
+logger.info(
+  "server",
+  `Rate Limiting: ${isProduction ? "ENABLED (Production)" : "DISABLED (Development)"}`
+);
 
-logger.info("server", `Rate Limiting: ${isProduction ? 'ENABLED (Production)' : 'DISABLED (Development)'}`);
+// ---------- CORS משופר: תמיכה בריבוי מקורות ----------
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost:5173")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 
-// CORS with credentials for cookie-based auth
-const ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
-logger.info("server", `CORS Origin: ${ORIGIN}`);
-if (!process.env.CORS_ORIGIN) {
-  logger.warn("server", "⚠️  CORS_ORIGIN not set in .env, using default: http://localhost:5173");
-  logger.warn("server", "⚠️  For production with HTTPS, set: CORS_ORIGIN=https://your-domain.com");
-}
-app.use(cors({
-  origin: ORIGIN,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['Set-Cookie']
-}));
+logger.info("server", `CORS Allowed Origins: ${ALLOWED_ORIGINS.join(", ")}`);
+
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      // לבקשות ללא Origin (curl/server-2-server) נאפשר
+      if (!origin) return cb(null, true);
+      if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+      return cb(new Error(`Not allowed by CORS: ${origin}`));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    exposedHeaders: ["Set-Cookie"],
+  })
+);
 
 app.use(withCookies());
 app.use(express.json());
 
+// ✅ בריאות ציבורית – לפני כל ה-auth
+app.get("/api/health", (_req, res) => {
+  res.status(200).json({
+    ok: true,
+    service: "fcmasters-api",
+    env: process.env.NODE_ENV || "development",
+    time: new Date().toISOString(),
+  });
+});
+
 // Apply rate limiting to all API routes
-app.use('/api/', apiLimiter);
-// שירות קבצים סטטיים מעל התיקייה שממנה multer מעלה קבצים בזמן ריצה
-// בזמן פיתוח הקבצים נמצאים תחת server/src/uploads; בזמן ריצה מ-dist נשתמש בנתיב יחסי יציב
+app.use("/api/", apiLimiter);
+
+// שירות קבצים סטטיים בזמן ריצה (uploads ידניים)
 const uploadsDir = path.isAbsolute("server/src/uploads")
   ? "server/src/uploads"
   : path.join(process.cwd(), "server/src/uploads");
 app.use("/uploads", express.static(uploadsDir));
 
-// Auth routes (public) - with stricter rate limiting
-app.use("/api/auth", (req, res, next) => {
-
-  return auth(req, res, next);
-});
+// Auth routes (public)
+app.use("/api/auth", (req, res, next) => auth(req, res, next));
 
 // User settings (requires auth)
 app.use("/api/user", requireAuth, userSettings);
@@ -196,7 +228,7 @@ app.use("/api/admin-approval", adminUsers);
 // Approval requests routes (requires auth)
 app.use("/api/approval-requests", requireAuth, approvalRequests);
 
-// Tournament registrations routes (mixed - summary public, register/admin require auth)
+// Tournament registrations routes (mixed)
 app.use("/api/tournament-registrations", tournamentRegistrations);
 
 // Protect admin operations for tournaments
@@ -225,9 +257,7 @@ app.use("/api/presence", presenceApi);
 
 // Draw routes (GET public for viewing, POST requires admin auth)
 app.use("/api/draw", (req, res, next) => {
-  // GET requests are public (viewing draw ceremony)
   if (req.method === "GET") return draw(req, res, next);
-  // POST requires admin auth (controlling draw)
   return requireAuth(req, res, () => draw(req, res, next));
 });
 
@@ -251,13 +281,16 @@ const clientDistPath = path.join(__dirname, "../../client/dist");
 app.use(express.static(clientDistPath));
 
 // ✅ SPA fallback - must come LAST, after all API routes
-// This serves index.html for any non-API routes (client-side routing)
 app.get("*", (req, res, next) => {
-  // Skip if this is an API or WebSocket request
-  if (req.path.startsWith('/api/') || req.path.startsWith('/presence') || req.path.startsWith('/uploads/')) {
+  // Skip if this is an API/WS/uploads request
+  if (
+    req.path.startsWith("/api/") ||
+    req.path.startsWith("/presence") ||
+    req.path.startsWith("/uploads/")
+  ) {
     return next();
   }
-  
+
   const indexPath = path.join(clientDistPath, "index.html");
   res.sendFile(indexPath, (err) => {
     if (err) {
@@ -282,11 +315,11 @@ async function startServer(port: number, retries = 0): Promise<void> {
 
     // Verify SMTP connection at startup
     const { verifySmtp } = await import("./modules/mail/mailer.js");
-    verifySmtp().then((r) => {
-      if (!r.ok) {
-        console.error("⚠️ SMTP verify failed at startup:", r);
-      }
-    }).catch(e => console.error("⚠️ SMTP verify exception:", e));
+    verifySmtp()
+      .then((r) => {
+        if (!r.ok) console.error("⚠️ SMTP verify failed at startup:", r);
+      })
+      .catch((e) => console.error("⚠️ SMTP verify exception:", e));
 
     // Create HTTP server explicitly (required for WebSocket upgrade handling)
     const server = http.createServer(app);
@@ -294,20 +327,23 @@ async function startServer(port: number, retries = 0): Promise<void> {
     // Attach presence WebSocket with noServer: true
     const { getOnline, wss } = attachPresence(server);
     presenceRest(app); // REST fallback
-    
+
     // Set WSS instance for broadcasting draw events
     const { setWssInstance } = await import("./presence.js");
     setWssInstance(wss);
 
     // ✅ Handle WebSocket upgrade manually (robust behind Nginx)
     server.on("upgrade", (req, socket, head) => {
-      const url = req.url || '';
+      const url = req.url || "";
       logger.info("websocket", `Upgrade request for: ${url}`);
-      
-      if (url.startsWith('/presence')) {
+
+      if (url.startsWith("/presence")) {
         wss.handleUpgrade(req, socket as any, head, (ws) => {
-          wss.emit('connection', ws, req);
-          logger.success("websocket", `WebSocket connection upgraded successfully`);
+          wss.emit("connection", ws, req);
+          logger.success(
+            "websocket",
+            `WebSocket connection upgraded successfully`
+          );
         });
       } else {
         logger.warn("websocket", `Invalid WebSocket path: ${url}`);
@@ -318,24 +354,22 @@ async function startServer(port: number, retries = 0): Promise<void> {
     // Start listening
     server.listen(port, () => {
       logger.success("server", `Server started successfully on http://localhost:${port}`);
-      logger.info("server", `Environment: ${process.env.NODE_ENV || 'development'}`);
-      logger.info("server", `CORS Origin: ${ORIGIN}`);
+      logger.info("server", `Environment: ${process.env.NODE_ENV || "development"}`);
+      logger.info("server", `CORS Allowed Origins: ${ALLOWED_ORIGINS.join(", ")}`);
       logger.info("server", "");
       logger.info("server", "📧 SMTP Configuration:");
-      logger.info("server", `  - Host: ${process.env.SMTP_HOST || 'smtp.gmail.com'}`);
+      logger.info("server", `  - Host: ${process.env.SMTP_HOST || "smtp.gmail.com"}`);
       logger.info("server", `  - Port: ${process.env.SMTP_PORT || 587}`);
-      logger.info("server", `  - Secure: ${process.env.SMTP_SECURE || 'false'}`);
-      logger.info("server", `  - From: ${process.env.EMAIL_FROM || process.env.SMTP_USER || 'NOT_SET'}`);
+      logger.info("server", `  - Secure: ${process.env.SMTP_SECURE || "false"}`);
+      logger.info("server", `  - From: ${process.env.EMAIL_FROM || process.env.SMTP_USER || "NOT_SET"}`);
       logger.info("server", "");
       logger.info("server", "📡 API Routes initialized:");
+      logger.info("server", "  - /api/health (public)");
       logger.info("server", "  - /api/auth (public)");
       logger.info("server", "  - /api/user (requires auth)");
       logger.info("server", "  - /api/admin (requires auth)");
-      logger.info("server", "  - /api/admin/smtp (requires admin auth) - SMTP testing");
-      logger.info("server", "  - /api/tournaments (mixed)");
-      logger.info("server", "  - /api/tournament-registrations (mixed)");
-      logger.info("server", "  - /api/matches (mixed)");
-      logger.info("server", "  - /api/disputes (requires auth)");
+      logger.info("server", "  - /api/admin/smtp (requires admin auth)");
+      logger.info("server", "  - ועוד…");
       logger.info("server", "");
       logger.info("server", "🔌 WebSocket Routes:");
       logger.info("server", "  - /presence (WebSocket - Real-time user presence)");
@@ -344,7 +378,6 @@ async function startServer(port: number, retries = 0): Promise<void> {
         logger.warn("server", "⚠️  Production Mode:");
         logger.warn("server", "  - Ensure Nginx is configured with SSL + WebSocket headers");
         logger.warn("server", "  - WebSocket will use WSS (secure) on HTTPS");
-        logger.warn("server", "  - See: nginx-config-k-rstudio-ssl.txt for config");
       } else {
         logger.info("server", "💡 Development Mode:");
         logger.info("server", "  - WebSocket will use WS (non-secure) on HTTP");
@@ -378,4 +411,3 @@ async function startServer(port: number, retries = 0): Promise<void> {
 }
 
 startServer(Number(PORT));
-
