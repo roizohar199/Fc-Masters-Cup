@@ -249,7 +249,55 @@ tournamentRegistrations.post("/:id/unregister", requireAuth, (req, res) => {
 tournamentRegistrations.post("/:id/early-register", requireAuth, async (req, res) => {
   const tournamentId = req.params.id;
   
-  const t: Tournament | undefined = db.prepare(`SELECT * FROM tournaments WHERE id=?`).get(tournamentId) as Tournament | undefined;
+  let t: Tournament | undefined = db.prepare(`SELECT * FROM tournaments WHERE id=?`).get(tournamentId) as Tournament | undefined;
+  
+  // אם לא נמצא טורניר ספציפי, נחפש טורניר פעיל אחר
+  if (!t && tournamentId === "default") {
+    // נחפש טורניר עם הרשמה פתוחה
+    t = db.prepare(`
+      SELECT * FROM tournaments 
+      WHERE registrationStatus IN ('open', 'collecting') 
+      ORDER BY createdAt DESC 
+      LIMIT 1
+    `).get() as Tournament | undefined;
+    
+    // אם לא נמצא, ניצור טורניר ברירת מחדל
+    if (!t) {
+      console.log("🔧 No active tournament found, creating default tournament");
+      const defaultTournament = {
+        id: "default-tournament",
+        title: "טורניר שישי בערב",
+        registrationStatus: "collecting",
+        registrationCapacity: 100,
+        registrationMinPlayers: 16,
+        createdAt: new Date().toISOString()
+      };
+      
+      console.log("🔧 Creating default tournament with status:", defaultTournament.registrationStatus);
+      
+      // נכניס את הטורניר למסד הנתונים
+      db.prepare(`
+        INSERT INTO tournaments 
+        (id, title, game, platform, timezone, createdAt, prizeFirst, prizeSecond, registrationStatus, registrationCapacity, registrationMinPlayers)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        defaultTournament.id,
+        defaultTournament.title,
+        "FIFA 24",
+        "PS5",
+        "Asia/Jerusalem",
+        defaultTournament.createdAt,
+        500,
+        0,
+        defaultTournament.registrationStatus,
+        defaultTournament.registrationCapacity,
+        defaultTournament.registrationMinPlayers
+      );
+      
+      t = defaultTournament as Tournament;
+    }
+  }
+  
   if (!t) {
     return res.status(404).json({ ok: false, error: "tournament_not_found" });
   }
