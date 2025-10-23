@@ -92,7 +92,34 @@ jobs:
           : "${PORT:=22}"
           ssh -p "$PORT" "$USER@$HOST" "echo '✅ SSH OK'; uname -a"
 
-      - name: Rsync to server
+      # ---------- SAFE BACKUP (DB) ----------
+      - name: Pre-deploy DB backup (safe & optional)
+        shell: bash
+        run: |
+          HOST="${{ secrets.VPS_HOST }}"
+          USER="${{ secrets.VPS_USER }}"
+          PORT="${{ secrets.VPS_PORT }}"
+          : "${PORT:=22}"
+          ssh -p "$PORT" "$USER@$HOST" << 'EOF'
+          set -euo pipefail
+          DB="/var/www/fcmasters/server/tournaments.sqlite"
+          BKDIR="/var/www/fcmasters/server/backups"
+          if [ -f "$DB" ]; then
+            mkdir -p "$BKDIR"
+            # אם sqlite3 קיים – מבצע גיבוי נקי לקובץ יחיד
+            if command -v sqlite3 >/dev/null 2>&1; then
+              sqlite3 "$DB" "VACUUM INTO '${BKDIR}/tournaments-$(date +%F_%H-%M).sqlite'"
+              echo "📦 DB backup created in $BKDIR"
+            else
+              echo "⚠️ sqlite3 not found, skipping backup"
+            fi
+          else
+            echo "ℹ️ No DB file at $DB, skipping backup"
+          fi
+          EOF
+
+      # ---------- RSYNC (SAFE) ----------
+      - name: Rsync to server (safe)
         shell: bash
         run: |
           set -euo pipefail
@@ -102,12 +129,22 @@ jobs:
           : "${PORT:=22}"
           SSH_CMD="ssh -p $PORT"
 
-          $SSH_CMD "$USER@$HOST" "mkdir -p /var/www/fcmasters/server /var/www/fcmasters/client/dist"
-          echo "🔄 Syncing client files..."
-          rsync -avz --delete -e "$SSH_CMD" _artifact/client/dist/ "$USER@$HOST:/var/www/fcmasters/client/dist/"
-          echo "🔄 Syncing server files (dist + package files)..."
-          rsync -avz --delete -e "$SSH_CMD" _artifact/server/ "$USER@$HOST:/var/www/fcmasters/server/"
+          # ודא תקיות
+          $SSH_CMD "$USER@$HOST" "mkdir -p /var/www/fcmasters/client/dist /var/www/fcmasters/server/dist"
 
+          echo "🔄 Sync client dist (delete old assets)…"
+          rsync -avz --delete -e "$SSH_CMD" _artifact/client/dist/ "$USER@$HOST:/var/www/fcmasters/client/dist/"
+
+          echo "🔄 Sync server dist only (delete inside dist)…"
+          rsync -avz --delete -e "$SSH_CMD" _artifact/server/dist/ "$USER@$HOST:/var/www/fcmasters/server/dist/"
+
+          echo "📦 Update server package files (no delete at root)…"
+          rsync -avz -e "$SSH_CMD" _artifact/server/package.json "$USER@$HOST:/var/www/fcmasters/server/package.json"
+          if [ -f _artifact/server/package-lock.json ]; then
+            rsync -avz -e "$SSH_CMD" _artifact/server/package-lock.json "$USER@$HOST:/var/www/fcmasters/server/package-lock.json"
+          fi
+
+      # ---------- INSTALL & PM2 ----------
       - name: Install server deps + restart PM2
         shell: bash
         run: |
@@ -121,7 +158,7 @@ jobs:
           set -euo pipefail
           cd /var/www/fcmasters/server
 
-          echo "📦 Installing server dependencies..."
+          echo "📦 Installing server dependencies…"
           if [ -f package-lock.json ]; then
             npm ci --omit=dev
           else
