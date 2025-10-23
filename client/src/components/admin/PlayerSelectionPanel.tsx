@@ -149,6 +149,32 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
       return;
     }
 
+    // נורמליזציה של קישור טלגרם
+    function normalizeTelegramLink(input: string): string {
+      const s = input.trim();
+      if (!s) return ""; // ישלח כ-null מהשרת אחרי ה-parse
+      // הוסף https:// אם חסר:
+      const withProto = /^https?:\/\//i.test(s) ? s : `https://${s}`;
+      return withProto;
+    }
+
+    function isValidTelegram(url: string): boolean {
+      if (!url) return true; // ריק מותר
+      try {
+        const u = new URL(url);
+        return /(^|\.)t\.me$/i.test(u.hostname);
+      } catch {
+        return false;
+      }
+    }
+
+    // ולידציה של קישור טלגרם
+    const normalizedTelegramLink = normalizeTelegramLink(tournamentDetails.telegramLink);
+    if (!isValidTelegram(normalizedTelegramLink)) {
+      toast.error("קישור טלגרם לא תקין. דוגמה: https://t.me/fcmasterscup");
+      return;
+    }
+
     try {
       setSelecting(true);
       const response = await api(`/tournament-registrations/${tournamentId}/select-players`, {
@@ -157,7 +183,7 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
         selectedUserIds,
         tournamentTitle: tournamentDetails.title,
         tournamentDate: tournamentDetails.date,
-        telegramLink: tournamentDetails.telegramLink,
+        telegramLink: normalizedTelegramLink || null,
         prizeFirst: tournamentDetails.prizeFirst,
         prizeSecond: tournamentDetails.prizeSecond
         })

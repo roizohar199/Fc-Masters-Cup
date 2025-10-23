@@ -550,7 +550,13 @@ tournamentRegistrations.post("/:id/select-players", requireAuth, async (req, res
     selectedUserIds: z.array(z.string()).min(1).max(16),
     tournamentTitle: z.string().min(1),
     tournamentDate: z.string().optional(),
-    telegramLink: z.string().url().optional(),
+    telegramLink: z.string()
+      .transform(s => s?.trim() ?? "")
+      .refine(s => s === "" || /^https?:\/\/t\.me\/[A-Za-z0-9_\/.-]+$/.test(s), {
+        message: "invalid url",
+      })
+      .transform(s => (s === "" ? null : s))
+      .optional(),
     prizeFirst: z.number().min(0).default(500),
     prizeSecond: z.number().min(0).default(0)
   });

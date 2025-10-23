@@ -2900,8 +2900,28 @@ export default function AdminDashboard() {
                   alert("אנא בחר טורניר");
                   return;
                 }
-                if (!telegramLink.trim()) {
-                  alert("אנא הזן קישור טלגרם");
+                // נורמליזציה של קישור טלגרם
+                function normalizeTelegramLink(input: string): string {
+                  const s = input.trim();
+                  if (!s) return ""; // ישלח כ-null מהשרת אחרי ה-parse
+                  // הוסף https:// אם חסר:
+                  const withProto = /^https?:\/\//i.test(s) ? s : `https://${s}`;
+                  return withProto;
+                }
+
+                function isValidTelegram(url: string): boolean {
+                  if (!url) return true; // ריק מותר
+                  try {
+                    const u = new URL(url);
+                    return /(^|\.)t\.me$/i.test(u.hostname);
+                  } catch {
+                    return false;
+                  }
+                }
+
+                const normalizedTelegramLink = normalizeTelegramLink(telegramLink);
+                if (!isValidTelegram(normalizedTelegramLink)) {
+                  alert("קישור טלגרם לא תקין. דוגמה: https://t.me/fcmasterscup");
                   return;
                 }
                 
@@ -2924,7 +2944,7 @@ export default function AdminDashboard() {
                       prizeFirst: first,
                       prizeSecond: second,
                       nextTournamentDate: nextTournamentDate || undefined,
-                      telegramLink: telegramLink.trim()
+                      telegramLink: normalizedTelegramLink || null
                     })
                   });
                   
