@@ -974,43 +974,66 @@ export default function AdminDashboard() {
     // אישור לפני יצירת השלב
     if (!confirm("האם אתה בטוח שברצונך ליצור את שלב שמינית הגמר?")) return;
 
-    // seeding אמיתי - סידור טורניר 16 קבוצות
-    // סידור מסורתי: 1vs16, 2vs15, 3vs14, 4vs13, 5vs12, 6vs11, 7vs10, 8vs9
-    const seededOrder = [
-      selectedPlayers[0],  // #1
-      selectedPlayers[15], // #16
-      selectedPlayers[7],  // #8
-      selectedPlayers[8],  // #9
-      selectedPlayers[3],  // #4
-      selectedPlayers[12], // #13
-      selectedPlayers[4],  // #5
-      selectedPlayers[11], // #12
-      selectedPlayers[1],  // #2
-      selectedPlayers[14], // #15
-      selectedPlayers[6],  // #7
-      selectedPlayers[9],  // #10
-      selectedPlayers[2],  // #3
-      selectedPlayers[13], // #14
-      selectedPlayers[5],  // #6
-      selectedPlayers[10]  // #11
-    ];
+    try {
+      // שימוש במנגנון החדש לבחירת שחקנים עם הודעות
+      const response = await api(`/api/tournament-registrations/${tournamentId}/select-players`, {
+        method: "POST",
+        body: JSON.stringify({
+          selectedUserIds: selectedPlayers,
+          tournamentTitle: title,
+          tournamentDate: nextTournamentDate,
+          telegramLink: globalTelegramLink,
+          prizeFirst: first,
+          prizeSecond: second
+        })
+      });
 
-    const players = seededOrder.map(id => {
-      const player = availablePlayers.find(p => p.id === id)!;
-      return {
-        id: crypto.randomUUID(),
-        psn: player.psn,
-        displayName: player.displayName
-      };
-    });
+      if (!response.ok) {
+        throw new Error(response.data?.error || 'שגיאה בבחירת השחקנים');
+      }
 
-    await api("/api/tournaments/seed", {
-      method: "POST",
-      body: JSON.stringify({ tournamentId, players })
-    });
-    
-    setStagesActivated(prev => ({ ...prev, R16: true }));
-    alert("✅ שלב שמינית הגמר נוצר בהצלחה!");
+      // seeding אמיתי - סידור טורניר 16 קבוצות
+      // סידור מסורתי: 1vs16, 2vs15, 3vs14, 4vs13, 5vs12, 6vs11, 7vs10, 8vs9
+      const seededOrder = [
+        selectedPlayers[0],  // #1
+        selectedPlayers[15], // #16
+        selectedPlayers[7],  // #8
+        selectedPlayers[8],  // #9
+        selectedPlayers[3],  // #4
+        selectedPlayers[12], // #13
+        selectedPlayers[4],  // #5
+        selectedPlayers[11], // #12
+        selectedPlayers[1],  // #2
+        selectedPlayers[14], // #15
+        selectedPlayers[6],  // #7
+        selectedPlayers[9],  // #10
+        selectedPlayers[2],  // #3
+        selectedPlayers[13], // #14
+        selectedPlayers[5],  // #6
+        selectedPlayers[10]  // #11
+      ];
+
+      const players = seededOrder.map(id => {
+        const player = availablePlayers.find(p => p.id === id)!;
+        return {
+          id: crypto.randomUUID(),
+          psn: player.psn,
+          displayName: player.displayName
+        };
+      });
+
+      // יצירת המשחקים
+      await api("/api/tournaments/seed", {
+        method: "POST",
+        body: JSON.stringify({ tournamentId, players })
+      });
+      
+      setStagesActivated(prev => ({ ...prev, R16: true }));
+      alert("✅ שלב שמינית הגמר נוצר בהצלחה! השחקנים קיבלו הודעות על בחירתם.");
+    } catch (error) {
+      console.error("שגיאה בבחירת שחקנים:", error);
+      alert(`❌ שגיאה: ${error.message}`);
+    }
   }
 
   async function advance(round: "R16" | "QF" | "SF") {
