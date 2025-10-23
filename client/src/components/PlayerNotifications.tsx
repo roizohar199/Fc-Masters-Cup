@@ -22,6 +22,49 @@ export function PlayerNotifications({ isMobile }: PlayerNotificationsProps) {
 
   useEffect(() => {
     loadNotifications();
+    
+    // רענון אוטומטי כל 30 שניות כדי לזהות הודעות שנמחקו
+    const interval = setInterval(() => {
+      loadNotifications();
+    }, 30000);
+    
+    // האזנה להודעות WebSocket
+    const handleWebSocketMessage = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "tournament:deleted") {
+          console.log("🏆 Received tournament deletion notification:", data);
+          // רענון מיידי של ההודעות
+          loadNotifications();
+        }
+      } catch (error) {
+        // התעלמות מהודעות שאינן JSON
+      }
+    };
+    
+    // חיבור ל-WebSocket אם זמין
+    if (window.WebSocket) {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/presence`;
+      
+      try {
+        const ws = new WebSocket(wsUrl);
+        ws.onmessage = handleWebSocketMessage;
+        ws.onerror = () => {
+          // אם WebSocket נכשל, נמשיך עם polling
+          console.log("WebSocket connection failed, using polling fallback");
+        };
+        
+        return () => {
+          clearInterval(interval);
+          ws.close();
+        };
+      } catch (error) {
+        console.log("WebSocket not available, using polling fallback");
+      }
+    }
+    
+    return () => clearInterval(interval);
   }, []);
 
   async function loadNotifications() {
@@ -53,47 +96,6 @@ export function PlayerNotifications({ isMobile }: PlayerNotificationsProps) {
     }
   }
 
-  async function deleteNotification(notificationId: string) {
-    if (!confirm("האם אתה בטוח שברצונך למחוק הודעה זו?")) {
-      return;
-    }
-
-    try {
-      await api(`/api/me/notifications/${notificationId}`, {
-        method: "DELETE"
-      });
-      // עדכון מקומי - הסרת ההודעה מהרשימה
-      setNotifications(prev => prev.filter(n => n.id !== notificationId));
-      setUnreadCount(prev => Math.max(0, prev - 1));
-    } catch (error) {
-      console.error("Error deleting notification:", error);
-      alert("שגיאה במחיקת ההודעה");
-    }
-  }
-
-  async function deleteAllNotifications() {
-    if (!confirm("האם אתה בטוח שברצונך למחוק את כל ההודעות?")) {
-      return;
-    }
-
-    try {
-      // מחיקת כל ההודעות אחת אחת
-      const deletePromises = notifications.map(notification => 
-        api(`/api/me/notifications/${notification.id}`, {
-          method: "DELETE"
-        })
-      );
-      
-      await Promise.all(deletePromises);
-      
-      // עדכון מקומי - ריקון הרשימה
-      setNotifications([]);
-      setUnreadCount(0);
-    } catch (error) {
-      console.error("Error deleting all notifications:", error);
-      alert("שגיאה במחיקת ההודעות");
-    }
-  }
 
   if (loading) {
     return null;
@@ -141,36 +143,6 @@ export function PlayerNotifications({ isMobile }: PlayerNotificationsProps) {
             </span>
           )}
         </h3>
-        {notifications.length > 0 && (
-          <button
-            onClick={deleteAllNotifications}
-            style={{
-              background: "none",
-              border: "1px solid #d32f2f",
-              borderRadius: 6,
-              padding: isMobile ? "6px 12px" : "8px 16px",
-              color: "#d32f2f",
-              cursor: "pointer",
-              fontSize: isMobile ? 12 : 14,
-              fontWeight: 500,
-              transition: "all 0.2s ease",
-              display: "flex",
-              alignItems: "center",
-              gap: 4
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "#d32f2f";
-              e.currentTarget.style.color = "#fff";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "transparent";
-              e.currentTarget.style.color = "#d32f2f";
-            }}
-            title="מחק את כל ההודעות"
-          >
-            🗑️ מחק הכל
-          </button>
-        )}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -240,47 +212,15 @@ export function PlayerNotifications({ isMobile }: PlayerNotificationsProps) {
                   </div>
                 )}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                {!notification.isRead && (
-                  <div style={{
-                    width: 8,
-                    height: 8,
-                    backgroundColor: "#2196f3",
-                    borderRadius: "50%",
-                    marginTop: 4
-                  }} />
-                )}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteNotification(notification.id);
-                  }}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: "4px",
-                    borderRadius: "4px",
-                    color: "#666",
-                    fontSize: isMobile ? 14 : 16,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    transition: "all 0.2s ease"
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "#ffebee";
-                    e.currentTarget.style.color = "#d32f2f";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "transparent";
-                    e.currentTarget.style.color = "#666";
-                  }}
-                  title="מחק הודעה"
-                >
-                  🗑️
-                </button>
-              </div>
+              {!notification.isRead && (
+                <div style={{
+                  width: 8,
+                  height: 8,
+                  backgroundColor: "#2196f3",
+                  borderRadius: "50%",
+                  marginTop: 4
+                }} />
+              )}
             </div>
           </div>
         ))}
