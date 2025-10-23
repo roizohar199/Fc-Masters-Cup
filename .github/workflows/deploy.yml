@@ -8,6 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,35 +30,34 @@ jobs:
         run: npm run build
 
       # ---------- SERVER ----------
-      # מתקינים עם dev כדי לאפשר tsc ואז בונים ומנקים dev
       - name: Install server deps (with dev)
         working-directory: server
         run: npm ci
 
       - name: Build server (TS -> dist)
         working-directory: server
+        shell: bash
         run: |
           if [ -f package.json ] && cat package.json | jq -e '.scripts.build' > /dev/null 2>&1; then
             npm run build
           fi
-          # מסירים devDependencies מה-node_modules כדי לא לשלוח סתם נפח
           npm prune --omit=dev
 
       # ---------- PACK ARTIFACTS ----------
       - name: Pack artifacts
+        shell: bash
         run: |
           rm -rf _artifact
           mkdir -p _artifact/client/dist
           mkdir -p _artifact/server/dist
 
-          # client build only
+          # client build
           rsync -a --delete client/dist/ _artifact/client/dist/
 
-          # server: dist + מינימום קבצים להפעלה
+          # server
           rsync -a server/dist/ _artifact/server/dist/
           cp server/package.json _artifact/server/package.json
           [ -f server/package-lock.json ] && cp server/package-lock.json _artifact/server/package-lock.json || true
-          # אם יש קובץ PM2/ENV/CONFIG ספציפי שהשרת צריך, הוסף כאן העתקה שלו
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -68,6 +68,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
@@ -80,36 +81,54 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Known hosts
+      # מוסיפים known_hosts כדי למנוע עצירה באימות
+      - name: Add host to known_hosts
+        shell: bash
         run: |
           set -euo pipefail
+          HOST="${{ secrets.VPS_HOST }}"
           PORT="${{ secrets.VPS_PORT }}"
-          PORT="${PORT:-22}"
-          ssh-keyscan -p "$PORT" -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+          : "${PORT:=22}"
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "$PORT" -H "$HOST" >> ~/.ssh/known_hosts
 
+      # בדיקה שחיבור ה-SSH תקין
+      - name: Test SSH connection
+        shell: bash
+        run: |
+          HOST="${{ secrets.VPS_HOST }}"
+          USER="${{ secrets.VPS_USER }}"
+          PORT="${{ secrets.VPS_PORT }}"
+          : "${PORT:=22}"
+          ssh -p "$PORT" "$USER@$HOST" "echo '✅ SSH OK'; uname -a"
+
+      # שליחת קבצים לשרת
       - name: Rsync to server
+        shell: bash
         run: |
           set -euo pipefail
+          HOST="${{ secrets.VPS_HOST }}"
+          USER="${{ secrets.VPS_USER }}"
           PORT="${{ secrets.VPS_PORT }}"
-          PORT="${PORT:-22}"
+          : "${PORT:=22}"
           SSH_CMD="ssh -p $PORT"
 
-          $SSH_CMD ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "mkdir -p /var/www/fcmasters/server /var/www/fcmasters/client/dist"
+          $SSH_CMD "$USER@$HOST" "mkdir -p /var/www/fcmasters/server /var/www/fcmasters/client/dist"
 
-          rsync -az --delete -e "$SSH_CMD" \
-            _artifact/client/dist/ \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/fcmasters/client/dist/
+          rsync -az --delete -e "$SSH_CMD" _artifact/client/dist/ "$USER@$HOST:/var/www/fcmasters/client/dist/"
+          rsync -az --delete -e "$SSH_CMD" _artifact/server/ "$USER@$HOST:/var/www/fcmasters/server/"
 
-          rsync -az --delete -e "$SSH_CMD" \
-            _artifact/server/ \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/fcmasters/server/
-
-      - name: Install server deps + restart PM2 on VPS
+      # התקנת תלויות והפעלת PM2
+      - name: Install server deps + restart PM2
+        shell: bash
         run: |
           set -euo pipefail
+          HOST="${{ secrets.VPS_HOST }}"
+          USER="${{ secrets.VPS_USER }}"
           PORT="${{ secrets.VPS_PORT }}"
-          PORT="${PORT:-22}"
-          ssh -p "$PORT" ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+          : "${PORT:=22}"
+
+          ssh -p "$PORT" "$USER@$HOST" << 'EOF'
           set -euo pipefail
           cd /var/www/fcmasters/server
 
