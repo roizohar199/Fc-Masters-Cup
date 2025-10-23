@@ -1795,7 +1795,7 @@ export default function AdminDashboard() {
                             : "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
                           color: "#fff"
                         }}>
-                          {user.role === "admin" ? "מנהל" : "שחקן"}
+                          {user.role === "admin" ? (user.isSuperAdmin ? "מנהל על" : "מנהל") : "שחקן"}
                         </span>
                         {user.isSuperAdmin && (
                           <span style={{

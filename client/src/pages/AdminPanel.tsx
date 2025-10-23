@@ -714,7 +714,7 @@ export default function AdminPanel() {
                           : "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
                         color: "#fff"
                       }}>
-                        {user.role === "admin" ? "מנהל" : "שחקן"}
+                        {user.role === "admin" ? (user.isSuperAdmin ? "מנהל על" : "מנהל") : "שחקן"}
                       </span>
                     </td>
                     <td style={{ padding: 12, textAlign: "center", fontWeight: 600 }}>
@@ -951,7 +951,7 @@ export default function AdminPanel() {
                         fontWeight: 600,
                         color: user.role === "admin" ? "#667eea" : "#43e97b"
                       }}>
-                        {user.role === "admin" ? "👨‍💼 מנהל" : "🎮 שחקן"}
+                        {user.role === "admin" ? (user.isSuperAdmin ? "👑 מנהל על" : "👨‍💼 מנהל") : "🎮 שחקן"}
                       </span>
                     </div>
                     
