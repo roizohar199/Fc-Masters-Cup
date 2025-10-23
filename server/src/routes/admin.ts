@@ -30,15 +30,16 @@ admin.get("/users", async (req, res) => {
     let usersWithPresence = users;
     try {
       const presence = await import("../presence.js");
-      const presenceData = presence.snapshot();
-      const presenceMap = new Map(presenceData.map((p: any) => [p.email, p]));
+      const presenceData = await presence.getPresenceData();
+      const presenceMap = new Map(presenceData.users.map((p: any) => [p.email, p]));
       
       usersWithPresence = users.map((user: any) => ({
         ...user,
         isOnline: presenceMap.get(user.email)?.isOnline || false,
         isActive: presenceMap.get(user.email)?.isActive || false,
         lastSeen: presenceMap.get(user.email)?.lastSeen || null,
-        connections: presenceMap.get(user.email)?.connections || 0
+        connections: presenceMap.get(user.email)?.connections || 0,
+        isSuperAdmin: presenceMap.get(user.email)?.isSuperAdmin || user.isSuperAdmin === 1
       }));
       
       console.log("📡 נוספו נתוני נוכחות למשתמשים");
