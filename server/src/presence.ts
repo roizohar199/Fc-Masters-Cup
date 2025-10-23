@@ -52,7 +52,7 @@ function parseCookie(header?: string) {
   return out;
 }
 
-function snapshot() {
+export function snapshot() {
   const now = Date.now();
   const result: Array<{uid:string;email:string;lastSeen:number;isOnline:boolean;isActive:boolean;connections:number}> = [];
   
@@ -387,7 +387,7 @@ export async function getPresenceData() {
       const hasRecentLogin = recentLogin && (now - recentLogin) <= (2 * 60 * 1000); // 2 דקות בלבד
       
       // משתמש אונליין אם יש לו WebSocket connection או recent login
-      const isOnline = hasWebSocketConnection || hasRecentLogin;
+      const isOnline = hasWebSocketConnection || hasRecentLogin || false;
       const isActive = presence?.isActive || false;
       
       // לוג מפורט לניפוי באגים

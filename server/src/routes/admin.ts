@@ -22,16 +22,16 @@ function isTargetSuperAdmin(userId: string): boolean {
 admin.get("/users", async (req, res) => {
   console.log("🔍 API /users נקרא");
   try {
-    const users = db.prepare(`SELECT id, email, role, secondPrizeCredit, createdAt, status, psnUsername, approvalStatus FROM users ORDER BY createdAt DESC`).all();
+    const users = db.prepare(`SELECT id, email, role, secondPrizeCredit, createdAt, status, psnUsername, approvalStatus, isSuperAdmin FROM users ORDER BY createdAt DESC`).all();
     console.log("📊 משתמשים מהמסד נתונים:", users.length, "משתמשים");
     console.log("📋 פרטי משתמשים:", users);
     
     // הוסף נתוני נוכחות
     let usersWithPresence = users;
     try {
-      const { getPresenceData } = await import("../presence.js");
-      const presenceData = await getPresenceData();
-      const presenceMap = new Map(presenceData.users.map((u: any) => [u.email, u]));
+      const presence = await import("../presence.js");
+      const presenceData = presence.snapshot();
+      const presenceMap = new Map(presenceData.map((p: any) => [p.email, p]));
       
       usersWithPresence = users.map((user: any) => ({
         ...user,
@@ -65,7 +65,7 @@ admin.get("/users", async (req, res) => {
 admin.get("/users/online-status", async (req, res) => {
   try {
     // Get all users
-    const allUsers = db.prepare(`SELECT id, email, role, secondPrizeCredit, createdAt, status, psnUsername FROM users ORDER BY createdAt DESC`).all() as any[];
+    const allUsers = db.prepare(`SELECT id, email, role, secondPrizeCredit, createdAt, status, psnUsername, isSuperAdmin FROM users ORDER BY createdAt DESC`).all() as any[];
     
     // Get online users from presence
     let onlineUsers: any[] = [];
