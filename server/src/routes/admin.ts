@@ -39,13 +39,21 @@ admin.get("/users", async (req, res) => {
         isActive: presenceMap.get(user.email)?.isActive || false,
         lastSeen: presenceMap.get(user.email)?.lastSeen || null,
         connections: presenceMap.get(user.email)?.connections || 0,
-        isSuperAdmin: presenceMap.get(user.email)?.isSuperAdmin || user.isSuperAdmin === 1
+        isSuperAdmin: user.isSuperAdmin === 1
       }));
       
       console.log("📡 נוספו נתוני נוכחות למשתמשים");
     } catch (presenceError) {
       console.warn("⚠️ לא ניתן לטעון נתוני נוכחות:", presenceError);
-      // המשך עם הנתונים הרגילים
+      // המשך עם הנתונים הרגילים - הוסף isSuperAdmin מהמסד נתונים
+      usersWithPresence = users.map((user: any) => ({
+        ...user,
+        isOnline: false,
+        isActive: false,
+        lastSeen: null,
+        connections: 0,
+        isSuperAdmin: user.isSuperAdmin === 1
+      }));
     }
     
     // מניעת cache
