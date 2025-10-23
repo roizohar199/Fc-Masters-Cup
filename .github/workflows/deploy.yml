@@ -40,6 +40,14 @@ jobs:
           npm run build || echo "no build script"
           npm prune --omit=dev
 
+      # ---------- VERSION INFO ----------
+      - name: Write version info into server/dist
+        shell: bash
+        run: |
+          mkdir -p server/dist
+          echo "commit=$(git rev-parse --short HEAD)" > server/dist/version.txt
+          echo "built_at=$(date -u +%FT%TZ)"       >> server/dist/version.txt
+
       # ---------- PACK ARTIFACTS ----------
       - name: Pack artifacts
         shell: bash
@@ -106,7 +114,6 @@ jobs:
           BKDIR="/var/www/fcmasters/server/backups"
           if [ -f "$DB" ]; then
             mkdir -p "$BKDIR"
-            # אם sqlite3 קיים – מבצע גיבוי נקי לקובץ יחיד
             if command -v sqlite3 >/dev/null 2>&1; then
               sqlite3 "$DB" "VACUUM INTO '${BKDIR}/tournaments-$(date +%F_%H-%M).sqlite'"
               echo "📦 DB backup created in $BKDIR"
@@ -143,6 +150,33 @@ jobs:
           if [ -f _artifact/server/package-lock.json ]; then
             rsync -avz -e "$SSH_CMD" _artifact/server/package-lock.json "$USER@$HOST:/var/www/fcmasters/server/package-lock.json"
           fi
+
+      # ---------- ENFORCE SUPERADMIN ----------
+      - name: Ensure superadmin after deploy
+        shell: bash
+        run: |
+          HOST="${{ secrets.VPS_HOST }}"
+          USER="${{ secrets.VPS_USER }}"
+          PORT="${{ secrets.VPS_PORT }}"
+          : "${PORT:=22}"
+          ADMIN_EMAIL="${{ secrets.ADMIN_EMAIL }}"
+          ssh -p "$PORT" "$USER@$HOST" bash -lc "
+            set -e
+            DB='/var/www/fcmasters/server/tournaments.sqlite'
+            if [ -f \"\$DB\" ] && command -v sqlite3 >/dev/null 2>&1; then
+              sqlite3 \"\$DB\" \"
+                UPDATE users
+                SET role='admin',
+                    isSuperAdmin=1,
+                    status='active',
+                    approvalStatus='approved'
+                WHERE email='\$ADMIN_EMAIL';
+              \"
+              echo '🔒 ensured superadmin for' \"\$ADMIN_EMAIL\"
+            else
+              echo '⚠️ DB or sqlite3 not found, skipping ensure-superadmin'
+            fi
+          "
 
       # ---------- INSTALL & PM2 ----------
       - name: Install server deps + restart PM2
