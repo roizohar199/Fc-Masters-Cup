@@ -5,7 +5,6 @@ import { useStore } from "../store";
 import PlayerDashboardChampions from "../components/PlayerDashboardChampions";
 import { TournamentSignupCard } from "../components/TournamentSignupCard";
 import { NotificationBanner } from "../components/NotificationBanner";
-import { GlobalTelegramLink } from "../components/GlobalTelegramLink";
 import { getRoundName } from "../utils/rounds";
 import "../styles/championsLeague.css";
 import { PlayerTournamentStatus } from "../components/PlayerTournamentStatus";
@@ -25,7 +24,6 @@ interface Tournament {
   prizeFirst: number;
   prizeSecond: number;
   nextTournamentDate?: string;
-  telegramLink?: string;
 }
 
 interface Match {
@@ -90,14 +88,6 @@ export default function PlayerDashboard() {
           console.log("🎯 טורניר שנמצא:", selectedTournament);
         }
         
-        // אם לא מצאנו, נחפש טורניר עם קישור טלגרם (עדיפות ראשונה)
-        if (!selectedTournament) {
-          const tournamentWithTelegram = tournaments.find(t => t.telegramLink && t.telegramLink.trim() !== "");
-          if (tournamentWithTelegram) {
-            selectedTournament = tournamentWithTelegram;
-            console.log("🎯 נמצא טורניר עם קישור טלגרם:", selectedTournament);
-          }
-        }
         
         // אם עדיין לא מצאנו, ניקח את הטורניר האחרון
         if (!selectedTournament) {
@@ -106,15 +96,6 @@ export default function PlayerDashboard() {
         }
         
         console.log("🎯 הטורניר שנבחר:", selectedTournament);
-        console.log("📱 קישור טלגרם בטורניר:", selectedTournament.telegramLink);
-        console.log("🔍 בדיקת תנאי הצגת קישור טלגרם:", {
-          hasTournament: !!selectedTournament,
-          hasTelegramLink: !!selectedTournament.telegramLink,
-          telegramLinkValue: selectedTournament.telegramLink,
-          isEmpty: selectedTournament.telegramLink === "",
-          isNull: selectedTournament.telegramLink === null,
-          isUndefined: selectedTournament.telegramLink === undefined
-        });
         setTournament(selectedTournament);
 
         // טעינת משחקים
@@ -226,8 +207,6 @@ export default function PlayerDashboard() {
         getMatchResult={getMatchResult}
       />
 
-      {/* קישור טלגרם כללי לתמיכה */}
-      <GlobalTelegramLink isMobile={isMobile} />
       
       {/* סטטוס הרישום וההגרלה */}
       <PlayerTournamentStatus 
@@ -239,59 +218,6 @@ export default function PlayerDashboard() {
       {/* הודעות למשתמש */}
       <PlayerNotifications isMobile={isMobile} />
       
-      {/* קישור טלגרם של הטורניר הספציפי */}
-      <div style={{
-        backgroundColor: "#e3f2fd",
-        padding: isMobile ? 16 : 20,
-        borderRadius: isMobile ? 12 : 16,
-        border: "2px solid #2196f3",
-        marginBottom: isMobile ? 16 : 24
-      }}>
-        <div style={{ 
-          display: "flex", 
-          flexDirection: isMobile ? "column" : "row",
-          alignItems: isMobile ? "stretch" : "center", 
-          gap: isMobile ? 16 : 12, 
-          justifyContent: "space-between" 
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 12 }}>
-            <div style={{ fontSize: isMobile ? 28 : 36 }}>🏆</div>
-            <div>
-              <h3 style={{ fontSize: isMobile ? 16 : 20, fontWeight: 700, color: "#1565c0", margin: 0 }}>
-                קבוצת הטורניר
-              </h3>
-              <p style={{ fontSize: isMobile ? 12 : 14, color: "#1976d2", margin: "4px 0 0 0" }}>
-                הצטרף לקבוצת הטלגרם של הטורניר לתשלום ומידע
-              </p>
-            </div>
-          </div>
-          <button 
-            onClick={() => {
-              console.log("כפתור נלחץ - פותח קישור לטלגרם");
-              window.open("https://t.me/+elbxvwU9fLE1YTg8", "_blank");
-            }}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              backgroundColor: "#1E90FF",
-              color: "#fff",
-              padding: isMobile ? "10px 16px" : "10px 20px",
-              borderRadius: "8px",
-              fontWeight: "bold",
-              border: "none",
-              transition: "0.3s",
-              fontSize: isMobile ? 14 : 15,
-              minWidth: isMobile ? "auto" : "140px",
-              cursor: "pointer"
-            }}
-            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#0B72E7")}
-            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#1E90FF")}
-          >
-            📅 הצטרף לטורניר
-          </button>
-        </div>
-      </div>
       
       {/* הגרסה הישנה (מוסתרת) */}
       <div style={{ display: "none" }}>
@@ -374,60 +300,6 @@ export default function PlayerDashboard() {
         </div>
       )}
 
-      {/* קישור טלגרם */}
-      {(() => {
-        console.log("🔍 בדיקת תנאי הצגת קישור טלגרם:", {
-          tournament: !!tournament,
-          telegramLink: tournament?.telegramLink,
-          shouldShow: !!(tournament?.telegramLink)
-        });
-        return null;
-      })()}
-      {tournament?.telegramLink && (
-        <div style={{
-          backgroundColor: "#e1f5fe",
-          padding: isMobile ? 16 : 20,
-          borderRadius: isMobile ? 12 : 16,
-          border: "2px solid #0288d1"
-        }}>
-          <div style={{ 
-            display: "flex", 
-            flexDirection: isMobile ? "column" : "row",
-            alignItems: isMobile ? "stretch" : "center", 
-            gap: isMobile ? 16 : 12, 
-            justifyContent: "space-between" 
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 12 }}>
-              <div style={{ fontSize: isMobile ? 28 : 36 }}>💬</div>
-              <div>
-                <h3 style={{ fontSize: isMobile ? 16 : 20, fontWeight: 700, color: "#01579b", margin: 0 }}>
-                  הצטרף לקבוצת הטלגרם
-                </h3>
-                <p style={{ fontSize: isMobile ? 12 : 14, color: "#0277bd", margin: "4px 0 0 0" }}>
-                  קבל עדכונים ושוחח עם שחקנים אחרים
-                </p>
-              </div>
-            </div>
-            <a 
-              href={tournament.telegramLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                padding: isMobile ? "12px 20px" : "12px 24px",
-                background: "#0288d1",
-                color: "#fff",
-                textDecoration: "none",
-                borderRadius: 10,
-                fontWeight: 700,
-                fontSize: isMobile ? 14 : 15,
-                textAlign: "center"
-              }}
-            >
-              הצטרף 📱
-            </a>
-          </div>
-        </div>
-      )}
 
       {/* סטטוס הטורניר הנוכחי */}
       {getCurrentRound() && (

@@ -34,7 +34,6 @@ interface Tournament {
   prizeFirst: number;
   prizeSecond: number;
   nextTournamentDate?: string;
-  telegramLink?: string;
 }
 
 interface Player {
@@ -1030,7 +1029,6 @@ export default function AdminPanel() {
                     <span>📅 {tournament.createdAt && !isNaN(new Date(tournament.createdAt).getTime()) 
                       ? new Date(tournament.createdAt).toLocaleDateString("he-IL") 
                       : "לא זמין"}</span>
-                    {tournament.telegramLink && <span>💬 קבוצת טלגרם</span>}
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 12 }}>

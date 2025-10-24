@@ -203,9 +203,6 @@ export function PlayerNotifications({ isMobile }: PlayerNotificationsProps) {
                     {notification.data.tournamentDate && (
                       <div>📅 תאריך: {new Date(notification.data.tournamentDate).toLocaleDateString('he-IL')}</div>
                     )}
-                    {notification.data.telegramLink && (
-                      <div>📱 קבוצת טלגרם זמינה</div>
-                    )}
                     {notification.data.prizeFirst && (
                       <div>🏆 פרס ראשון: {notification.data.prizeFirst} ₪</div>
                     )}

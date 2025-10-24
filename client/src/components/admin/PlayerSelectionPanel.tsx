@@ -29,7 +29,6 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
   const [tournamentDetails, setTournamentDetails] = useState({
     title: '',
     date: '',
-    telegramLink: '',
     prizeFirst: 500,
     prizeSecond: 0
   });
@@ -89,7 +88,6 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
         setTournamentDetails({
           title: tournament.title || 'טורניר FC Masters Cup',
           date: tournament.nextTournamentDate || '',
-          telegramLink: tournament.telegramLink || '',
           prizeFirst: tournament.prizeFirst || 500,
           prizeSecond: tournament.prizeSecond || 0
         });
@@ -145,31 +143,7 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
       return;
     }
 
-    // נורמליזציה של קישור טלגרם
-    function normalizeTelegramLink(input: string): string {
-      const s = input.trim();
-      if (!s) return ""; // ישלח כ-null מהשרת אחרי ה-parse
-      // הוסף https:// אם חסר:
-      const withProto = /^https?:\/\//i.test(s) ? s : `https://${s}`;
-      return withProto;
-    }
 
-    function isValidTelegram(url: string): boolean {
-      if (!url) return true; // ריק מותר
-      try {
-        const u = new URL(url);
-        return /(^|\.)t\.me$/i.test(u.hostname);
-      } catch {
-        return false;
-      }
-    }
-
-    // ולידציה של קישור טלגרם
-    const normalizedTelegramLink = normalizeTelegramLink(tournamentDetails.telegramLink);
-    if (!isValidTelegram(normalizedTelegramLink)) {
-      toast.error("קישור טלגרם לא תקין. דוגמה: https://t.me/fcmasterscup");
-      return;
-    }
 
     try {
       setSelecting(true);
@@ -284,24 +258,6 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
               type="datetime-local"
               value={tournamentDetails.date}
               onChange={(e) => setTournamentDetails(prev => ({ ...prev, date: e.target.value }))}
-              style={{
-                width: '100%',
-                padding: '8px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px'
-              }}
-            />
-          </div>
-          <div>
-            <label style={{ fontSize: '12px', color: '#6c757d', display: 'block', marginBottom: '4px' }}>
-              קישור טלגרם:
-            </label>
-            <input
-              type="url"
-              value={tournamentDetails.telegramLink}
-              onChange={(e) => setTournamentDetails(prev => ({ ...prev, telegramLink: e.target.value }))}
-              placeholder="https://t.me/..."
               style={{
                 width: '100%',
                 padding: '8px',

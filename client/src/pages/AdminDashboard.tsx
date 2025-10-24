@@ -30,8 +30,6 @@ export default function AdminDashboard() {
   const [second, setSecond] = useState(500);
   const [nextTournamentDate, setNextTournamentDate] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [telegramLink, setTelegramLink] = useState("");
-  const [globalTelegramLink, setGlobalTelegramLink] = useState("");
   
   // הוספת מנהל חדש
   const [newAdminEmail, setNewAdminEmail] = useState("");
@@ -71,7 +69,7 @@ export default function AdminDashboard() {
   const [playerSearchQuery, setPlayerSearchQuery] = useState("");
   
   // טורנירים קיימים
-  const [existingTournaments, setExistingTournaments] = useState<Array<{id: string, title: string, createdAt: string, telegramLink?: string}>>([]);
+  const [existingTournaments, setExistingTournaments] = useState<Array<{id: string, title: string, createdAt: string}>>([]);
   
   // Presence system
   const [presenceUsers, setPresenceUsers] = useState<{uid:string;email:string;lastSeen:number}[]>([]);
@@ -118,7 +116,6 @@ export default function AdminDashboard() {
     loadUsers();
     loadTournaments();
     loadTournamentRegistrations();
-    loadGlobalTelegramLink();
     
     // רענון אוטומטי של בקשות אישור כל 30 שניות
     const interval = setInterval(() => {
@@ -485,7 +482,7 @@ export default function AdminDashboard() {
       if (tournaments && tournaments.length > 0) {
         console.log("📋 רשימת טורנירים:");
         tournaments.forEach((t: any, index: number) => {
-          console.log(`  ${index + 1}. ${t.title} (ID: ${t.id}) - טלגרם: ${t.telegramLink || 'אין'}`);
+          console.log(`  ${index + 1}. ${t.title} (ID: ${t.id})`);
         });
       }
       setExistingTournaments(tournaments || []);
@@ -518,34 +515,6 @@ export default function AdminDashboard() {
     }
   }
 
-  // טעינת קישור טלגרם כללי
-  async function loadGlobalTelegramLink() {
-    try {
-      const response = await api("/api/settings/global_telegram_link");
-      if (response.ok && response.setting) {
-        setGlobalTelegramLink(response.setting.value || "");
-      }
-    } catch (error) {
-      console.log("קישור טלגרם כללי לא נמצא או שגיאה בטעינה");
-    }
-  }
-
-  // שמירת קישור טלגרם כללי
-  async function saveGlobalTelegramLink() {
-    try {
-      await api("/api/settings", {
-        method: "POST",
-        body: {
-          key: "global_telegram_link",
-          value: globalTelegramLink,
-          description: "קישור טלגרם כללי לתמיכה ושאלות"
-        }
-      });
-      alert("✅ קישור הטלגרם הכללי נשמר בהצלחה!");
-    } catch (error: any) {
-      alert(`❌ שגיאה בשמירת הקישור: ${error.message}`);
-    }
-  }
 
   async function blockUser(userId: string, userEmail: string) {
     if (!confirm(`האם אתה בטוח שברצונך לחסום את ${userEmail}?`)) return;
@@ -934,7 +903,6 @@ export default function AdminDashboard() {
       prizeFirst: first, 
       prizeSecond: second,
       nextTournamentDate: nextTournamentDate || undefined,
-      telegramLink: telegramLink || undefined
     });
     
     console.log("🔍 בדיקת ערכי השדות:");
@@ -943,8 +911,6 @@ export default function AdminDashboard() {
     console.log("  - prizeFirst:", first);
     console.log("  - prizeSecond:", second);
     console.log("  - nextTournamentDate:", nextTournamentDate);
-    console.log("  - telegramLink (raw):", telegramLink);
-    console.log("  - telegramLink (processed):", telegramLink || undefined);
     
     try {
       const data = await api("/api/tournaments", {
@@ -955,7 +921,6 @@ export default function AdminDashboard() {
           prizeFirst: first, 
           prizeSecond: second,
           nextTournamentDate: nextTournamentDate || undefined,
-          telegramLink: telegramLink || undefined
         })
       });
       
@@ -993,7 +958,6 @@ export default function AdminDashboard() {
           selectedUserIds: selectedPlayers,
           tournamentTitle: title,
           tournamentDate: nextTournamentDate,
-          telegramLink: globalTelegramLink,
           prizeFirst: first,
           prizeSecond: second
         })
@@ -1318,7 +1282,7 @@ export default function AdminDashboard() {
             
             // יצירת רשימה של טורנירים לבחירה
             const tournamentList = existingTournaments.map((t, index) => 
-              `${index + 1}. ${t.title} (${t.createdAt.split('T')[0]}) ${t.telegramLink ? '📱' : ''}`
+              `${index + 1}. ${t.title} (${t.createdAt.split('T')[0]})`
             ).join('\n');
             
             const selection = prompt(`רשימת טורנירים (${existingTournaments.length}):\n\n${tournamentList}\n\nהזן מספר הטורניר שברצונך לבחור:`, "");
@@ -2677,20 +2641,6 @@ export default function AdminDashboard() {
               </div>
             )}
           </div>
-          <input
-            value={telegramLink}
-            onChange={e => setTelegramLink(e.target.value)}
-            placeholder="קישור לקבוצת טלגרם (לדוגמה: https://t.me/...)"
-            style={{
-              padding: 14,
-              borderRadius: 10,
-              border: "none",
-              fontSize: 15,
-              backgroundColor: "rgba(255, 255, 255, 0.95)",
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-              gridColumn: "span 2"
-            }}
-          />
           <button
             onClick={createTournament}
             style={{
@@ -2845,7 +2795,6 @@ export default function AdminDashboard() {
               {existingTournaments.map((tournament) => (
                 <option key={tournament.id} value={tournament.id}>
                   {tournament.title} ({tournament.createdAt.split('T')[0]}) 
-                  {tournament.telegramLink ? " - יש קישור טלגרם" : " - אין קישור טלגרם"}
                 </option>
               ))}
             </select>
@@ -2863,159 +2812,10 @@ export default function AdminDashboard() {
               )}
             </div>
           </div>
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "1fr auto",
-            gap: 12,
-            alignItems: "end"
-          }}>
-            <input
-              type="url"
-              value={telegramLink}
-              onChange={e => setTelegramLink(e.target.value)}
-              placeholder="קישור לקבוצת טלגרם (לדוגמה: https://t.me/fcmasterscup)"
-              style={{
-                padding: 14,
-                borderRadius: 10,
-                border: "2px solid #e0e0e0",
-                fontSize: 15,
-                backgroundColor: "#fafafa"
-              }}
-            />
-            <button
-              onClick={async () => {
-                if (!tournamentId) {
-                  alert("אנא בחר טורניר");
-                  return;
-                }
-                // נורמליזציה של קישור טלגרם
-                function normalizeTelegramLink(input: string): string {
-                  const s = input.trim();
-                  if (!s) return ""; // ישלח כ-null מהשרת אחרי ה-parse
-                  // הוסף https:// אם חסר:
-                  const withProto = /^https?:\/\//i.test(s) ? s : `https://${s}`;
-                  return withProto;
-                }
-
-                function isValidTelegram(url: string): boolean {
-                  if (!url) return true; // ריק מותר
-                  try {
-                    const u = new URL(url);
-                    return /(^|\.)t\.me$/i.test(u.hostname);
-                  } catch {
-                    return false;
-                  }
-                }
-
-                const normalizedTelegramLink = normalizeTelegramLink(telegramLink);
-                if (!isValidTelegram(normalizedTelegramLink)) {
-                  alert("קישור טלגרם לא תקין. דוגמה: https://t.me/fcmasterscup");
-                  return;
-                }
-                
-                console.log("🔍 עדכון טורניר עם ID:", tournamentId);
-                console.log("📱 הוספת קישור טלגרם:", telegramLink.trim());
-                
-                try {
-                  // נמצא את הטורניר הנבחר כדי לשמור את הערכים הקיימים
-                  const selectedTournament = existingTournaments.find(t => t.id === tournamentId);
-                  if (!selectedTournament) {
-                    alert("טורניר לא נמצא");
-                    return;
-                  }
-                  
-                  await api(`/api/tournaments/${tournamentId}`, {
-                    method: "PUT",
-                    body: JSON.stringify({ 
-                      title: selectedTournament.title, // נשמור את הכותרת המקורית
-                      game: "FC25/26",
-                      prizeFirst: first,
-                      prizeSecond: second,
-                      nextTournamentDate: nextTournamentDate || undefined,
-                      telegramLink: normalizedTelegramLink || null
-                    })
-                  });
-                  
-                  alert("✅ קישור הטלגרם נוסף בהצלחה!");
-                  setTelegramLink(""); // נקה את השדה
-                  await loadTournaments(); // רענן את רשימת הטורנירים
-                } catch (error: any) {
-                  console.error("שגיאה בהוספת קישור טלגרם:", error);
-                  alert("❌ שגיאה בהוספת קישור טלגרם: " + error.message);
-                }
-              }}
-              style={{
-                padding: "14px 24px",
-                borderRadius: 10,
-                border: "none",
-                fontSize: 15,
-                fontWeight: 700,
-                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                color: "#fff",
-                cursor: "pointer",
-                boxShadow: "0 4px 15px rgba(102, 126, 234, 0.3)",
-                transition: "all 0.3s"
-              }}
-              onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"}
-              onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}
-            >
-              📱 הוסף קישור
-            </button>
-          </div>
         </div>
       )}
 
       {/* ניהול קישור טלגרם כללי */}
-      <div style={{
-        backgroundColor: "#fff",
-        padding: 24,
-        borderRadius: 16,
-        boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
-        marginBottom: 24
-      }}>
-        <h3 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 16px 0", color: "#333" }}>
-          💬 קישור טלגרם כללי לתמיכה
-        </h3>
-        <p style={{ fontSize: 14, color: "#666", margin: "0 0 16px 0" }}>
-          קישור זה יופיע תמיד בדף המשתמש הרגיל לצורך תמיכה ושאלות
-        </p>
-        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          <input
-            type="text"
-            value={globalTelegramLink}
-            onChange={e => setGlobalTelegramLink(e.target.value)}
-            placeholder="קישור לקבוצת טלגרם כללית (לדוגמה: https://t.me/...)"
-            style={{
-              flex: 1,
-              padding: 14,
-              borderRadius: 10,
-              border: "2px solid #e0e0e0",
-              fontSize: 15,
-              backgroundColor: "rgba(255, 255, 255, 0.95)",
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)"
-            }}
-          />
-          <button
-            onClick={saveGlobalTelegramLink}
-            style={{
-              padding: "14px 24px",
-              borderRadius: 10,
-              border: "none",
-              fontSize: 15,
-              fontWeight: 700,
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-              color: "#fff",
-              cursor: "pointer",
-              boxShadow: "0 4px 15px rgba(102, 126, 234, 0.4)",
-              transition: "all 0.3s"
-            }}
-            onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"}
-            onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}
-          >
-            💾 שמור
-          </button>
-        </div>
-      </div>
 
       <div style={{
         backgroundColor: "#fff",
