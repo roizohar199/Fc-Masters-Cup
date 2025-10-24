@@ -256,11 +256,12 @@ export default function PlayerDashboard() {
             }}>
               <img 
                 src="/payment-qr.png" 
-                alt="קוד QR לתשלום"
+                alt="קוד QR לתשלום - סרוק את הקוד ותשלם 50 ש"ח לרועי זוהר"
                 style={{
                   width: isMobile ? 150 : 200,
                   height: isMobile ? 150 : 200,
-                  borderRadius: 8
+                  borderRadius: 8,
+                  border: "2px solid #e0e0e0"
                 }}
               />
               <p style={{ 
