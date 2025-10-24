@@ -203,7 +203,7 @@ approvalRequests.post("/:requestId/approve", async (req, res) => {
 });
 
 // דחיית בקשה (מנהל על בלבד)
-approvalRequests.post("/:requestId/reject", (req, res) => {
+approvalRequests.post("/:requestId/reject", async (req, res) => {
   const { requestId } = req.params;
   const userEmail = (req as any).user?.email;
   

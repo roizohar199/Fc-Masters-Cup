@@ -4,6 +4,7 @@ import { useStore } from "../store";
 import { TournamentRegistrationsPanel } from "../components/TournamentRegistrationsPanel";
 import { PlayerSelectionPanel } from "../components/admin/PlayerSelectionPanel";
 import { startPresence, onPresenceUpdate } from "../presence";
+import SelectionPanel from "../components/admin/SelectionPanel";
 
 interface User {
   id: string;
@@ -2711,32 +2712,21 @@ export default function AdminDashboard() {
           >
             ✨ צור טורניר
           </button>
-          <button
-            onClick={seedAndR16}
-            disabled={!tournamentId || selectedPlayers.length !== 16}
-            style={{
-              padding: 14,
-              borderRadius: 10,
-              border: "none",
-              fontSize: 16,
-              fontWeight: 700,
-              background: tournamentId && selectedPlayers.length === 16
-                ? "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
-                : "#ccc",
-              color: "#fff",
-              cursor: tournamentId && selectedPlayers.length === 16 ? "pointer" : "not-allowed",
-              boxShadow: tournamentId && selectedPlayers.length === 16 ? "0 4px 15px rgba(79, 172, 254, 0.4)" : "none",
-              transition: "all 0.3s",
-              gridColumn: "span 2",
-              opacity: tournamentId && selectedPlayers.length === 16 ? 1 : 0.6
-            }}
-            onMouseEnter={e => tournamentId && selectedPlayers.length === 16 && (e.currentTarget.style.transform = "translateY(-2px)")}
-            onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}
-          >
-            🎯 הכן שמינית הגמר (${selectedPlayers.length}/16)
-          </button>
         </div>
       </div>
+
+      {/* בחירת שחקנים לטורניר */}
+      {tournamentId && (
+        <div style={{
+          backgroundColor: "#fff",
+          padding: 24,
+          borderRadius: 16,
+          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
+          marginBottom: 24
+        }}>
+          <SelectionPanel tournamentId={Number(tournamentId)} />
+        </div>
+      )}
 
       {/* הוספת קישור טלגרם לטורניר קיים */}
       {(() => {

@@ -145,6 +145,9 @@ import { attachPresence, presenceRest } from "./presence.js";
 import { apiErrorHandler, apiNotFoundHandler } from "./errorHandler.js";
 import { presenceApi } from "./routes/presenceApi.js";
 import { initPresence } from "./presence/index.js";
+import adminSelection from "./routes/adminSelection.js";
+import meNotifications from "./routes/meNotifications.js";
+import { startAutoSelectionJob } from "./jobs/autoSelection.js";
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -255,6 +258,12 @@ app.use("/api/disputes", requireAuth, disputes);
 // Presence tracking (public - heartbeat/leave)
 app.use("/api/presence", presenceApi);
 
+// Admin selection routes (requires auth)
+app.use("/api/admin", requireAuth, adminSelection);
+
+// User notifications routes (requires auth)
+app.use("/api", requireAuth, meNotifications);
+
 
 // Notifications routes (requires auth)
 app.use("/api", requireAuth, notificationsRouter);
@@ -310,6 +319,9 @@ async function startServer(port: number, retries = 0): Promise<void> {
 
     // Initialize Presence system (Redis or Memory fallback)
     await initPresence();
+
+    // Start auto selection job
+    startAutoSelectionJob();
 
     // Verify SMTP connection at startup
     const { verifySmtp } = await import("./modules/mail/mailer.js");

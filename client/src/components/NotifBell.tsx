@@ -1,14 +1,19 @@
 import { useEffect, useState } from "react";
-import { apiGet } from "../lib/api";
 
 export default function NotifBell() {
   const [count, setCount] = useState(0);
   
   useEffect(() => {
     let alive = true;
-    apiGet<{notifications: any[]}>("/me/notifications").then(r=>{
-      if (alive) setCount(r.notifications?.length ?? 0);
-    }).catch(()=>{});
+    fetch("/api/me/notifications")
+      .then(r => r.json())
+      .then(data => {
+        if (alive && data.ok) {
+          const unread = data.items?.filter((item: any) => !item.is_read).length || 0;
+          setCount(unread);
+        }
+      })
+      .catch(() => {});
     return () => { alive = false; };
   }, []);
   
