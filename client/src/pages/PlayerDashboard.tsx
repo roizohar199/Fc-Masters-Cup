@@ -269,6 +269,10 @@ export default function PlayerDashboard() {
             href="https://t.me/+elbxvwU9fLE1YTg8"
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => {
+              console.log("כפתור נלחץ - פותח קישור לטלגרם");
+              window.open("https://t.me/+elbxvwU9fLE1YTg8", "_blank");
+            }}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -281,7 +285,8 @@ export default function PlayerDashboard() {
               textDecoration: "none",
               transition: "0.3s",
               fontSize: isMobile ? 14 : 15,
-              minWidth: isMobile ? "auto" : "140px"
+              minWidth: isMobile ? "auto" : "140px",
+              cursor: "pointer"
             }}
             onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#0B72E7")}
             onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#1E90FF")}
