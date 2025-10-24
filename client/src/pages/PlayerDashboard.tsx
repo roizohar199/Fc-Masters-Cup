@@ -213,6 +213,114 @@ export default function PlayerDashboard() {
         <TournamentSignupCard tournamentId={tournament?.id || "default"} />
       </div>
 
+      {/* כרטיס תשלום דמי השתתפות */}
+      <div style={{ marginBottom: isMobile ? 16 : 32 }}>
+        <div style={{
+          backgroundColor: "#fff",
+          padding: isMobile ? 20 : 24,
+          borderRadius: isMobile ? 12 : 16,
+          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
+          border: "2px solid #4caf50",
+          textAlign: "center"
+        }}>
+          <div style={{ marginBottom: isMobile ? 16 : 20 }}>
+            <h3 style={{ 
+              fontSize: isMobile ? 18 : 22, 
+              fontWeight: 700, 
+              color: "#2e7d32", 
+              margin: "0 0 8px 0" 
+            }}>
+              💳 תשלום דמי השתתפות
+            </h3>
+            <p style={{ 
+              fontSize: isMobile ? 14 : 16, 
+              color: "#666", 
+              margin: 0 
+            }}>
+              על מנת להשתתף בטורניר, יש לשלם דמי השתתפות בסך 50 ש"ח
+            </p>
+          </div>
+          
+          <div style={{
+            display: "flex",
+            flexDirection: isMobile ? "column" : "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: isMobile ? 16 : 24
+          }}>
+            <div style={{
+              backgroundColor: "#f8f9fa",
+              padding: isMobile ? 16 : 20,
+              borderRadius: 12,
+              border: "2px solid #e0e0e0"
+            }}>
+              <img 
+                src="/payment-qr.png" 
+                alt="קוד QR לתשלום"
+                style={{
+                  width: isMobile ? 150 : 200,
+                  height: isMobile ? 150 : 200,
+                  borderRadius: 8
+                }}
+              />
+              <p style={{ 
+                fontSize: isMobile ? 12 : 14, 
+                color: "#666", 
+                margin: "8px 0 0 0" 
+              }}>
+                סרוק את הקוד ותשלם 50 ש"ח
+              </p>
+            </div>
+            
+            <div style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              alignItems: "center"
+            }}>
+              <div style={{
+                backgroundColor: "#e8f5e8",
+                padding: isMobile ? 12 : 16,
+                borderRadius: 8,
+                border: "1px solid #4caf50"
+              }}>
+                <p style={{ 
+                  fontSize: isMobile ? 14 : 16, 
+                  fontWeight: 600, 
+                  color: "#2e7d32", 
+                  margin: 0 
+                }}>
+                  💰 סכום: 50 ש"ח
+                </p>
+                <p style={{ 
+                  fontSize: isMobile ? 12 : 14, 
+                  color: "#4caf50", 
+                  margin: "4px 0 0 0" 
+                }}>
+                  לרועי זוהר
+                </p>
+              </div>
+              
+              <div style={{
+                backgroundColor: "#fff3e0",
+                padding: isMobile ? 12 : 16,
+                borderRadius: 8,
+                border: "1px solid #ff9800"
+              }}>
+                <p style={{ 
+                  fontSize: isMobile ? 12 : 14, 
+                  color: "#f57c00", 
+                  margin: 0,
+                  textAlign: "center"
+                }}>
+                  ⚠️ חשוב: שלח הוכחת תשלום לקבוצת הטלגרם
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* רכיב חדש בסגנון ליגת האלופות */}
       <PlayerDashboardChampions
         playerInfo={playerInfo}

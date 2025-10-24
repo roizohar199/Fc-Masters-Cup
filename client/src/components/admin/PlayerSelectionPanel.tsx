@@ -33,6 +33,9 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
     prizeFirst: 500,
     prizeSecond: 0
   });
+  const [selectedStage, setSelectedStage] = useState<'R16' | 'QF' | 'SF' | 'F'>('R16');
+  const [sendEmails, setSendEmails] = useState(true);
+  const [createNotifications, setCreateNotifications] = useState(true);
 
   // Get current user ID from auth context (you'll need to implement this)
   const currentUserId = "current-user-id"; // TODO: Get from auth context
@@ -61,21 +64,14 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
   const loadUsers = async () => {
     try {
       setLoading(true);
-      // טען משתמשים (ללא סטטוס מחובר - זה יטופל על ידי useOnlineStatus)
-      const response = await api(apiUrl('/admin/users'));
+      // טען שחקנים מהנקודת קצה החדשה
+      const response = await api(apiUrl('/admin/players'));
       if (response.ok) {
-        const allUsers = response.data || [];
-        
-        // Filter active users
-        const activeUsers = allUsers.filter((user: User) => user.status === 'active');
-        setUsers(activeUsers);
+        const players = response.data?.players || [];
+        setUsers(players);
       } else {
-        // fallback למקרה שהנקודת קצה לא קיימת
-        const fallbackResponse = await api(apiUrl('/users'));
-        if (fallbackResponse.ok) {
-          const users = fallbackResponse.data.filter((user: User) => user.status === 'active');
-          setUsers(users);
-        }
+        console.error('Failed to load players:', response);
+        toast.error('שגיאה בטעינת רשימת השחקנים');
       }
     } catch (error) {
       console.error('Failed to load users:', error);
@@ -177,15 +173,14 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
 
     try {
       setSelecting(true);
-      const response = await api(`/tournament-registrations/${tournamentId}/select-players`, {
+      const response = await api(`/api/admin/tournaments/${tournamentId}/select`, {
         method: 'POST',
         body: JSON.stringify({
-        selectedUserIds,
-        tournamentTitle: tournamentDetails.title,
-        tournamentDate: tournamentDetails.date,
-        telegramLink: normalizedTelegramLink || null,
-        prizeFirst: tournamentDetails.prizeFirst,
-        prizeSecond: tournamentDetails.prizeSecond
+          stage: selectedStage,
+          slots: selectedUserIds.length,
+          notifyEmail: sendEmails,
+          notifyHomepage: createNotifications,
+          selectedUserIds: selectedUserIds
         })
       });
 
@@ -439,6 +434,63 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
             }} />
             לא מחוברים ({users.filter(u => !u.isOnline).length})
           </button>
+        </div>
+      </div>
+
+      {/* בחירת שלב ואפשרויות */}
+      <div style={{
+        background: '#e3f2fd',
+        padding: '16px',
+        borderRadius: '8px',
+        marginBottom: '20px',
+        border: '1px solid #bbdefb'
+      }}>
+        <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#1976d2' }}>
+          הגדרות בחירה:
+        </h4>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+          <div>
+            <label style={{ fontSize: '12px', color: '#1976d2', display: 'block', marginBottom: '4px' }}>
+              שלב הטורניר:
+            </label>
+            <select
+              value={selectedStage}
+              onChange={(e) => setSelectedStage(e.target.value as 'R16' | 'QF' | 'SF' | 'F')}
+              style={{
+                width: '100%',
+                padding: '8px',
+                border: '1px solid #1976d2',
+                borderRadius: '4px',
+                fontSize: '14px',
+                background: 'white'
+              }}
+            >
+              <option value="R16">שמינית גמר (16 שחקנים)</option>
+              <option value="QF">רבע גמר (8 שחקנים)</option>
+              <option value="SF">חצי גמר (4 שחקנים)</option>
+              <option value="F">גמר (2 שחקנים)</option>
+            </select>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label style={{ fontSize: '12px', color: '#1976d2', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input
+                type="checkbox"
+                checked={sendEmails}
+                onChange={(e) => setSendEmails(e.target.checked)}
+                style={{ width: '16px', height: '16px' }}
+              />
+              שליחת מייל לנבחרים
+            </label>
+            <label style={{ fontSize: '12px', color: '#1976d2', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input
+                type="checkbox"
+                checked={createNotifications}
+                onChange={(e) => setCreateNotifications(e.target.checked)}
+                style={{ width: '16px', height: '16px' }}
+              />
+              יצירת התראה בעמוד הבית
+            </label>
+          </div>
         </div>
       </div>
 

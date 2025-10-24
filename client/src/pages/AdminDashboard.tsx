@@ -4,7 +4,6 @@ import { useStore } from "../store";
 import { TournamentRegistrationsPanel } from "../components/TournamentRegistrationsPanel";
 import { PlayerSelectionPanel } from "../components/admin/PlayerSelectionPanel";
 import { startPresence, onPresenceUpdate } from "../presence";
-import SelectionPanel from "../components/admin/SelectionPanel";
 
 interface User {
   id: string;
@@ -2715,18 +2714,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* בחירת שחקנים לטורניר */}
-      {tournamentId && (
-        <div style={{
-          backgroundColor: "#fff",
-          padding: 24,
-          borderRadius: 16,
-          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
-          marginBottom: 24
-        }}>
-          <SelectionPanel tournamentId={Number(tournamentId)} />
-        </div>
-      )}
 
       {/* הוספת קישור טלגרם לטורניר קיים */}
       {(() => {
