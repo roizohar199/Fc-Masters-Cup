@@ -265,10 +265,7 @@ export default function PlayerDashboard() {
               </p>
             </div>
           </div>
-          <a 
-            href="https://t.me/+elbxvwU9fLE1YTg8"
-            target="_blank"
-            rel="noopener noreferrer"
+          <button 
             onClick={() => {
               console.log("כפתור נלחץ - פותח קישור לטלגרם");
               window.open("https://t.me/+elbxvwU9fLE1YTg8", "_blank");
@@ -282,7 +279,7 @@ export default function PlayerDashboard() {
               padding: isMobile ? "10px 16px" : "10px 20px",
               borderRadius: "8px",
               fontWeight: "bold",
-              textDecoration: "none",
+              border: "none",
               transition: "0.3s",
               fontSize: isMobile ? 14 : 15,
               minWidth: isMobile ? "auto" : "140px",
@@ -292,7 +289,7 @@ export default function PlayerDashboard() {
             onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#1E90FF")}
           >
             📅 הצטרף לטורניר
-          </a>
+          </button>
         </div>
       </div>
       
