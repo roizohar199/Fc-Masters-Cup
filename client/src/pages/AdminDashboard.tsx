@@ -3248,21 +3248,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div style={{
-        backgroundColor: "#fff3e0",
-        padding: 20,
-        borderRadius: 16,
-        border: "2px solid #ff9800",
-        boxShadow: "0 4px 20px rgba(255, 152, 0, 0.15)"
-      }}>
-        <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12, color: "#e65100", display: "flex", alignItems: "center", gap: 8 }}>
-          <span>💡</span>
-          קישורים להגשת תוצאות
-        </h3>
-        <p style={{ color: "#5d4037", fontSize: 15, lineHeight: 1.6 }}>
-          אחרי שנוצרות ההתמודדויות, עבור לעמוד "צפייה בתוצאות", פתח כרטיס משחק והעתק את קישור ההגשה לשחקנים.
-        </p>
-      </div>
 
       {/* פאנל ניהול הרשמות לטורניר */}
       {tournamentId && (

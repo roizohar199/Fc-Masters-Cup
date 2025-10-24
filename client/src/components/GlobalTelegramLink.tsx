@@ -6,30 +6,8 @@ interface GlobalTelegramLinkProps {
 }
 
 export function GlobalTelegramLink({ isMobile }: GlobalTelegramLinkProps) {
-  const [globalTelegramLink, setGlobalTelegramLink] = useState("");
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadGlobalTelegramLink();
-  }, []);
-
-  async function loadGlobalTelegramLink() {
-    try {
-      const response = await api("/api/settings/global_telegram_link");
-      if (response.ok && response.setting) {
-        setGlobalTelegramLink(response.setting.value || "");
-      }
-    } catch (error) {
-      console.log("קישור טלגרם כללי לא נמצא");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // אם אין קישור או עדיין טוען, לא מציגים כלום
-  if (loading || !globalTelegramLink) {
-    return null;
-  }
+  // קישור קבוע לטלגרם
+  const globalTelegramLink = "https://t.me/+elbxvwU9fLE1YTg8";
 
   return (
     <div style={{
