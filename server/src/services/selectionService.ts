@@ -249,6 +249,7 @@ export function selectPlayersForStage(opts: {
     stage,
     tournamentId: opts.tournamentId,
     selected: selected.map(x => ({ userId: x.user_id, email: x.email, displayName: x.display_name })),
+    total: selected.length,
   };
 }
 
@@ -324,5 +325,6 @@ export function selectSpecificPlayers(opts: {
     stage,
     tournamentId: opts.tournamentId,
     selected: newSelections.map(x => ({ userId: x.user_id, email: x.email, displayName: x.display_name })),
+    total: newSelections.length,
   };
 }
