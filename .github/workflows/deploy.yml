@@ -8,6 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -18,6 +19,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       # ---------- CLIENT ----------
       - name: Install client deps
@@ -33,11 +35,23 @@ jobs:
         working-directory: server
         run: npm ci
 
-      - name: Build server (TS -> dist) + prune dev
+      - name: Build server (TS -> dist) + verify output
         working-directory: server
         shell: bash
         run: |
-          npm run build || echo "no build script"
+          set -euo pipefail
+          echo "??  Running server build�"
+          npm run build
+          echo "?? Listing server/dist:"
+          ls -lah dist || true
+          if [ ! -f dist/index.js ]; then
+            echo "? Build did not produce dist/index.js"
+            echo "??  Showing TypeScript output structure:"
+            ls -R dist || true
+            exit 1
+          fi
+          echo "? dist/index.js present"
+          echo "?? Pruning dev deps for runtime�"
           npm prune --omit=dev
 
       # ---------- VERSION INFO ----------
@@ -45,20 +59,33 @@ jobs:
         shell: bash
         run: |
           mkdir -p server/dist
-          echo "commit=$(git rev-parse --short HEAD)" > server/dist/version.txt
-          echo "built_at=$(date -u +%FT%TZ)"       >> server/dist/version.txt
+          {
+            echo "commit=$(git rev-parse --short HEAD)"
+            echo "built_at=$(date -u +%FT%TZ)"
+          } > server/dist/version.txt
 
       # ---------- PACK ARTIFACTS ----------
       - name: Pack artifacts
         shell: bash
         run: |
+          set -euo pipefail
           rm -rf _artifact
           mkdir -p _artifact/client/dist
           mkdir -p _artifact/server/dist
+
           rsync -a --delete client/dist/ _artifact/client/dist/
           rsync -a server/dist/        _artifact/server/dist/
+
           cp server/package.json       _artifact/server/package.json
           [ -f server/package-lock.json ] && cp server/package-lock.json _artifact/server/package-lock.json || true
+
+          echo "?? Artifact contents:"
+          ls -R _artifact
+
+          if [ ! -f _artifact/server/dist/index.js ]; then
+            echo "? Artifact is missing server/dist/index.js"
+            exit 1
+          fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -69,6 +96,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
@@ -98,7 +126,7 @@ jobs:
           USER="${{ secrets.VPS_USER }}"
           PORT="${{ secrets.VPS_PORT }}"
           : "${PORT:=22}"
-          ssh -p "$PORT" "$USER@$HOST" "echo '✅ SSH OK'; uname -a"
+          ssh -p "$PORT" "$USER@$HOST" "echo '? SSH OK'; uname -a"
 
       # ---------- SAFE BACKUP (DB) ----------
       - name: Pre-deploy DB backup (safe & optional)
@@ -116,12 +144,12 @@ jobs:
             mkdir -p "$BKDIR"
             if command -v sqlite3 >/dev/null 2>&1; then
               sqlite3 "$DB" "VACUUM INTO '${BKDIR}/tournaments-$(date +%F_%H-%M).sqlite'"
-              echo "📦 DB backup created in $BKDIR"
+              echo "?? DB backup created in $BKDIR"
             else
-              echo "⚠️ sqlite3 not found, skipping backup"
+              echo "?? sqlite3 not found, skipping backup"
             fi
           else
-            echo "ℹ️ No DB file at $DB, skipping backup"
+            echo "?? No DB file at $DB, skipping backup"
           fi
           EOF
 
@@ -136,16 +164,15 @@ jobs:
           : "${PORT:=22}"
           SSH_CMD="ssh -p $PORT"
 
-          # ודא תקיות
           $SSH_CMD "$USER@$HOST" "mkdir -p /var/www/fcmasters/client/dist /var/www/fcmasters/server/dist"
 
-          echo "🔄 Sync client dist (delete old assets)…"
+          echo "?? Sync client dist�"
           rsync -avz --delete -e "$SSH_CMD" _artifact/client/dist/ "$USER@$HOST:/var/www/fcmasters/client/dist/"
 
-          echo "🔄 Sync server dist only (delete inside dist)…"
+          echo "?? Sync server dist�"
           rsync -avz --delete -e "$SSH_CMD" _artifact/server/dist/ "$USER@$HOST:/var/www/fcmasters/server/dist/"
 
-          echo "📦 Update server package files (no delete at root)…"
+          echo "?? Update server package files�"
           rsync -avz -e "$SSH_CMD" _artifact/server/package.json "$USER@$HOST:/var/www/fcmasters/server/package.json"
           if [ -f _artifact/server/package-lock.json ]; then
             rsync -avz -e "$SSH_CMD" _artifact/server/package-lock.json "$USER@$HOST:/var/www/fcmasters/server/package-lock.json"
@@ -171,9 +198,9 @@ jobs:
                   status='active',
                   approvalStatus='approved'
               WHERE email='\$ADMIN_EMAIL';"
-            echo "🔒 ensured superadmin for \$ADMIN_EMAIL"
+            echo "?? ensured superadmin for \$ADMIN_EMAIL"
           else
-            echo "⚠️ DB or sqlite3 not found, skipping ensure-superadmin"
+            echo "?? DB or sqlite3 not found, skipping ensure-superadmin"
           fi
           EOF
 
@@ -191,7 +218,7 @@ jobs:
           set -euo pipefail
           cd /var/www/fcmasters/server
 
-          echo "📦 Installing server dependencies…"
+          echo "?? Installing server dependencies�"
           if [ -f package-lock.json ]; then
             npm ci --omit=dev
           else
@@ -199,17 +226,22 @@ jobs:
           fi
 
           if [ ! -f dist/index.js ]; then
-            echo "❌ ERROR: dist/index.js not found!"
+            echo "? ERROR: dist/index.js not found on server (artifact incomplete)."
+            echo "??  Contents of dist:"
+            ls -lah dist || true
             exit 1
           fi
 
           if command -v pm2 >/dev/null 2>&1; then
-            pm2 delete fcmasters || true
-            pm2 start dist/index.js --name fcmasters
+            if pm2 describe fcmasters >/dev/null 2>&1; then
+              pm2 reload fcmasters
+            else
+              pm2 start dist/index.js --name fcmasters
+            fi
             pm2 save
             pm2 list
           else
-            echo "❌ PM2 not found on server. Install with: npm i -g pm2"
+            echo "? PM2 not found. Install with: npm i -g pm2"
             exit 1
           fi
           EOF

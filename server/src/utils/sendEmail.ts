@@ -1,14 +1,17 @@
 // server/src/utils/sendEmail.ts
-import nodemailer from "nodemailer";
+import nodemailer, { Transporter } from "nodemailer";
 
 const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
 const smtpPort = Number(process.env.SMTP_PORT || 587);
 const smtpSecure = String(process.env.SMTP_SECURE || "false") === "true";
 const smtpUser = process.env.SMTP_USER || "";
 const smtpPass = process.env.SMTP_PASS || "";
-const from = process.env.EMAIL_FROM || (smtpUser ? `FC Masters Cup <${smtpUser}>` : "FC Masters Cup <no-reply@k-rstudio.com>");
+const from =
+  process.env.EMAIL_FROM ||
+  (smtpUser ? `FC Masters Cup <${smtpUser}>` : "FC Masters Cup <no-reply@k-rstudio.com>");
 
-const transporter = nodemailer.createTransporter({
+// חשוב: createTransport (לא createTransporter)
+const transporter: Transporter = nodemailer.createTransport({
   host: smtpHost,
   port: smtpPort,
   secure: smtpSecure,
