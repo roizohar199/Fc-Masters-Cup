@@ -270,19 +270,23 @@ export default function PlayerDashboard() {
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              padding: isMobile ? "12px 20px" : "12px 24px",
-              background: "#2196f3",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              backgroundColor: "#1E90FF",
               color: "#fff",
+              padding: isMobile ? "10px 16px" : "10px 20px",
+              borderRadius: "8px",
+              fontWeight: "bold",
               textDecoration: "none",
-              borderRadius: 10,
-              fontWeight: 700,
+              transition: "0.3s",
               fontSize: isMobile ? 14 : 15,
-              textAlign: "center",
-              display: "inline-block",
               minWidth: isMobile ? "auto" : "140px"
             }}
+            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#0B72E7")}
+            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#1E90FF")}
           >
-            הצטרף לטורניר 📱
+            📅 הצטרף לטורניר
           </a>
         </div>
       </div>
