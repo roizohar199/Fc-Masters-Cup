@@ -119,7 +119,16 @@ export default function AdminDashboard() {
     loadTournaments();
     loadTournamentRegistrations();
     loadGlobalTelegramLink();
-  }, []);
+    
+    // רענון אוטומטי של בקשות אישור כל 30 שניות
+    const interval = setInterval(() => {
+      if (isSuperAdmin) {
+        loadPendingRequests();
+      }
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, [isSuperAdmin]);
 
   async function loadCurrentUser() {
     try {
@@ -317,6 +326,7 @@ export default function AdminDashboard() {
       });
       alert("המשתמש אושר בהצלחה!");
       await loadUsers(); // רענון רשימת המשתמשים
+      await loadPendingRequests(); // רענון בקשות האישור
     } catch (error: any) {
       alert(`שגיאה באישור המשתמש: ${error.message}`);
     }
@@ -332,6 +342,7 @@ export default function AdminDashboard() {
       });
       alert("המשתמש נדחה");
       await loadUsers(); // רענון רשימת המשתמשים
+      await loadPendingRequests(); // רענון בקשות האישור
     } catch (error: any) {
       alert(`שגיאה בדחיית המשתמש: ${error.message}`);
     }

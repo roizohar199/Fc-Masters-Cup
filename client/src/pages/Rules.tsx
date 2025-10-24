@@ -19,14 +19,13 @@ export default function Rules() {
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <div style={{ fontSize: 56, marginBottom: 16 }}>📋</div>
           <h1 style={{ fontSize: 36, fontWeight: 800, color: "#333", margin: 0 }}>
-            תקנון רשמי – טורניר FC25/FC26 לסוני 5
+            תקנון רשמי ומשפטי – טורניר FC25/FC26 לסוני 5
           </h1>
-          <p style={{ fontSize: 16, color: "#666", marginTop: 12 }}>
-            האתר המארגן: FC Masters Cup • שם האירוע: טורניר FC25/26 לסוני 5
-          </p>
-          <p style={{ fontSize: 14, color: "#888", marginTop: 8 }}>
-            כתובת האתר: www.k-rstudio.com
-          </p>
+          <div style={{ fontSize: 16, color: "#666", marginTop: 12, lineHeight: 1.6 }}>
+            <p style={{ margin: "8px 0" }}><strong>המארגן:</strong> FC Masters Cup</p>
+            <p style={{ margin: "8px 0" }}><strong>כתובת האתר:</strong> www.k-rstudio.com</p>
+            <p style={{ margin: "8px 0" }}><strong>שם האירוע:</strong> טורניר FC25/26 לסוני 5</p>
+          </div>
         </div>
 
         <div style={{ direction: "rtl", lineHeight: 1.8 }}>
@@ -44,15 +43,15 @@ export default function Rules() {
             </h2>
             <ul style={{ fontSize: 16, color: "#333", paddingRight: 20 }}>
               <li style={{ marginBottom: 12 }}>
-                הטורניר נועד לעודד משחק הוגן ותחרות ספורטיבית בין שחקני FIFA/FC בישראל.
+                הטורניר נועד לעודד משחק הוגן, תחרותיות ספורטיבית, וקהילת גיימרים איכותית בישראל.
               </li>
               <li style={{ marginBottom: 12 }}>
-                הטורניר מבוסס על כישרון וביצועים בלבד — ללא הגרלות, מזל או הימור מכל סוג.
+                הטורניר מבוסס על כישרון וביצועים בלבד ואינו כולל מרכיב של הגרלה, הימור או מזל מכל סוג שהוא.
               </li>
             </ul>
           </section>
 
-          {/* דמי הרשמה ופרסים */}
+          {/* דמי השתתפות ופרסים */}
           <section style={{ marginBottom: 40 }}>
             <h2 style={{
               fontSize: 28,
@@ -62,22 +61,22 @@ export default function Rules() {
               paddingBottom: 12,
               borderBottom: "3px solid #667eea"
             }}>
-              2. דמי הרשמה ופרסים
+              2. דמי השתתפות ופרסים
             </h2>
             <ul style={{ fontSize: 16, color: "#333", paddingRight: 20 }}>
               <li style={{ marginBottom: 12 }}>
-                דמי ההשתתפות בטורניר: <strong>50 ש"ח למשתתף</strong>, תשלום בביט/פייבוקס.
+                דמי ההשתתפות בטורניר עומדים על <strong>50 ש"ח למשתתף</strong>, המשולמים מראש באמצעות אפליקציות תשלום מאובטחות (PayBox / Bit).
               </li>
               <li style={{ marginBottom: 12 }}>
-                <strong>פרסים:</strong>
+                <strong>הפרסים יחולקו כדלקמן:</strong>
                 <ul style={{ marginTop: 8, paddingRight: 20 }}>
                   <li style={{ marginBottom: 8 }}>
-                    🥇 <strong>מקום ראשון</strong> – 500 ש"ח בהעברה בביט/פייבוקס.
+                    🥇 <strong>מקום ראשון</strong> – 500 ש"ח בהעברה באמצעות Bit או PayBox.
                   </li>
                 </ul>
               </li>
               <li style={{ marginBottom: 12 }}>
-                דמי ההשתתפות נועדו לכיסוי הוצאות ניהול, פיתוח, תחזוקה שוטפת ופרסים בלבד.
+                דמי ההשתתפות מיועדים לכיסוי הוצאות ניהול, הפקה, פיתוח, תחזוקה ופרסים בלבד.
               </li>
             </ul>
           </section>
@@ -96,16 +95,16 @@ export default function Rules() {
             </h2>
             <ul style={{ fontSize: 16, color: "#333", paddingRight: 20 }}>
               <li style={{ marginBottom: 12 }}>
-                יש להירשם דרך אתר FC Masters Cup.
+                ההרשמה תתבצע באמצעות טופס באתר FC Masters Cup בלבד.
               </li>
               <li style={{ marginBottom: 12 }}>
-                התשלום יתבצע מראש דרך פלטפורמות מאובטחות (לדוגמה: PayBox, Bit).
+                התשלום יבוצע מראש ובאמצעות פלטפורמות מאובטחות כאמור לעיל.
               </li>
               <li style={{ marginBottom: 12 }}>
-                כאשר ירשמו 16 שחקנים, הטורניר ייפתח.
+                הטורניר ייפתח עם רישום של 16 משתתפים מאושרים לפחות.
               </li>
               <li style={{ marginBottom: 12 }}>
-                לאחר התשלום, המשתתף יקבל אישור הרשמה במייל או בהודעה.
+                עם השלמת התשלום, המשתתף יקבל אישור הרשמה במייל או בהודעת טקסט רשמית מהמארגן.
               </li>
             </ul>
           </section>
@@ -124,16 +123,16 @@ export default function Rules() {
             </h2>
             <ul style={{ fontSize: 16, color: "#333", paddingRight: 20 }}>
               <li style={{ marginBottom: 12 }}>
-                המשחקים יתנהלו בפורמט נוק-אאוט (Knockout) — כל שלב הוא משחק בודד או סדרת משחקים כפי שיוחלט מראש.
+                המשחקים ייערכו בשיטת Knockout (נוק-אאוט) – שלב ההדחה הישירה.
               </li>
               <li style={{ marginBottom: 12 }}>
-                כל שחקן יקבל יריב בהתאם להגרלה שנעשית על בסיס רשימת המשתתפים בלבד, ללא מרכיב של מזל.
+                כל מפגש יתקיים במשחק בודד או בסדרה, בהתאם להחלטת המארגן.
               </li>
               <li style={{ marginBottom: 12 }}>
-                הניצחון נקבע לפי תוצאות המשחק בפועל ב־FC25/FC26.
+                הצמדת היריבים תיעשה על בסיס רשימת המשתתפים בלבד ובאופן שוויוני, ללא שיקול של מזל.
               </li>
               <li style={{ marginBottom: 12 }}>
-                במקרה של תוצאה שווה — תתקיים הארכה ו/או דו-קרב פנדלים בהתאם לכללי המשחק.
+                במקרה של שוויון בתוצאה – תתקיים הארכה ו/או דו־קרב פנדלים לפי כללי המשחק הרשמי.
               </li>
             </ul>
           </section>
@@ -152,13 +151,13 @@ export default function Rules() {
             </h2>
             <ul style={{ fontSize: 16, color: "#333", paddingRight: 20 }}>
               <li style={{ marginBottom: 12 }}>
-                כל שחקן מחויב לשמור על שפה והתנהגות מכבדת.
+                המשתתפים מחויבים לשמור על התנהגות מכבדת, שפה נאותה ויחס ספורטיבי כלפי יריביהם.
               </li>
               <li style={{ marginBottom: 12 }}>
-                שימוש בבאגים, פריצות, או כל דרך לא הוגנת – יגרור פסילה מיידית.
+                כל שימוש בפריצות, באגים, או כל דרך לא הוגנת אחרת – יגרור פסילה מיידית ללא החזר כספי.
               </li>
               <li style={{ marginBottom: 12 }}>
-                ההחלטות של צוות הניהול והשיפוט הן סופיות ואינן ניתנות לערעור.
+                החלטות צוות הניהול והשיפוט של הטורניר הינן סופיות ואינן ניתנות לערעור.
               </li>
             </ul>
           </section>
@@ -168,37 +167,25 @@ export default function Rules() {
             <h2 style={{
               fontSize: 28,
               fontWeight: 700,
-              color: "#ff9800",
+              color: "#667eea",
               marginBottom: 20,
               paddingBottom: 12,
-              borderBottom: "3px solid #ff9800"
+              borderBottom: "3px solid #667eea"
             }}>
               6. חיבור אינטרנט וניתוקים
             </h2>
-            <div style={{
-              background: "#fff3e0",
-              padding: 20,
-              borderRadius: 12,
-              border: "2px solid #ff9800",
-              marginBottom: 20
-            }}>
-              <p style={{ fontSize: 18, fontWeight: 700, color: "#e65100", margin: 0 }}>
-                ⚠️ חשוב מאוד - אין החזר כספי במקרה של ניתוקים!
-              </p>
-            </div>
             <ul style={{ fontSize: 16, color: "#333", paddingRight: 20 }}>
               <li style={{ marginBottom: 12 }}>
-                השתתפות בטורניר מחייבת חיבור אינטרנט יציב ואמין ללא ניתוקים.
+                ⚠️ <strong>אין החזר כספי במקרה של ניתוקים מכל סוג שהוא.</strong>
               </li>
               <li style={{ marginBottom: 12 }}>
-                <strong style={{ color: "#e65100" }}>במהלך המשחקים אין החזר כספי בכל מקרה של ניתוק מכל סוג שהוא</strong> —
-                בין אם מדובר בניתוק אינטרנט, בעיה בקונסולה, או ניתוק יזום על ידי אחד הצדדים.
+                על כל משתתף לוודא חיבור אינטרנט יציב ואמין במהלך המשחקים.
               </li>
               <li style={{ marginBottom: 12 }}>
-                במקרה של ניתוק במהלך המשחק, השחקן יודח אוטומטית מהטורניר.
+                במקרה של ניתוק (בין אם בשל תקלה, ניתוק יזום, או בעיה בקונסולה) — השחקן יפסל מהטורניר.
               </li>
               <li style={{ marginBottom: 12 }}>
-                האחריות המלאה לחיבור האינטרנט וליציבות הרשת מוטלת על המשתתף בלבד.
+                האחריות המלאה על תקינות החיבור והרשת מוטלת על המשתתף בלבד.
               </li>
             </ul>
           </section>
@@ -217,10 +204,10 @@ export default function Rules() {
             </h2>
             <ul style={{ fontSize: 16, color: "#333", paddingRight: 20 }}>
               <li style={{ marginBottom: 12 }}>
-                משתתף רשאי לבטל את השתתפותו עד 48 שעות לפני פתיחת הטורניר ולקבל החזר מלא.
+                ניתן לבטל השתתפות עד 48 שעות לפני פתיחת הטורניר ולקבל החזר מלא.
               </li>
               <li style={{ marginBottom: 12 }}>
-                לאחר פתיחת המשחקים לא יינתן החזר, למעט במקרים חריגים שיאושרו על ידי המארגן.
+                לאחר פתיחת המשחקים – לא יינתן החזר כספי, למעט במקרים חריגים המאושרים בכתב ע"י המארגן.
               </li>
             </ul>
           </section>
@@ -239,13 +226,13 @@ export default function Rules() {
             </h2>
             <ul style={{ fontSize: 16, color: "#333", paddingRight: 20 }}>
               <li style={{ marginBottom: 12 }}>
-                הטורניר נערך כפעילות ספורטיבית פרטית שאינה הימור או משחק מזל.
+                הטורניר מהווה פעילות ספורטיבית פרטית ואינו מהווה הימור, הגרלה או משחק מזל.
               </li>
               <li style={{ marginBottom: 12 }}>
-                המארגן אינו אחראי לתקלות טכניות הקשורות בקונסולה, ברשת או בציוד השחקן.
+                המארגן לא יישא באחריות לכל תקלה טכנית, נזק או אובדן הנובע מהשתתפות בטורניר, לרבות תקלות ברשת, בקונסולה או בציוד השחקן.
               </li>
               <li style={{ marginBottom: 12 }}>
-                ההשתתפות הינה באחריות המשתתף בלבד.
+                ההשתתפות בטורניר הינה על אחריות המשתתף בלבד.
               </li>
             </ul>
           </section>
@@ -264,7 +251,7 @@ export default function Rules() {
             </h2>
             <ul style={{ fontSize: 16, color: "#333", paddingRight: 20 }}>
               <li style={{ marginBottom: 12 }}>
-                המשתתפים מאשרים למארגן להשתמש בתמונות, הקלטות ווידאו ממשחקי הטורניר לצורכי שיווק ופרסום ברשתות החברתיות, ללא תמורה נוספת.
+                בהשתתפותם בטורניר, המשתתפים מעניקים למארגן רשות להשתמש בתמונות, הקלטות, שידורים חיים או סרטוני וידאו מן המשחקים לצורכי שיווק, פרסום וקידום בכל מדיה שהיא – לרבות רשתות חברתיות, אתרי אינטרנט ופרסומים מסחריים – ללא תמורה נוספת וללא הגבלת זמן.
               </li>
             </ul>
           </section>
@@ -283,66 +270,47 @@ export default function Rules() {
             </h2>
             <ul style={{ fontSize: 16, color: "#333", paddingRight: 20 }}>
               <li style={{ marginBottom: 12 }}>
-                הרשמה לטורניר מהווה אישור מלא לתקנון זה ולכל תנאיו.
+                ההרשמה לטורניר מהווה אישור והסכמה מלאה לכלל סעיפי התקנון.
               </li>
               <li style={{ marginBottom: 12 }}>
-                אי עמידה באחד התנאים עלולה להביא לפסילה ללא החזר כספי.
+                אי עמידה באחד מהתנאים עלולה להביא לפסילה מיידית ללא החזר כספי.
+              </li>
+              <li style={{ marginBottom: 12 }}>
+                המארגן שומר לעצמו את הזכות לעדכן את התקנון מעת לעת בהתאם לצרכים ולמדיניות האתר, והעדכון יפורסם באתר באופן פומבי.
               </li>
             </ul>
           </section>
 
-          {/* פרטי יצירת קשר */}
-          <section style={{
-            background: "linear-gradient(135deg, #e3f2fd 0%, #fff 100%)",
-            padding: 24,
-            borderRadius: 12,
-            border: "2px solid #2196F3"
-          }}>
-            <h2 style={{
-              fontSize: 24,
-              fontWeight: 700,
-              color: "#1976D2",
-              marginBottom: 16
-            }}>
-              11. פרטי יצירת קשר
-            </h2>
-            <p style={{ fontSize: 16, color: "#1565C0", marginBottom: 12 }}>
-              לשאלות, הבהרות או בעיות טכניות, ניתן לפנות אלינו:
-            </p>
-            <p style={{ fontSize: 16, color: "#1565C0", fontWeight: 600 }}>
-              📧 fcmasters9@gmail.com
-            </p>
-          </section>
-        </div>
-
-        <div style={{
-          marginTop: 40,
-          paddingTop: 24,
-          borderTop: "2px solid #f0f0f0",
-          textAlign: "center"
-        }}>
-          <p style={{ fontSize: 14, color: "#999", marginBottom: 20 }}>
-            בהצלחה בטורנירים! 🏆⚽
-          </p>
-          <Link
-            to="/"
-            style={{
-              display: "inline-block",
-              padding: "14px 32px",
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-              color: "#fff",
-              textDecoration: "none",
-              borderRadius: 10,
-              fontWeight: 700,
-              fontSize: 16,
-              boxShadow: "0 4px 15px rgba(102, 126, 234, 0.4)"
-            }}
-          >
-            חזור לדף הבית
-          </Link>
+          {/* קישור חזרה */}
+          <div style={{ textAlign: "center", marginTop: 40, paddingTop: 30, borderTop: "2px solid #f0f0f0" }}>
+            <Link 
+              to="/" 
+              style={{
+                display: "inline-block",
+                padding: "16px 32px",
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                color: "white",
+                textDecoration: "none",
+                borderRadius: 12,
+                fontWeight: 700,
+                fontSize: 18,
+                boxShadow: "0 4px 15px rgba(102, 126, 234, 0.4)",
+                transition: "all 0.3s ease"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow = "0 6px 20px rgba(102, 126, 234, 0.5)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 4px 15px rgba(102, 126, 234, 0.4)";
+              }}
+            >
+              🏠 חזרה לעמוד הראשי
+            </Link>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-

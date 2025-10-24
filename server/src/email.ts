@@ -546,6 +546,52 @@ export async function sendTournamentSelectionEmail(params: {
   }
 }
 
+export async function sendUserRejectedEmail(email: string) {
+  const transport = getTransporter();
+  
+  const emailContent = {
+    from: process.env.EMAIL_FROM || process.env.SMTP_FROM || `"FC Masters Cup" <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: "החשבון שלך נדחה - FC Masters Cup",
+    html: `
+      <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px;">
+        <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+          <h1 style="color: #dc3545; text-align: center; font-size: 32px; margin-bottom: 20px;">
+            ❌ החשבון שלך נדחה
+          </h1>
+          
+          <div style="background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-right: 4px solid #dc3545;">
+            <p style="font-size: 18px; color: #333; line-height: 1.8; margin: 0;">
+              שלום <strong>${email}</strong>,<br><br>
+              לצערנו, החשבון שלך נדחה ולא תוכל להשתתף בטורנירים.
+            </p>
+          </div>
+          
+          <div style="text-align: center; margin-top: 30px;">
+            <p style="color: #666; font-size: 14px; margin: 0;">
+              FC Masters Cup - מערכת ניהול טורנירים
+            </p>
+          </div>
+        </div>
+      </div>
+    `,
+  };
+  
+  if (!transport) {
+    console.log("[email] 📧 User rejected email (dev mode):", emailContent);
+    return true;
+  }
+  
+  try {
+    await transport.sendMail(emailContent);
+    console.log(`[email] ✅ User rejected email sent to: ${email}`);
+    return true;
+  } catch (error) {
+    console.error(`[email] ❌ Failed to send user rejected email:`, error);
+    return false;
+  }
+}
+
 export async function sendUserApprovedEmail(email: string) {
   const transport = getTransporter();
   

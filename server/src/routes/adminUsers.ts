@@ -1,6 +1,6 @@
 import { Router } from "express";
 import db from "../db.js";
-import { sendUserApprovedEmail } from "../email.js";
+import { sendUserApprovedEmail, sendUserRejectedEmail } from "../email.js";
 import { logger } from "../logger.js";
 import { requireAuth } from "../auth.js";
 
@@ -87,6 +87,13 @@ adminUsers.get("/approve-user", async (req, res) => {
     
     // אישור המשתמש
     db.prepare(`UPDATE users SET approvalStatus='approved' WHERE id=?`).run(user.id);
+    
+    // סגירת כל הבקשות הפתוחות עבור המשתמש הזה
+    db.prepare(`
+      UPDATE approval_requests 
+      SET status='approved', resolvedAt=?, resolvedBy='admin-email-approval' 
+      WHERE targetUserId=? AND status='pending'
+    `).run(new Date().toISOString(), user.id);
     
     // שליחת מייל למשתמש שהוא אושר
     await sendUserApprovedEmail(user.email);
@@ -278,6 +285,13 @@ adminUsers.post("/approve-user-api", async (req, res) => {
     // אישור המשתמש
     db.prepare(`UPDATE users SET approvalStatus='approved' WHERE id=?`).run(user.id);
     
+    // סגירת כל הבקשות הפתוחות עבור המשתמש הזה
+    db.prepare(`
+      UPDATE approval_requests 
+      SET status='approved', resolvedAt=?, resolvedBy='admin-panel-approval' 
+      WHERE targetUserId=? AND status='pending'
+    `).run(new Date().toISOString(), user.id);
+    
     // שליחת מייל למשתמש שהוא אושר
     await sendUserApprovedEmail(user.email);
     
@@ -307,6 +321,16 @@ adminUsers.post("/reject-user-api", async (req, res) => {
     
     // דחיית המשתמש
     db.prepare(`UPDATE users SET approvalStatus='rejected' WHERE id=?`).run(user.id);
+    
+    // סגירת כל הבקשות הפתוחות עבור המשתמש הזה
+    db.prepare(`
+      UPDATE approval_requests 
+      SET status='rejected', resolvedAt=?, resolvedBy='admin-panel-rejection' 
+      WHERE targetUserId=? AND status='pending'
+    `).run(new Date().toISOString(), user.id);
+    
+    // שליחת מייל למשתמש שהוא נדחה
+    await sendUserRejectedEmail(user.email);
     
     logger.info("admin", `User rejected via API: ${user.email}`);
     

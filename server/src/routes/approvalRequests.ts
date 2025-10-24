@@ -172,6 +172,14 @@ approvalRequests.post("/:requestId/approve", async (req, res) => {
       case 'approve-user':
         // אישור משתמש חדש - עדכון הסטטוס ל-approved
         db.prepare(`UPDATE users SET approvalStatus='approved' WHERE id=?`).run(request.targetUserId);
+        
+        // שליחת מייל למשתמש שהוא אושר
+        try {
+          const { sendUserApprovedEmail } = await import("../email.js");
+          await sendUserApprovedEmail(request.targetUserEmail);
+        } catch (error) {
+          logger.error("approval", "Failed to send approval email", error);
+        }
         break;
         
       default:
@@ -216,6 +224,18 @@ approvalRequests.post("/:requestId/reject", (req, res) => {
       SET status='rejected', resolvedAt=?, resolvedBy=? 
       WHERE id=?
     `).run(new Date().toISOString(), userEmail, requestId);
+    
+    // אם זה בקשה לאישור משתמש, נדחה את המשתמש ונשלח מייל
+    if (request.actionType === 'approve-user') {
+      db.prepare(`UPDATE users SET approvalStatus='rejected' WHERE id=?`).run(request.targetUserId);
+      
+      try {
+        const { sendUserRejectedEmail } = await import("../email.js");
+        await sendUserRejectedEmail(request.targetUserEmail);
+      } catch (error) {
+        logger.error("approval", "Failed to send rejection email", error);
+      }
+    }
     
     logger.info("approval", `Request ${requestId} rejected by ${userEmail}: ${request.actionType} for ${request.targetUserEmail}`);
     
