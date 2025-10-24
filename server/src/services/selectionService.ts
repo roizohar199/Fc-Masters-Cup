@@ -10,6 +10,7 @@ export interface SelectionResult {
   stage: Stage;
   tournamentId: number;
   selected: Array<{ userId: number; email: string; displayName: string }>;
+  total: number;
 }
 
 let db: Database.Database | null = null;
@@ -132,11 +133,12 @@ export function selectPlayersManually(opts: {
 
   return {
     selected: players.map(p => ({
-      user_id: p.id,
+      userId: p.id,
       email: p.email,
-      display_name: p.display_name
+      displayName: p.display_name
     })),
     stage,
+    tournamentId: opts.tournamentId,
     total: players.length
   };
 }

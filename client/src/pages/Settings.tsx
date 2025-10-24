@@ -266,7 +266,6 @@ export default function Settings() {
                 cursor: "pointer",
                 boxShadow: "0 4px 15px rgba(0, 136, 204, 0.4)",
                 transition: "all 0.3s",
-                display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 8
