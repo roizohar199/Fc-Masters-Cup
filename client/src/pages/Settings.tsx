@@ -225,6 +225,67 @@ export default function Settings() {
           </button>
         </form>
 
+        {/* Telegram Group Button */}
+        <div style={{ 
+          display: "grid", 
+          gap: 20, 
+          marginBottom: 40, 
+          paddingBottom: 40, 
+          borderBottom: "2px solid #e0e0e0" 
+        }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#333", margin: 0, textAlign: "right" }}>
+            📱 קבוצת טלגרם
+          </h2>
+          
+          <div style={{ textAlign: "center" }}>
+            <p style={{ 
+              fontSize: 15, 
+              color: "#666", 
+              marginBottom: 20, 
+              lineHeight: 1.5,
+              textAlign: "right"
+            }}>
+              הצטרף לקבוצת הטלגרם שלנו לקבלת עדכונים, הודעות חשובות וקשר עם שחקנים אחרים
+            </p>
+            
+            <a
+              href="https://t.me/+elbxvwU9fLE1YTg8"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-block",
+                width: "100%",
+                padding: "16px 24px",
+                borderRadius: 12,
+                border: "none",
+                background: "linear-gradient(135deg, #0088cc 0%, #00a8ff 100%)",
+                color: "#fff",
+                fontSize: 16,
+                fontWeight: 700,
+                textDecoration: "none",
+                cursor: "pointer",
+                boxShadow: "0 4px 15px rgba(0, 136, 204, 0.4)",
+                transition: "all 0.3s",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow = "0 6px 20px rgba(0, 136, 204, 0.6)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 4px 15px rgba(0, 136, 204, 0.4)";
+              }}
+            >
+              <span style={{ fontSize: 20 }}>📱</span>
+              הצטרף לקבוצת טלגרם
+            </a>
+          </div>
+        </div>
+
         {/* Password Change Form */}
         <h2 style={{ fontSize: 20, fontWeight: 700, color: "#333", margin: "0 0 20px 0", textAlign: "right" }}>
           🔒 שינוי סיסמה
