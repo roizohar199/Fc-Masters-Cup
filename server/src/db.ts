@@ -83,7 +83,8 @@ CREATE TABLE IF NOT EXISTS users (
   status TEXT NOT NULL DEFAULT 'active',
   psnUsername TEXT,
   createdAt TEXT NOT NULL,
-  passwordChangedAt TEXT
+  passwordChangedAt TEXT,
+  payment_status TEXT DEFAULT 'pending'
 );
 CREATE TABLE IF NOT EXISTS approval_requests (
   id TEXT PRIMARY KEY,

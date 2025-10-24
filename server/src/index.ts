@@ -87,6 +87,7 @@ function ensureColumn(
     // עמודות דרושות
     ensureColumn(db as any, "admins", "display_name", "TEXT");
     ensureColumn(db as any, "users", "display_name", "TEXT");
+    ensureColumn(db as any, "users", "payment_status", "TEXT", "'pending'");
 
     // אתחול display_name מתוך email אם חסר
     if (hasColumn(db as any, "admins", "email")) {
@@ -147,7 +148,6 @@ import { presenceApi } from "./routes/presenceApi.js";
 import { initPresence } from "./presence/index.js";
 import adminSelection from "./routes/adminSelection.js";
 import meNotifications from "./routes/meNotifications.js";
-import { startAutoSelectionJob } from "./jobs/autoSelection.js";
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -319,9 +319,6 @@ async function startServer(port: number, retries = 0): Promise<void> {
 
     // Initialize Presence system (Redis or Memory fallback)
     await initPresence();
-
-    // Start auto selection job
-    startAutoSelectionJob();
 
     // Verify SMTP connection at startup
     const { verifySmtp } = await import("./modules/mail/mailer.js");

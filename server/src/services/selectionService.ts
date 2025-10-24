@@ -113,19 +113,23 @@ export function selectPlayersForStage(opts: {
       SELECT u.id AS user_id,
              u.email,
              COALESCE(u.display_name, u.name, 'Player') AS display_name,
-             u.rating, u.recent_activity
+             u.rating, u.recent_activity, u.payment_status
       FROM registrations r
       JOIN users u ON u.id = r.user_id
-      WHERE r.tournament_id = ? AND r.status IN ('confirmed','approved') AND u.email IS NOT NULL
+      WHERE r.tournament_id = ? AND r.status IN ('confirmed','approved') 
+            AND u.email IS NOT NULL 
+            AND u.payment_status = 'paid'
     `).all(opts.tournamentId) as Candidate[];
   } else {
     candidates = db.prepare(`
       SELECT id AS user_id,
              email,
              COALESCE(display_name, name, 'Player') AS display_name,
-             rating, recent_activity
+             rating, recent_activity, payment_status
       FROM users
-      WHERE (is_active = 1 OR is_active IS NULL) AND email IS NOT NULL
+      WHERE (is_active = 1 OR is_active IS NULL) 
+            AND email IS NOT NULL 
+            AND payment_status = 'paid'
     `).all() as Candidate[];
   }
 
