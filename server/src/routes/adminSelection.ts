@@ -1,9 +1,28 @@
 // server/src/routes/adminSelection.ts
 import { Router } from "express";
-import { selectPlayersForStage } from "../services/selectionService.js";
+import { selectPlayersForStage, selectSpecificPlayers } from "../services/selectionService.js";
 import Database from "better-sqlite3";
 
 const router = Router();
+
+// קבלת כל השחקנים (לבחירה)
+router.get("/players", (req: any, res) => {
+  try {
+    const db = new Database(process.env.DB_PATH || "./server/tournaments.sqlite");
+    
+    const players = db.prepare(`
+      SELECT id, email, display_name, psnUsername, status, payment_status
+      FROM users
+      WHERE status = 'active' AND email IS NOT NULL
+      ORDER BY display_name
+    `).all();
+    
+    db.close();
+    res.json({ ok: true, players });
+  } catch (err: any) {
+    res.status(400).json({ ok: false, error: err?.message || "Failed" });
+  }
+});
 
 // קבלת שחקנים ששילמו לטורניר
 router.get("/paid-players/:tournamentId", (req: any, res) => {
@@ -83,16 +102,29 @@ router.post("/tournaments/:id/select", (req: any, res) => {
     const slots = req.body.slots ? Number(req.body.slots) : undefined;
     const notifyEmail = req.body.notifyEmail !== false;
     const notifyHomepage = req.body.notifyHomepage !== false;
+    const selectedUserIds = req.body.selectedUserIds || [];
 
-    const result = selectPlayersForStage({
-      tournamentId,
-      stage,
-      slots,
-      sendEmails: notifyEmail,
-      createHomepageNotice: notifyHomepage,
-    });
-
-    res.json({ ok: true, ...result });
+    // אם נשלחה רשימת שחקנים ספציפית, נשתמש בה
+    if (selectedUserIds.length > 0) {
+      const result = selectSpecificPlayers({
+        tournamentId,
+        stage,
+        selectedUserIds,
+        sendEmails: notifyEmail,
+        createHomepageNotice: notifyHomepage,
+      });
+      res.json({ ok: true, ...result });
+    } else {
+      // אחרת, נשתמש בלוגיקה הרגילה
+      const result = selectPlayersForStage({
+        tournamentId,
+        stage,
+        slots,
+        sendEmails: notifyEmail,
+        createHomepageNotice: notifyHomepage,
+      });
+      res.json({ ok: true, ...result });
+    }
   } catch (err: any) {
     res.status(400).json({ ok: false, error: err?.message || "Failed" });
   }

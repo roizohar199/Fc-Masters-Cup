@@ -192,3 +192,78 @@ export function selectPlayersForStage(opts: {
     selected: selected.map(x => ({ userId: x.user_id, email: x.email, displayName: x.display_name })),
   };
 }
+
+/**
+ * בחירת שחקנים ספציפיים לפי רשימת IDs
+ */
+export function selectSpecificPlayers(opts: {
+  tournamentId: number;
+  stage: Stage | string;
+  selectedUserIds: string[];
+  sendEmails?: boolean;
+  createHomepageNotice?: boolean;
+}): SelectionResult {
+  const db = getDb();
+  const stage = normalizeStage(opts.stage);
+
+  // קבלת פרטי השחקנים שנבחרו
+  const selectedUsers = db.prepare(`
+    SELECT id AS user_id, email, COALESCE(display_name, name, 'Player') AS display_name
+    FROM users
+    WHERE id IN (${opts.selectedUserIds.map(() => '?').join(',')})
+    AND payment_status = 'paid'
+  `).all(...opts.selectedUserIds) as Array<{ user_id: number; email: string; display_name: string }>;
+
+  if (selectedUsers.length === 0) {
+    throw new Error("No eligible players found from the selected list.");
+  }
+
+  // בדיקה אם השחקנים כבר נבחרו לשלב
+  const already = db.prepare(`
+    SELECT user_id FROM tournament_participants WHERE tournament_id=? AND stage=?
+  `).all(opts.tournamentId, stage).map((r: any) => r.user_id);
+
+  const newSelections = selectedUsers.filter(u => !already.includes(u.user_id));
+  if (newSelections.length === 0) {
+    throw new Error("All selected players are already selected for this stage.");
+  }
+
+  // שמירה במסד הנתונים
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO tournament_participants (tournament_id, user_id, stage)
+    VALUES (?,?,?)
+  `);
+  const tx = db.transaction((rows: typeof newSelections) => {
+    rows.forEach(r => insert.run(opts.tournamentId, r.user_id, stage));
+  });
+  tx(newSelections);
+
+  // התראות ומיילים
+  for (const s of newSelections) {
+    if (opts.sendEmails !== false) {
+      const link = `${process.env.SITE_URL || "https://www.k-rstudio.com"}/tournaments/${opts.tournamentId}`;
+      const subject = `נבחרת לטורניר – שלב ${stage} | FC Masters Cup`;
+      const html = `
+        <p>שלום ${s.display_name},</p>
+        <p>נבחרת להשתתף בטורניר <b>FC Masters Cup</b> לשלב <b>${stage}</b>.</p>
+        <p>לפרטים ולעדכונים:<br><a href="${link}">${link}</a></p>
+        <p>בהצלחה! ⚽</p>
+      `;
+      sendEmail({ to: s.email, subject, html }).catch(() => {});
+    }
+    if (opts.createHomepageNotice !== false) {
+      createNotification({
+        userId: s.user_id,
+        title: `נבחרת לשלב ${stage}!`,
+        body: `נבחרת לטורניר הקרוב (שלב ${stage}).`,
+        link: `/tournaments/${opts.tournamentId}`,
+      });
+    }
+  }
+
+  return {
+    stage,
+    tournamentId: opts.tournamentId,
+    selected: newSelections.map(x => ({ userId: x.user_id, email: x.email, displayName: x.display_name })),
+  };
+}
