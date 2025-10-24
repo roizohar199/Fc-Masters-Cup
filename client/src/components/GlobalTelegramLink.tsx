@@ -11,10 +11,10 @@ export function GlobalTelegramLink({ isMobile }: GlobalTelegramLinkProps) {
 
   return (
     <div style={{
-      backgroundColor: "#e8f5e8",
+      backgroundColor: "#e3f2fd",
       padding: isMobile ? 16 : 20,
       borderRadius: isMobile ? 12 : 16,
-      border: "2px solid #4caf50",
+      border: "2px solid #2196f3",
       marginBottom: isMobile ? 16 : 24
     }}>
       <div style={{ 
@@ -25,35 +25,41 @@ export function GlobalTelegramLink({ isMobile }: GlobalTelegramLinkProps) {
         justifyContent: "space-between" 
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 12 }}>
-          <div style={{ fontSize: isMobile ? 28 : 36 }}>💬</div>
+          <div style={{ fontSize: isMobile ? 28 : 36 }}>🏆</div>
           <div>
-            <h3 style={{ fontSize: isMobile ? 16 : 20, fontWeight: 700, color: "#2e7d32", margin: 0 }}>
-              קבוצת תמיכה ושאלות
+            <h3 style={{ fontSize: isMobile ? 16 : 20, fontWeight: 700, color: "#1565c0", margin: 0 }}>
+              קבוצת הטורניר
             </h3>
-            <p style={{ fontSize: isMobile ? 12 : 14, color: "#388e3c", margin: "4px 0 0 0" }}>
-              הצטרף לקבוצת הטלגרם לקבלת עזרה ותמיכה
+            <p style={{ fontSize: isMobile ? 12 : 14, color: "#1976d2", margin: "4px 0 0 0" }}>
+              הצטרף לקבוצת הטלגרם של הטורניר לתשלום ומידע
             </p>
           </div>
         </div>
-        <a 
-          href={globalTelegramLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            padding: isMobile ? "12px 20px" : "12px 24px",
-            background: "#4caf50",
-            color: "#fff",
-            textDecoration: "none",
-            borderRadius: 10,
-            fontWeight: 700,
-            fontSize: isMobile ? 14 : 15,
-            textAlign: "center",
-            display: "inline-block",
-            minWidth: isMobile ? "auto" : "140px"
+        <button 
+          onClick={() => {
+            console.log("כפתור נלחץ - פותח קישור לטלגרם");
+            window.open(globalTelegramLink, "_blank");
           }}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "8px",
+            backgroundColor: "#1E90FF",
+            color: "#fff",
+            padding: isMobile ? "10px 16px" : "10px 20px",
+            borderRadius: "8px",
+            fontWeight: "bold",
+            border: "none",
+            transition: "0.3s",
+            fontSize: isMobile ? 14 : 15,
+            minWidth: isMobile ? "auto" : "140px",
+            cursor: "pointer"
+          }}
+          onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#0B72E7")}
+          onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#1E90FF")}
         >
-          הצטרף 📱
-        </a>
+          📅 הצטרף לטורניר
+        </button>
       </div>
     </div>
   );
