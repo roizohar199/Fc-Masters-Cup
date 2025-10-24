@@ -26,8 +26,8 @@ interface User {
 export default function AdminDashboard() {
   const [title, setTitle] = useState("טורניר שישי בערב");
   const [game, setGame] = useState<"FC25" | "FC26">("FC25");
-  const [first, setFirst] = useState(1000);
-  const [second, setSecond] = useState(500);
+  const [first, setFirst] = useState(500);
+  const [second, setSecond] = useState(0);
   const [nextTournamentDate, setNextTournamentDate] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
   
@@ -2403,7 +2403,7 @@ export default function AdminDashboard() {
               type="number"
               value={first}
               onChange={e => setFirst(+e.target.value)}
-              placeholder="1000"
+              placeholder="500"
               style={{
                 width: "100%",
                 padding: 14,
@@ -2424,7 +2424,7 @@ export default function AdminDashboard() {
               type="number"
               value={second}
               onChange={e => setSecond(+e.target.value)}
-              placeholder="500"
+              placeholder="0"
               style={{
                 width: "100%",
                 padding: 14,

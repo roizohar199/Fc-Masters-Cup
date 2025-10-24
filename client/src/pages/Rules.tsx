@@ -65,13 +65,13 @@ export default function Rules() {
             </h2>
             <ul style={{ fontSize: 16, color: "#333", paddingRight: 20 }}>
               <li style={{ marginBottom: 12 }}>
-                דמי ההשתתפות בטורניר עומדים על <strong>50 ש"ח למשתתף</strong>, המשולמים מראש באמצעות אפליקציות תשלום מאובטחות (PayBox / Bit).
+                דמי ההשתתפות בטורניר עומדים על <strong>50 ש"ח למשתתף</strong>, המשולמים מראש באמצעות אפליקציות תשלום מאובטחות.
               </li>
               <li style={{ marginBottom: 12 }}>
                 <strong>הפרסים יחולקו כדלקמן:</strong>
                 <ul style={{ marginTop: 8, paddingRight: 20 }}>
                   <li style={{ marginBottom: 8 }}>
-                    🥇 <strong>מקום ראשון</strong> – 500 ש"ח בהעברה באמצעות Bit או PayBox.
+                    🥇 <strong>מקום ראשון</strong> – 500 ש"ח בהעברה באמצעות Bit.
                   </li>
                 </ul>
               </li>
@@ -126,7 +126,10 @@ export default function Rules() {
                 המשחקים ייערכו בשיטת Knockout (נוק-אאוט) – שלב ההדחה הישירה.
               </li>
               <li style={{ marginBottom: 12 }}>
-                כל מפגש יתקיים במשחק בודד או בסדרה, בהתאם להחלטת המארגן.
+                כל מפגש יתקיים במשחק בודד בכל שלב משלבי הטורניר.
+              </li>
+              <li style={{ marginBottom: 12 }}>
+                מצב המשחק הוא <strong>Kick Off</strong> ולא Ultimate Team.
               </li>
               <li style={{ marginBottom: 12 }}>
                 הצמדת היריבים תיעשה על בסיס רשימת המשתתפים בלבד ובאופן שוויוני, ללא שיקול של מזל.
@@ -207,7 +210,7 @@ export default function Rules() {
                 ניתן לבטל השתתפות עד 48 שעות לפני פתיחת הטורניר ולקבל החזר מלא.
               </li>
               <li style={{ marginBottom: 12 }}>
-                לאחר פתיחת המשחקים – לא יינתן החזר כספי, למעט במקרים חריגים המאושרים בכתב ע"י המארגן.
+                לאחר פתיחת המשחקים – לא יינתן החזר כספי בכלל.
               </li>
             </ul>
           </section>

@@ -64,19 +64,81 @@ function normalizeStage(stage: string): Stage {
   return s as Stage;
 }
 
-// PRNG דטרמיניסטי לפי seed (לשבירת שוויון הוגנת)
-function seededShuffle<T>(arr: T[], seed: string): T[] {
-  const a = arr.slice();
-  let state = crypto.createHash("sha256").update(seed).digest().readUInt32LE(0);
-  const rand = () => {
-    state ^= state << 13; state ^= state >>> 17; state ^= state << 5;
-    return ((state >>> 0) / 0xFFFFFFFF);
-  };
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+// פונקציה זו הוסרה - המערכת לא תבחר שחקנים אוטומטית
+
+/**
+ * בחירה ידנית של שחקנים על ידי המנהל
+ * המנהל בוחר בדיוק איזה שחקנים יקבלו מייל והודעה
+ */
+export function selectPlayersManually(opts: {
+  tournamentId: number;
+  stage: Stage | string;
+  selectedPlayerIds: number[]; // רשימת ID של שחקנים שנבחרו ידנית
+  sendEmails?: boolean;
+  createHomepageNotice?: boolean;
+}): SelectionResult {
+  const db = getDb();
+  const stage = normalizeStage(opts.stage);
+  
+  if (opts.selectedPlayerIds.length === 0) {
+    throw new Error("חובה לבחור לפחות שחקן אחד");
   }
-  return a;
+
+  // בדיקה שהשחקנים קיימים במערכת
+  const players = db.prepare(`
+    SELECT id, email, COALESCE(display_name, name, 'Player') AS display_name
+    FROM users 
+    WHERE id IN (${opts.selectedPlayerIds.map(() => '?').join(',')})
+  `).all(...opts.selectedPlayerIds) as Array<{id: number, email: string, display_name: string}>;
+
+  if (players.length !== opts.selectedPlayerIds.length) {
+    throw new Error("חלק מהשחקנים שנבחרו לא קיימים במערכת");
+  }
+
+  // הוספת השחקנים לטורניר
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO tournament_participants (tournament_id, user_id, stage)
+    VALUES (?,?,?)
+  `);
+  
+  const tx = db.transaction((playerIds: number[]) => {
+    playerIds.forEach(playerId => insert.run(opts.tournamentId, playerId, stage));
+  });
+  tx(opts.selectedPlayerIds);
+
+  // שליחת מיילים והתראות
+  for (const player of players) {
+    if (opts.sendEmails !== false) {
+      const link = `${process.env.SITE_URL || "https://www.k-rstudio.com"}/tournaments/${opts.tournamentId}`;
+      const subject = `נבחרת לטורניר – שלב ${stage} | FC Masters Cup`;
+      const html = `
+        <p>שלום ${player.display_name},</p>
+        <p>נבחרת להשתתף בטורניר <b>FC Masters Cup</b> לשלב <b>${stage}</b>.</p>
+        <p>לפרטים ולעדכונים:<br><a href="${link}">${link}</a></p>
+        <p>בהצלחה! ⚽</p>
+      `;
+      sendEmail({ to: player.email, subject, html }).catch(() => {});
+    }
+    
+    if (opts.createHomepageNotice !== false) {
+      createNotification({
+        userId: player.id,
+        title: `נבחרת לשלב ${stage}!`,
+        body: `נבחרת לטורניר הקרוב (שלב ${stage}).`,
+        link: `/tournaments/${opts.tournamentId}`,
+      });
+    }
+  }
+
+  return {
+    selected: players.map(p => ({
+      user_id: p.id,
+      email: p.email,
+      display_name: p.display_name
+    })),
+    stage,
+    total: players.length
+  };
 }
 
 function defaultSlotsFor(stage: Stage): number {
@@ -145,14 +207,9 @@ export function selectPlayersForStage(opts: {
   const pool = candidates.filter(c => !already.includes(c.user_id));
   if (!pool.length) throw new Error("All eligible players are already selected for this stage.");
 
-  // דירוג + פעילות → ואז ערבול דטרמיניסטי
-  const ordered = pool.sort((a, b) => {
-    const rdiff = (b.rating ?? 0) - (a.rating ?? 0);
-    if (rdiff !== 0) return rdiff;
-    return (b.recent_activity ?? 0) - (a.recent_activity ?? 0);
-  });
-  const shuffled = seededShuffle(ordered, `t:${opts.tournamentId}|stage:${stage}`);
-  const selected = shuffled.slice(0, slots);
+  // המערכת לא תבחר שחקנים אוטומטית - המנהל יבחר ידנית
+  // השארתי את הקוד הזה רק כדי לא לשבור את הפונקציה
+  const selected = pool.slice(0, slots);
 
   const insert = db.prepare(`
     INSERT OR IGNORE INTO tournament_participants (tournament_id, user_id, stage)

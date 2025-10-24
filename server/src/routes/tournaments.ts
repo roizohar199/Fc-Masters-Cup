@@ -6,6 +6,7 @@ import { nowISO } from "../lib/util.js";
 import { generateRoundOf16, advanceWinners } from "../lib/bracket.js";
 import type { AdvancePreviewBody, AdvanceConfirmBody, AdvanceRevertBody } from "../types/dtos.js";
 import { deleteNotificationsByTournamentId } from "../modules/notifications/model.js";
+import { selectPlayersManually } from "../services/selectionService.js";
 
 export const tournaments = Router();
 
@@ -452,6 +453,45 @@ tournaments.post("/:id/select", async (req: any, res) => {
   } catch (error: any) {
     console.error("Error selecting participants:", error);
     res.status(500).json({ error: error.message || "Failed to select participants" });
+  }
+});
+
+// בחירה ידנית של שחקנים על ידי המנהל
+tournaments.post("/:id/select-players-manually", async (req, res) => {
+  try {
+    const tournamentId = req.params.id;
+    const { stage, playerIds, sendEmails = true, createHomepageNotice = true } = req.body;
+    
+    if (!stage || !playerIds || !Array.isArray(playerIds)) {
+      return res.status(400).json({ error: "Missing required fields: stage, playerIds" });
+    }
+    
+    if (playerIds.length === 0) {
+      return res.status(400).json({ error: "Must select at least one player" });
+    }
+    
+    // המרת tournamentId למספר אם צריך
+    const tournamentIdNum = parseInt(tournamentId);
+    if (isNaN(tournamentIdNum)) {
+      return res.status(400).json({ error: "Invalid tournament ID" });
+    }
+    
+    const result = selectPlayersManually({
+      tournamentId: tournamentIdNum,
+      stage,
+      selectedPlayerIds: playerIds,
+      sendEmails,
+      createHomepageNotice
+    });
+    
+    res.json({ 
+      ok: true, 
+      message: `נבחרו ${result.total} שחקנים לשלב ${result.stage}`,
+      selected: result.selected
+    });
+  } catch (error: any) {
+    console.error("Error in manual player selection:", error);
+    res.status(500).json({ error: error.message || "Failed to select players manually" });
   }
 });
 
