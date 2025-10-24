@@ -240,54 +240,52 @@ export default function PlayerDashboard() {
       <PlayerNotifications isMobile={isMobile} />
       
       {/* קישור טלגרם של הטורניר הספציפי */}
-      {tournament?.telegramLink && (
-        <div style={{
-          backgroundColor: "#e3f2fd",
-          padding: isMobile ? 16 : 20,
-          borderRadius: isMobile ? 12 : 16,
-          border: "2px solid #2196f3",
-          marginBottom: isMobile ? 16 : 24
+      <div style={{
+        backgroundColor: "#e3f2fd",
+        padding: isMobile ? 16 : 20,
+        borderRadius: isMobile ? 12 : 16,
+        border: "2px solid #2196f3",
+        marginBottom: isMobile ? 16 : 24
+      }}>
+        <div style={{ 
+          display: "flex", 
+          flexDirection: isMobile ? "column" : "row",
+          alignItems: isMobile ? "stretch" : "center", 
+          gap: isMobile ? 16 : 12, 
+          justifyContent: "space-between" 
         }}>
-          <div style={{ 
-            display: "flex", 
-            flexDirection: isMobile ? "column" : "row",
-            alignItems: isMobile ? "stretch" : "center", 
-            gap: isMobile ? 16 : 12, 
-            justifyContent: "space-between" 
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 12 }}>
-              <div style={{ fontSize: isMobile ? 28 : 36 }}>🏆</div>
-              <div>
-                <h3 style={{ fontSize: isMobile ? 16 : 20, fontWeight: 700, color: "#1565c0", margin: 0 }}>
-                  קבוצת הטורניר
-                </h3>
-                <p style={{ fontSize: isMobile ? 12 : 14, color: "#1976d2", margin: "4px 0 0 0" }}>
-                  הצטרף לקבוצת הטלגרם של הטורניר לתשלום ומידע
-                </p>
-              </div>
+          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 12 }}>
+            <div style={{ fontSize: isMobile ? 28 : 36 }}>🏆</div>
+            <div>
+              <h3 style={{ fontSize: isMobile ? 16 : 20, fontWeight: 700, color: "#1565c0", margin: 0 }}>
+                קבוצת הטורניר
+              </h3>
+              <p style={{ fontSize: isMobile ? 12 : 14, color: "#1976d2", margin: "4px 0 0 0" }}>
+                הצטרף לקבוצת הטלגרם של הטורניר לתשלום ומידע
+              </p>
             </div>
-            <a 
-              href={tournament.telegramLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                padding: isMobile ? "12px 20px" : "12px 24px",
-                background: "#2196f3",
-                color: "#fff",
-                textDecoration: "none",
-                borderRadius: 10,
-                fontWeight: 700,
-                fontSize: isMobile ? 14 : 15,
-                textAlign: "center",
-                display: "inline-block",
-                minWidth: isMobile ? "auto" : "140px"
-              }}
-            >
-              הצטרף לטורניר 📱
-            </a>
           </div>
+          <a 
+            href="https://t.me/+elbxvwU9fLE1YTg8"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              padding: isMobile ? "12px 20px" : "12px 24px",
+              background: "#2196f3",
+              color: "#fff",
+              textDecoration: "none",
+              borderRadius: 10,
+              fontWeight: 700,
+              fontSize: isMobile ? 14 : 15,
+              textAlign: "center",
+              display: "inline-block",
+              minWidth: isMobile ? "auto" : "140px"
+            }}
+          >
+            הצטרף לטורניר 📱
+          </a>
         </div>
-      )}
+      </div>
       
       {/* הגרסה הישנה (מוסתרת) */}
       <div style={{ display: "none" }}>
