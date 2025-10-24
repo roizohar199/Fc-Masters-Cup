@@ -74,9 +74,6 @@ export default function Rules() {
                   <li style={{ marginBottom: 8 }}>
                     🥇 <strong>מקום ראשון</strong> – 500 ש"ח בהעברה בביט/פייבוקס.
                   </li>
-                  <li style={{ marginBottom: 8 }}>
-                    🥈 <strong>מקום שני</strong> – השתתפות חינם בטורניר הבא.
-                  </li>
                 </ul>
               </li>
               <li style={{ marginBottom: 12 }}>

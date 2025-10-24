@@ -534,8 +534,7 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
             textAlign: "center",
           }}
         >
-          <strong>💰 דמי השתתפות:</strong> 50 ₪ | <strong>🏆 פרס ראשון:</strong> 500 ₪ |{" "}
-          <strong>🎁 פרס שני:</strong> כניסה חינם לטורניר הבא
+          <strong>💰 דמי השתתפות:</strong> 50 ₪ | <strong>🏆 פרס ראשון:</strong> 500 ₪
           <br />
           <span style={{ fontSize: isMobile ? 11 : 12, color: "#bf360c" }}>
             (התשלום <strong>לא</strong> מתבצע באתר - יגבה בקבוצת טלגרם)

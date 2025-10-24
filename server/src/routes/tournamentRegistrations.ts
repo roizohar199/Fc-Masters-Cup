@@ -304,7 +304,10 @@ tournamentRegistrations.post("/:id/early-register", requireAuth, async (req, res
 
   const userId = (req as any).user.uid;
   const userEmail = (req as any).user.email;
-  const userPsn = (req as any).user.psnUsername;
+  
+  // קבל את שם ה-PSN האמיתי מהמסד נתונים
+  const user: User | undefined = db.prepare(`SELECT psnUsername FROM users WHERE id=?`).get(userId) as User | undefined;
+  const userPsn = user?.psnUsername;
 
   // בדוק אם המשתמש כבר רשום
   const existing: Registration | undefined = db.prepare(
