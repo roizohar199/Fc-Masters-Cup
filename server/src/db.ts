@@ -2,6 +2,7 @@ import Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { ensureSchema } from "./utils/ensureSchema.js";
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -19,6 +20,9 @@ const db = new Database(dbPath);
 console.log(`📂 Database path: ${dbPath}`);
 
 db.pragma("journal_mode = WAL");
+
+// וידוא סכמת מסד הנתונים
+ensureSchema(db);
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS players (

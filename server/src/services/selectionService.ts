@@ -2,7 +2,7 @@
 import Database from "better-sqlite3";
 import crypto from "crypto";
 import { sendEmail } from "../utils/sendEmail.js";
-import { createNotification } from "../utils/notify.js";
+import { insertNotification } from "../utils/notify.js";
 
 export type Stage = "R16" | "QF" | "SF" | "F";
 
@@ -122,12 +122,18 @@ export function selectPlayersManually(opts: {
     }
     
     if (opts.createHomepageNotice !== false) {
-      createNotification({
-        userId: player.id,
-        title: `נבחרת לשלב ${stage}!`,
-        body: `נבחרת לטורניר הקרוב (שלב ${stage}).`,
-        link: `/tournaments/${opts.tournamentId}`,
-      });
+      try {
+        insertNotification(db, {
+          userId: player.id,
+          email: player.email,
+          type: 'tournament_selected',
+          title: `נבחרת לשלב ${stage}!`,
+          body: `נבחרת לטורניר הקרוב (שלב ${stage}).`,
+          payload: { tournamentId: opts.tournamentId, stage, link: `/tournaments/${opts.tournamentId}` }
+        });
+      } catch (error) {
+        console.warn("⚠️ לא ניתן ליצור התראה:", error);
+      }
     }
   }
 
@@ -236,12 +242,18 @@ export function selectPlayersForStage(opts: {
       sendEmail({ to: s.email, subject, html }).catch(() => {});
     }
     if (opts.createHomepageNotice !== false) {
-      createNotification({
-        userId: s.user_id,
-        title: `נבחרת לשלב ${stage}!`,
-        body: `נבחרת לטורניר הקרוב (שלב ${stage}).`,
-        link: `/tournaments/${opts.tournamentId}`,
-      });
+      try {
+        insertNotification(db, {
+          userId: s.user_id,
+          email: s.email,
+          type: 'tournament_selected',
+          title: `נבחרת לשלב ${stage}!`,
+          body: `נבחרת לטורניר הקרוב (שלב ${stage}).`,
+          payload: { tournamentId: opts.tournamentId, stage, link: `/tournaments/${opts.tournamentId}` }
+        });
+      } catch (error) {
+        console.warn("⚠️ לא ניתן ליצור התראה:", error);
+      }
     }
   }
 
@@ -311,12 +323,18 @@ export function selectSpecificPlayers(opts: {
       sendEmail({ to: s.email, subject, html }).catch(() => {});
     }
     if (opts.createHomepageNotice !== false) {
-      createNotification({
-        userId: s.user_id,
-        title: `נבחרת לשלב ${stage}!`,
-        body: `נבחרת לטורניר הקרוב (שלב ${stage}).`,
-        link: `/tournaments/${opts.tournamentId}`,
-      });
+      try {
+        insertNotification(db, {
+          userId: s.user_id,
+          email: s.email,
+          type: 'tournament_selected',
+          title: `נבחרת לשלב ${stage}!`,
+          body: `נבחרת לטורניר הקרוב (שלב ${stage}).`,
+          payload: { tournamentId: opts.tournamentId, stage, link: `/tournaments/${opts.tournamentId}` }
+        });
+      } catch (error) {
+        console.warn("⚠️ לא ניתן ליצור התראה:", error);
+      }
     }
   }
 
