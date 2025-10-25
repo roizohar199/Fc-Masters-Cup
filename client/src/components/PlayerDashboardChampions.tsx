@@ -184,64 +184,6 @@ export default function PlayerDashboardChampions({
         </div>
       )}
 
-      {/* סטטיסטיקות שחקן */}
-      <div className="champions-league-match-card" style={{
-        marginBottom: 24,
-        padding: isMobile ? 20 : 24
-      }}>
-        <h3 className="champions-league-title" style={{
-          fontSize: isMobile ? 18 : 24,
-          marginBottom: 16,
-          textAlign: "center"
-        }}>
-          📊 הסטטיסטיקות שלך
-        </h3>
-        
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
-          gap: 16
-        }}>
-          <div style={{
-            textAlign: "center",
-            padding: 16,
-            background: "rgba(40, 167, 69, 0.1)",
-            borderRadius: 12,
-            border: "2px solid #28a745"
-          }}>
-            <div style={{ fontSize: isMobile ? 24 : 32, marginBottom: 8 }}>🏆</div>
-            <div className="champions-league-player-name" style={{ fontSize: isMobile ? 14 : 16 }}>
-              ניצחונות: {myMatches.filter(m => getMatchResult(m).text === 'ניצחון').length}
-            </div>
-          </div>
-          
-          <div style={{
-            textAlign: "center",
-            padding: 16,
-            background: "rgba(220, 53, 69, 0.1)",
-            borderRadius: 12,
-            border: "2px solid #dc3545"
-          }}>
-            <div style={{ fontSize: isMobile ? 24 : 32, marginBottom: 8 }}>💔</div>
-            <div className="champions-league-player-name" style={{ fontSize: isMobile ? 14 : 16 }}>
-              הפסדים: {myMatches.filter(m => getMatchResult(m).text === 'הפסד').length}
-            </div>
-          </div>
-          
-          <div style={{
-            textAlign: "center",
-            padding: 16,
-            background: "rgba(255, 193, 7, 0.1)",
-            borderRadius: 12,
-            border: "2px solid #ffc107"
-          }}>
-            <div style={{ fontSize: isMobile ? 24 : 32, marginBottom: 8 }}>🤝</div>
-            <div className="champions-league-player-name" style={{ fontSize: isMobile ? 14 : 16 }}>
-              תיקו: {myMatches.filter(m => getMatchResult(m).text === 'תיקו').length}
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* היריבים שלי */}
       {getMyOpponents().length > 0 && (
