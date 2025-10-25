@@ -52,44 +52,6 @@ export default function PlayerDashboardChampions({
         ))}
       </div>
 
-      {/* כותרת כללית */}
-      <div style={{
-        textAlign: "center",
-        marginBottom: 40,
-        position: "relative",
-        zIndex: 10
-      }}>
-        <div className="champions-league-trophy" style={{
-          fontSize: isMobile ? 36 : 48,
-          marginBottom: 10
-        }}>
-          🏆
-        </div>
-        
-        <h1 className="champions-league-title" style={{
-          fontSize: isMobile ? 28 : 42,
-          margin: 0
-        }}>
-          FC MASTERS CUP
-        </h1>
-        
-        <div className="champions-league-subtitle" style={{
-          fontSize: isMobile ? 16 : 18,
-          marginTop: 8
-        }}>
-          PLAYER DASHBOARD
-        </div>
-        
-        <div style={{
-          fontSize: isMobile ? 14 : 16,
-          fontWeight: 600,
-          color: "#FFFFFF",
-          marginTop: 4,
-          opacity: 0.9
-        }}>
-          {playerInfo?.email}
-        </div>
-      </div>
 
       {/* זיכוי כספי - הודעה בולטת */}
       {playerInfo && playerInfo.secondPrizeCredit > 0 && (
@@ -354,27 +316,6 @@ export default function PlayerDashboardChampions({
         </div>
       )}
 
-      {/* כיתובים בתחתית */}
-      <div style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginTop: 40,
-        position: "relative",
-        zIndex: 10
-      }}>
-        <div className="champions-league-hashtag" style={{
-          fontSize: isMobile ? 12 : 14
-        }}>
-          #FCMastersCup
-        </div>
-        
-        <div className="champions-league-website" style={{
-          fontSize: isMobile ? 12 : 14
-        }}>
-          FC Masters Cup.com
-        </div>
-      </div>
     </div>
   );
 }
