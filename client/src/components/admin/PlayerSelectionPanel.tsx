@@ -63,11 +63,13 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
   const loadUsers = async () => {
     try {
       setLoading(true);
-      // טען שחקנים מהנקודת קצה החדשה
-      const response = await api(apiUrl('/admin/players'));
-      if (response.ok) {
-        const players = response.data?.players || [];
+      // טען שחקנים מהנקודת קצה הנכונה
+      const response = await api('/api/admin/users');
+      if (response && Array.isArray(response)) {
+        // סינון רק שחקנים (role = 'player')
+        const players = response.filter(user => user.role === 'player');
         setUsers(players);
+        console.log('✅ נטענו שחקנים:', players.length);
       } else {
         console.error('Failed to load players:', response);
         toast.error('שגיאה בטעינת רשימת השחקנים');
@@ -82,14 +84,13 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
 
   const loadTournamentDetails = async () => {
     try {
-      const response = await api(apiUrl(`/tournaments/${tournamentId}`));
-      if (response.ok) {
-        const tournament = response.data;
+      const response = await api(`/api/tournaments/${tournamentId}`);
+      if (response) {
         setTournamentDetails({
-          title: tournament.title || 'טורניר FC Masters Cup',
-          date: tournament.nextTournamentDate || '',
-          prizeFirst: tournament.prizeFirst || 500,
-          prizeSecond: tournament.prizeSecond || 0
+          title: response.title || 'טורניר FC Masters Cup',
+          date: response.nextTournamentDate || '',
+          prizeFirst: response.prizeFirst || 500,
+          prizeSecond: response.prizeSecond || 0
         });
       }
     } catch (error) {
@@ -553,6 +554,15 @@ export function PlayerSelectionPanel({ tournamentId, onSelectionComplete }: Play
                 }}>
                   {user.email}
                 </div>
+                {user.psnUsername && (
+                  <div style={{
+                    fontSize: '11px',
+                    color: '#28a745',
+                    fontWeight: '600'
+                  }}>
+                    PSN: {user.psnUsername}
+                  </div>
+                )}
               </div>
               
               {/* אינדיקטור מחובר/לא מחובר */}
