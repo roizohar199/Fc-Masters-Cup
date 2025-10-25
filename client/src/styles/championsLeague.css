@@ -151,30 +151,6 @@
   opacity: 0.8;
 }
 
-/* Dragon background effect */
-.champions-league-dragon-bg {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(0, 123, 255, 0.15) 0%, rgba(0, 123, 255, 0.05) 50%, transparent 70%);
-  border-radius: 50%;
-  z-index: 1;
-  animation: dragonPulse 4s ease-in-out infinite;
-}
-
-@keyframes dragonPulse {
-  0%, 100% {
-    opacity: 0.3;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  50% {
-    opacity: 0.6;
-    transform: translate(-50%, -50%) scale(1.05);
-  }
-}
 
 /* Floating particles effect */
 .champions-league-particles {

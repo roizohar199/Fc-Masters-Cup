@@ -27,8 +27,6 @@ export default function PlayerDashboardChampions({
 }: PlayerDashboardChampionsProps) {
   return (
     <div>
-      {/* רקע דרקון */}
-      <div className="champions-league-dragon-bg" />
       
       {/* חלקיקים מרחפים */}
       <div className="champions-league-particles">
