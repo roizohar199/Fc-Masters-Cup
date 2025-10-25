@@ -87,7 +87,7 @@ export function selectPlayersManually(opts: {
 
   // בדיקה שהשחקנים קיימים במערכת
   const players = db.prepare(`
-    SELECT id, email, COALESCE(display_name, name, 'Player') AS display_name
+    SELECT id, email, COALESCE(psnUsername, email, 'Player') AS display_name
     FROM users 
     WHERE id IN (${opts.selectedPlayerIds.map(() => '?').join(',')})
   `).all(...opts.selectedPlayerIds) as Array<{id: number, email: string, display_name: string}>;
@@ -176,7 +176,7 @@ export function selectPlayersForStage(opts: {
     candidates = db.prepare(`
       SELECT u.id AS user_id,
              u.email,
-             COALESCE(u.display_name, u.name, 'Player') AS display_name,
+             COALESCE(u.psnUsername, u.email, 'Player') AS display_name,
              u.rating, u.recent_activity, u.payment_status
       FROM registrations r
       JOIN users u ON u.id = r.user_id
@@ -188,7 +188,7 @@ export function selectPlayersForStage(opts: {
     candidates = db.prepare(`
       SELECT id AS user_id,
              email,
-             COALESCE(display_name, name, 'Player') AS display_name,
+             COALESCE(psnUsername, email, 'Player') AS display_name,
              rating, recent_activity, payment_status
       FROM users
       WHERE (is_active = 1 OR is_active IS NULL) 
@@ -268,10 +268,9 @@ export function selectSpecificPlayers(opts: {
 
   // קבלת פרטי השחקנים שנבחרו
   const selectedUsers = db.prepare(`
-    SELECT id AS user_id, email, COALESCE(display_name, name, 'Player') AS display_name
+    SELECT id AS user_id, email, COALESCE(psnUsername, email, 'Player') AS display_name
     FROM users
     WHERE id IN (${opts.selectedUserIds.map(() => '?').join(',')})
-    AND payment_status = 'paid'
   `).all(...opts.selectedUserIds) as Array<{ user_id: number; email: string; display_name: string }>;
 
   if (selectedUsers.length === 0) {
