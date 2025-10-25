@@ -26,14 +26,7 @@ export default function PlayerDashboardChampions({
   getMatchResult
 }: PlayerDashboardChampionsProps) {
   return (
-    <div className="champions-league-container" style={{
-      minHeight: isMobile ? "auto" : "100vh",
-      padding: isMobile ? 12 : 24,
-      borderRadius: 20,
-      border: "3px solid #FFD700",
-      boxShadow: "0 0 50px rgba(255, 215, 0, 0.3), inset 0 0 50px rgba(255, 215, 0, 0.1)",
-      margin: isMobile ? "8px" : "0"
-    }}>
+    <div>
       {/* רקע דרקון */}
       <div className="champions-league-dragon-bg" />
       
