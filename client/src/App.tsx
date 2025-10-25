@@ -6,7 +6,6 @@ import TawkTo from "./components/TawkTo";
 import NotificationPopup from "./components/NotificationPopup";
 import NotifBell from "./components/NotifBell";
 import { api } from "./api";
-import { Toaster } from "react-hot-toast";
 import { startPresence } from "./presence";
 
 export default function App() {
@@ -393,31 +392,6 @@ export default function App() {
       {/* Tawk.to Chat Widget */}
       {!isAdmin && <TawkTo />}
       
-      {/* Toast notifications */}
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: '#363636',
-            color: '#fff',
-          },
-          success: {
-            duration: 3000,
-            iconTheme: {
-              primary: '#4ade80',
-              secondary: '#fff',
-            },
-          },
-          error: {
-            duration: 5000,
-            iconTheme: {
-              primary: '#ef4444',
-              secondary: '#fff',
-            },
-          },
-        }}
-      />
       
       {/* Notification Popup */}
       <NotificationPopup />
