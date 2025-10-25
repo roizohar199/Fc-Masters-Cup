@@ -171,20 +171,6 @@ export default function ChampionsLeagueBracket({ matches, players, onRefresh }: 
       {/* רקע דרקון */}
       <div className="champions-league-dragon-bg" />
       
-      {/* חלקיקים מרחפים */}
-      <div className="champions-league-particles">
-        {[...Array(20)].map((_, i) => (
-          <div
-            key={i}
-            className="champions-league-particle"
-            style={{
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 8}s`,
-              animationDuration: `${8 + Math.random() * 4}s`
-            }}
-          />
-        ))}
-      </div>
 
       {/* כותרת כללית */}
       <div style={{

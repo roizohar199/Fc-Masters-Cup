@@ -152,40 +152,6 @@
 }
 
 
-/* Floating particles effect */
-.champions-league-particles {
-  position: absolute;
-  width: 100%;
-  height: 100vh;
-  overflow: hidden;
-  z-index: 0;
-}
-
-.champions-league-particle {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  background: rgba(255, 215, 0, 0.6);
-  border-radius: 50%;
-  animation: floatParticle 8s linear infinite;
-}
-
-@keyframes floatParticle {
-  0% {
-    transform: translateY(100vh) translateX(0);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(-10vh) translateX(100px);
-    opacity: 0;
-  }
-}
 
 /* Match card entrance animation */
 .champions-league-match-card {

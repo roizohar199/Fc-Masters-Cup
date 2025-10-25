@@ -28,20 +28,6 @@ export default function PlayerDashboardChampions({
   return (
     <div>
       
-      {/* חלקיקים מרחפים */}
-      <div className="champions-league-particles">
-        {[...Array(15)].map((_, i) => (
-          <div
-            key={i}
-            className="champions-league-particle"
-            style={{
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 8}s`,
-              animationDuration: `${8 + Math.random() * 4}s`
-            }}
-          />
-        ))}
-      </div>
 
 
       {/* זיכוי כספי - הודעה בולטת */}
