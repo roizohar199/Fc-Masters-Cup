@@ -53,28 +53,39 @@ router.post("/api/admin/tournaments/create", (req, res) => {
 
     // --- נירמול קלט ---
     if (!Array.isArray(seeds16)) seeds16 = [];
-    // מספרים ייחודיים (להימנע מדופליקטים שגורמים ל-UNIQUE)
-    const seeds: number[] = Array.from(new Set(seeds16.map((x: any) => Number(x)).filter((n: number) => Number.isFinite(n))));
+    
+    // === שלב ניקוי/איחוד בצד שרת (תמיד!) ===
+    const seedsRaw = seeds16;
+    const seeds = Array.from(
+      new Set(
+        (seeds16 as any[]).map((x) => Number(x)).filter((n) => Number.isFinite(n))
+      )
+    );
 
     if (!name || !game || !startsAt) {
-      console.error(where, "bad_request missing fields", { name, game, startsAt });
+      console.error("[create] bad_request missing fields", { name, game, startsAt });
       return res.status(400).json({ ok: false, error: "bad_request", reason: "missing_fields" });
     }
+
     if (seeds.length !== 16) {
-      console.error(where, "bad_request seeds != 16", { count: seeds.length });
-      return res.status(400).json({ ok: false, error: "bad_request", reason: "need_16_players" });
+      console.error("[create] need_16_players", { rawCount: (seedsRaw || []).length, cleanedCount: seeds.length, seedsRaw });
+      return res.status(400).json({
+        ok: false,
+        error: "bad_request",
+        reason: "need_16_players",
+        rawCount: (seedsRaw || []).length,
+        cleanedCount: seeds.length,
+      });
     }
 
-    // --- בדיקה שכל המשתמשים קיימים במערכת ---
+    // בדוק קיום ב-DB
     const placeholders = seeds.map(() => "?").join(",");
-    const exists = db
-      .prepare(`SELECT id FROM users WHERE id IN (${placeholders})`)
-      .all(...seeds) as Array<{ id: number }>;
-    const foundIds = new Set(exists.map((r) => r.id));
-    const missing: number[] = seeds.filter((id) => !foundIds.has(id));
+    const exists = db.prepare(`SELECT id FROM users WHERE id IN (${placeholders})`).all(...seeds) as Array<{id:number}>;
+    const foundIds = new Set(exists.map(r => r.id));
+    const missing = seeds.filter(id => !foundIds.has(id));
     if (missing.length) {
-      console.error(where, "some user ids not found", { missing });
-      return res.status(400).json({ ok: false, error: "bad_request", reason: "users_not_found", missing });
+      console.error("[create] users_not_found", { missing });
+      return res.status(400).json({ ok:false, error:"bad_request", reason:"users_not_found", missing });
     }
 
     // --- שמירה בטרנזקציה ---
