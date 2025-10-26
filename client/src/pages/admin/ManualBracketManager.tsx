@@ -25,7 +25,7 @@ async function loadUsers(): Promise<User[]> {
     const data = await fetchJSON<User[]>("/api/admin/users");
     console.log("✅ API response:", data?.length, "users loaded");
     
-    // סינון משתמשים פעילים ומאושרים בלבד
+    // סינון משתמשים פעילים ומאושרים בלבד (מחוברים ולא מחוברים)
     const activeUsers = data.filter(u => 
       u.status === 'active' && 
       (u.approvalStatus === 'approved' || !u.approvalStatus) &&
@@ -180,28 +180,7 @@ export default function ManualBracketManager() {
     }
   }
 
-  async function saveRound(round:"R16"|"QF"|"SF"|"F") {
-    if (!tid) return alert("צור קודם טורניר");
-    const map = { R16, QF, SF, F } as const;
-    const need = { R16:16, QF:8, SF:4, F:2 }[round];
-    const list = map[round];
-    
-    if (list.length !== need) {
-      return alert(`לשלב ${round} יש לבחור ${need} שחקנים (כעת ${list.length})`);
-    }
-    
-    try {
-      await fetchJSON(`/api/admin/tournaments/${tid}/assign`, { 
-        method:"POST", 
-        body: JSON.stringify({ round, userIds:list }) 
-      });
-      alert(`שלב ${round} נשמר בהצלחה!`);
-    } catch (error: any) {
-      const errorMsg = error.message || "שגיאה לא ידועה";
-      alert(`שגיאה בשמירת השלב ${round}: ${errorMsg}`);
-      console.error("Save round error:", error);
-    }
-  }
+  // הוסר - פונקציית שמירת שלבים לא רלוונטית למבנה הפשוט
 
   const getBadgeColor = (stage: "R16"|"QF"|"SF"|"F") => {
     const stageColors = {
@@ -329,10 +308,9 @@ export default function ManualBracketManager() {
           backdropFilter: "blur(10px)",
         }}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", justifyContent: "center" }}>
-            <button onClick={()=>saveRound('R16')} style={buttonStyles.outline}>שמור שמינית</button>
-            <button onClick={()=>saveRound('QF')} style={buttonStyles.outline}>שמור רבע</button>
-            <button onClick={()=>saveRound('SF')} style={buttonStyles.outline}>שמור חצי</button>
-            <button onClick={()=>saveRound('F')}  style={buttonStyles.outline}>שמור גמר</button>
+            <div style={{ fontSize: "14px", color: colors.text.secondary, textAlign: "center" }}>
+              💡 יצירת הטורניר תשמור אוטומטיט את השחקנים הנבחרים
+            </div>
           </div>
         </footer>
       </div>
