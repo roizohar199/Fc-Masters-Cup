@@ -70,13 +70,16 @@ router.post("/api/admin/tournaments/create", (req, res) => {
 
     // התראות/מיילים (חינני)
     if (sendEmails) {
-      const emails = db.prepare(`SELECT u.id AS userId, u.email, u.display_name AS displayName
-                                 FROM users u WHERE u.id IN (${seeds16.map(()=>'?').join(',')})`).all(...seeds16);
+      const emails = db.prepare(`
+        SELECT u.id AS userId, u.email, u.display_name AS displayName
+        FROM users u WHERE u.id IN (${seeds16.map(() => "?").join(",")})
+      `).all(...seeds16) as Array<{ userId: number; email: string | null; displayName?: string | null }>;
+      
       for (const u of emails) {
         notifyUser({
-          db, userId: u.userId, email: u.email,
+          db, userId: u.userId, email: u.email || undefined,
           title: `נבחרת לטורניר ${name}`,
-          body: `שלום ${u.displayName || u.email},<br/>נבחרת לשמינית הגמר. מועד: ${new Date(startsAt).toLocaleString('he-IL')}.`
+          body: `שלום ${u.displayName || u.email},<br/>נבחרת לשמינית הגמר. מועד: ${new Date(startsAt).toLocaleString("he-IL")}.`,
         });
       }
     }
@@ -122,13 +125,16 @@ router.post("/api/admin/tournaments/:id/assign", (req, res) => {
 
     // התראות/מיילים (אופציונלי)
     try {
-      const emails = db.prepare(`SELECT u.id AS userId, u.email, u.display_name AS displayName
-                                 FROM users u WHERE u.id IN (${userIds.map(()=>'?').join(',')})`).all(...userIds);
+      const emails = db.prepare(`
+        SELECT u.id AS userId, u.email, u.display_name AS displayName
+        FROM users u WHERE u.id IN (${userIds.map(() => "?").join(",")})
+      `).all(...userIds) as Array<{ userId: number; email: string | null; displayName?: string | null }>;
+      
       for (const u of emails) {
         notifyUser({
-          db, userId: u.userId, email: u.email,
+          db, userId: u.userId, email: u.email || undefined,
           title: `עודכנת לשלב ${round}`,
-          body: `שלום ${u.displayName || u.email}, עודכנת לשלב ${round} בטורניר. פתח את האתר כדי לראות מול מי אתה משחק.`
+          body: `שלום ${u.displayName || u.email}, עודכנת לשלב ${round} בטורניר. פתח את האתר כדי לראות מול מי אתה משחק.`,
         });
       }
     } catch {}

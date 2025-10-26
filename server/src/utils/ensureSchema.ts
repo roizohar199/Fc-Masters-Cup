@@ -49,7 +49,7 @@ export function ensureSchema(db: Database.Database) {
     );
   `);
 
-  // notifications – ודא עמודה user_id
+  // notifications – ודא עמודות
   db.exec(`
     CREATE TABLE IF NOT EXISTS notifications (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -65,5 +65,9 @@ export function ensureSchema(db: Database.Database) {
   if (!nCols.some(c => c.name === "user_id")) {
     db.exec(`ALTER TABLE notifications ADD COLUMN user_id INTEGER;`);
     db.exec(`CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);`);
+  }
+  if (!nCols.some(c => c.name === "read_at")) {
+    db.exec(`ALTER TABLE notifications ADD COLUMN read_at TEXT;`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read_at);`);
   }
 }
