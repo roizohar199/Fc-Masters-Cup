@@ -2,12 +2,19 @@ import React, { useEffect, useMemo, useState } from "react";
 import { fetchJSON } from "../../utils/fetchJSON";
 import { colors, buttonStyles, shadows } from "../../styles";
 
-type User = { id:number; display_name?:string; email:string; psn?:string };
+type User = { 
+  id: number; 
+  email: string; 
+  psnUsername?: string;
+  role?: string;
+  isOnline?: boolean;
+  approvalStatus?: string;
+};
 
-// הנחה: יש לך API שמחזיר משתמשים. אם השם שונה – עדכן את ה-URL.
+// טוען את כל המשתמשים הרשומים מה-API של האדמין
 async function loadUsers(): Promise<User[]> {
-  const data = await fetchJSON<{ ok:boolean; items: User[] }>("/api/users?limit=500");
-  return data.items || [];
+  const data = await fetchJSON<User[]>("/api/admin/users");
+  return data || [];
 }
 
 const containerStyle: React.CSSProperties = {
@@ -109,9 +116,8 @@ export default function ManualBracketManager() {
   const filtered = useMemo(()=>{
     const q=query.trim().toLowerCase(); if(!q) return users;
     return users.filter(u =>
-      (u.display_name||"").toLowerCase().includes(q) ||
       (u.email||"").toLowerCase().includes(q) ||
-      (u.psn||"").toLowerCase().includes(q)
+      (u.psnUsername||"").toLowerCase().includes(q)
     );
   },[users,query]);
 
@@ -153,14 +159,17 @@ export default function ManualBracketManager() {
     <div key={u.id} style={userCardStyle}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
         <div style={{ fontWeight: 600, color: colors.text.primary }}>
-          {u.display_name || u.email}
+          {u.email}
         </div>
-        <span style={{ ...badgeStyle, background: colors.neutral.gray200, color: colors.text.secondary }}>
-          ID {u.id}
-        </span>
+        <div style={{ display: "flex", gap: "4px" }}>
+          {u.isOnline && <span style={{ ...badgeStyle, background: colors.success.light, color: colors.success.main }}>🟢 Online</span>}
+          <span style={{ ...badgeStyle, background: colors.neutral.gray200, color: colors.text.secondary }}>
+            ID {u.id}
+          </span>
+        </div>
       </div>
       <div style={{ fontSize: "12px", color: colors.text.secondary, marginBottom: "12px" }}>
-        PSN: {u.psn || '-'}
+        PSN: {u.psnUsername || '-'} | Role: {u.role || 'player'} | Status: {u.approvalStatus || 'approved'}
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
         {(["R16", "QF", "SF", "F"] as const).map(stage => {
@@ -239,11 +248,14 @@ export default function ManualBracketManager() {
 
         <section style={cardStyle}>
           <input 
-            placeholder="חפש שם/מייל/PSN…" 
+            placeholder="חפש מייל או PSN…" 
             style={inputStyle} 
             value={query} 
             onChange={e=>setQuery(e.target.value)} 
           />
+          <div style={{ marginTop: "8px", fontSize: "12px", color: colors.text.secondary }}>
+            מציג את כל המשתמשים הרשומים באתר ({users.length} משתמשים)
+          </div>
         </section>
 
         <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "16px" }}>
