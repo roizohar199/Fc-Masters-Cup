@@ -150,6 +150,11 @@ export default function ManualBracketManager() {
 
   async function createTournament() {
     const seeds16 = uniqueNumeric(R16);
+    console.log("🔍 Debug createTournament:");
+    console.log("  - R16 state:", R16);
+    console.log("  - seeds16 processed:", seeds16);
+    console.log("  - seeds16.length:", seeds16.length);
+    
     if (seeds16.length !== 16) {
       alert(`צריך לבחור בדיוק 16 שחקנים ייחודיים. לאחר איחוד התקבלו ${seeds16.length}.`);
       return;
@@ -163,11 +168,21 @@ export default function ManualBracketManager() {
         seeds16,            // <-- מזהי משתמשים
         sendEmails,
       };
+      
+      console.log("📤 Sending payload:", payload);
 
       const res = await fetchJSON<{ ok: boolean; tournamentId?: number; error?: string; reason?: string }>(
         "/api/admin/tournaments/create",
-        { method: "POST", body: JSON.stringify(payload) }
+        { 
+          method: "POST", 
+          body: JSON.stringify(payload),
+          headers: {
+            "Content-Type": "application/json"
+          }
+        }
       );
+
+      console.log("📥 Server response:", res);
 
       if (!res.ok) {
         alert(`שגיאה ביצירה: ${res.error || res.reason || "unknown"}`);
@@ -176,6 +191,7 @@ export default function ManualBracketManager() {
       setTid(res.tournamentId!);
       alert(`טורניר נוצר (#${res.tournamentId})`);
     } catch (e: any) {
+      console.error("❌ Tournament creation error:", e);
       alert("שגיאה ביצירת טורניר: " + (e?.message || e));
     }
   }
