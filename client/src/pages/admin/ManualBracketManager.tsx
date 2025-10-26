@@ -12,14 +12,17 @@ type User = {
 };
 
 // ===== הוספה למעלה בקובץ =====
-function uniqueNumeric(ids: any[]): number[] {
+// במקום uniqueNumeric – משתמשים במחרוזות:
+function uniqueIds(ids: any[]): string[] {
   return Array.from(
     new Set(
-      (ids || []).map((x) => Number(x)).filter((n) => Number.isFinite(n))
+      (ids || [])
+        .map((x) => (x == null ? "" : String(x).trim()))
+        .filter((s) => s.length > 0)
     )
   );
 }
-function idsDiff(a: number[], b: number[]): number[] {
+function idsDiff(a: string[], b: string[]): string[] {
   const sb = new Set(b);
   return a.filter((x) => !sb.has(x));
 }
@@ -139,10 +142,9 @@ export default function ManualBracketManager() {
     setter(arr.includes(id) ? arr.filter(x=>x!==id) : (arr.length<max ? [...arr,id] : arr));
   };
 
-  // ===== החלף את createTournament הקיימת =====
   async function createTournament() {
-    // דה-דופליקציה + המרה למספרים
-    const seeds16 = uniqueNumeric(R16);
+    // דה-דופליקציה על בסיס מחרוזות (UUID/מספר – הכול כמחרוזת)
+    const seeds16 = uniqueIds(R16);
     const missingCount = 16 - seeds16.length;
 
     if (seeds16.length !== 16) {
@@ -154,56 +156,44 @@ export default function ManualBracketManager() {
       return;
     }
 
-    const startsAtISO = new Date(startsAt).toISOString(); // אם אתה עובד עם date+time נפרדים – חבר ל-ISO לפני זה
+    // תאריך/שעה – ודא ISO תקין
+    const startsAtISO = new Date(startsAt).toISOString();
 
     try {
       const payload = {
         name,
         game,
         startsAt: startsAtISO,
-        seeds16,          // שולחים את הייחודיים בלבד
+        seeds16,     // שולחים כמחרוזות
         sendEmails,
       };
 
-      const res = await fetchJSON<{ ok: boolean; tournamentId: number; error?: string; reason?: string; missing?: number[] }>(
+      const res = await fetchJSON<{
+        ok: boolean; tournamentId?: number; error?: string; reason?: string; missing?: string[];
+        rawCount?: number; cleanedCount?: number;
+      }>(
         "/api/admin/tournaments/create",
         { method: "POST", body: JSON.stringify(payload) }
       );
 
       if (!res.ok) {
-        // הצגת פירוט סיבה במידה והשרת החזיר reason
         if (res.reason === "users_not_found" && Array.isArray(res.missing)) {
           alert(`חלק מהמשתמשים שנבחרו לא קיימים ב-DB: ${res.missing.join(", ")}`);
         } else if (res.reason === "need_16_players") {
-          alert("השרת קיבל פחות מ-16 IDs אחרי בדיקה. נסה לבחור מחדש — או רענן את העמוד.");
+          alert(
+            `השרת קיבל פחות מ-16 IDs לאחר ניקוי/איחוד.\n` +
+            `נשלחו: ${res.rawCount ?? "?"}, לאחר ניקוי: ${res.cleanedCount ?? "?"}.`
+          );
         } else {
           alert(`שגיאה ביצירה: ${res.error || "unknown"}`);
         }
         return;
       }
 
-      setTid(res.tournamentId);
+      setTid(res.tournamentId!);
       alert(`טורניר נוצר (#${res.tournamentId})`);
     } catch (e: any) {
-      // פענוח שגיאת 400 עם גוף JSON מהשרת
-      const msg = e?.message || "";
-      if (msg.includes("HTTP 400")) {
-        try {
-          const m = msg.split("|")[1]?.trim();
-          if (m) {
-            const j = JSON.parse(m);
-            if (j?.reason === "users_not_found" && Array.isArray(j?.missing)) {
-              alert(`לא נמצאו משתמשים ב-DB: ${j.missing.join(", ")}`);
-              return;
-            }
-            if (j?.reason === "need_16_players") {
-              alert("השרת קיבל פחות מ-16 IDs לאחר ניקוי/איחוד. ודא שאין כפילויות או ערכי null.");
-              return;
-            }
-          }
-        } catch {/* ניפול ללמטה */}
-      }
-      alert("שגיאה ביצירת טורניר: " + msg);
+      alert("שגיאה ביצירת טורניר: " + (e?.message || e));
     }
   }
 
