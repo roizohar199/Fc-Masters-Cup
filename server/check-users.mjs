@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 
-const db = new Database('./tournaments.sqlite');
+const db = new Database('./server/tournaments.sqlite');
 
 console.log('🔍 בודק משתמשים במסד הנתונים...');
 
