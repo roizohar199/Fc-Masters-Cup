@@ -17,10 +17,10 @@ function tableExists(db: Database.Database, table: string) {
 }
 
 export function ensureSchema(db: Database.Database) {
-  // ---- users (לא נוגעים כאן במבנה; רק מניחים שקיימת) ----
+  // ---- users (fallback אם לא קיימת) ----
   if (!tableExists(db, "users")) {
     db.exec(`
-      CREATE TABLE IF NOT EXISTS users (
+      CREATE TABLE users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         email TEXT,
         display_name TEXT,
@@ -47,22 +47,25 @@ export function ensureSchema(db: Database.Database) {
       CREATE INDEX IF NOT EXISTS idx_tournaments_active ON tournaments(is_active);
     `);
   } else {
-    // הוספת עמודות חסרות
-    if (!has(db, "tournaments", "name"))        db.exec(`ALTER TABLE tournaments ADD COLUMN name TEXT;`);
-    if (!has(db, "tournaments", "game"))        db.exec(`ALTER TABLE tournaments ADD COLUMN game TEXT;`);
-    if (!has(db, "tournaments", "starts_at"))   db.exec(`ALTER TABLE tournaments ADD COLUMN starts_at TEXT;`);
+    if (!has(db, "tournaments", "name"))          db.exec(`ALTER TABLE tournaments ADD COLUMN name TEXT;`);
+    if (!has(db, "tournaments", "game"))          db.exec(`ALTER TABLE tournaments ADD COLUMN game TEXT;`);
+    if (!has(db, "tournaments", "starts_at"))     db.exec(`ALTER TABLE tournaments ADD COLUMN starts_at TEXT;`);
     if (!has(db, "tournaments", "current_stage")) db.exec(`ALTER TABLE tournaments ADD COLUMN current_stage TEXT;`);
-    if (!has(db, "tournaments", "is_active"))   db.exec(`ALTER TABLE tournaments ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1;`);
-    if (!has(db, "tournaments", "created_at"))  db.exec(`ALTER TABLE tournaments ADD COLUMN created_at TEXT NOT NULL DEFAULT (datetime('now'));`);
+    if (!has(db, "tournaments", "is_active"))     db.exec(`ALTER TABLE tournaments ADD COLUMN is_active INTEGER; UPDATE tournaments SET is_active=1 WHERE is_active IS NULL;`);
 
-    // אם קיים רק title ללא name – נשכפל
-    if (has(db, "tournaments", "title") && !has(db, "tournaments", "name")) {
-      db.exec(`ALTER TABLE tournaments ADD COLUMN name TEXT;`);
-      db.exec(`UPDATE tournaments SET name = title WHERE name IS NULL;`);
+    // ⛔ בלי DEFAULT לא-קבוע: מוסיפים עמודה ואז ממלאים ערך קיים
+    if (!has(db, "tournaments", "created_at")) {
+      db.exec(`ALTER TABLE tournaments ADD COLUMN created_at TEXT;`);
+      db.exec(`UPDATE tournaments SET created_at = datetime('now') WHERE created_at IS NULL;`);
+    }
+
+    // אם יש title היסטורי – לשכפל ל-name (רק אם חסר)
+    if (has(db, "tournaments", "title") && has(db, "tournaments", "name")) {
+      db.exec(`UPDATE tournaments SET name = COALESCE(name, title) WHERE name IS NULL;`);
     }
   }
 
-  // ---- tournament_players (שיוך שחקנים לשלב) ----
+  // ---- tournament_players ----
   if (!tableExists(db, "tournament_players")) {
     db.exec(`
       CREATE TABLE tournament_players (
@@ -80,12 +83,15 @@ export function ensureSchema(db: Database.Database) {
     `);
   } else {
     if (!has(db, "tournament_players", "is_selected"))
-      db.exec(`ALTER TABLE tournament_players ADD COLUMN is_selected INTEGER NOT NULL DEFAULT 1;`);
-    if (!has(db, "tournament_players", "created_at"))
-      db.exec(`ALTER TABLE tournament_players ADD COLUMN created_at TEXT NOT NULL DEFAULT (datetime('now'));`);
+      db.exec(`ALTER TABLE tournament_players ADD COLUMN is_selected INTEGER; UPDATE tournament_players SET is_selected=1 WHERE is_selected IS NULL;`);
+
+    if (!has(db, "tournament_players", "created_at")) {
+      db.exec(`ALTER TABLE tournament_players ADD COLUMN created_at TEXT;`);
+      db.exec(`UPDATE tournament_players SET created_at = datetime('now') WHERE created_at IS NULL;`);
+    }
   }
 
-  // ---- matches (לוח משחקים) ----
+  // ---- matches ----
   if (!tableExists(db, "matches")) {
     db.exec(`
       CREATE TABLE matches (
@@ -104,11 +110,14 @@ export function ensureSchema(db: Database.Database) {
   } else {
     if (!has(db, "matches", "winner_user_id"))
       db.exec(`ALTER TABLE matches ADD COLUMN winner_user_id INTEGER;`);
-    if (!has(db, "matches", "created_at"))
-      db.exec(`ALTER TABLE matches ADD COLUMN created_at TEXT NOT NULL DEFAULT (datetime('now'));`);
+
+    if (!has(db, "matches", "created_at")) {
+      db.exec(`ALTER TABLE matches ADD COLUMN created_at TEXT;`);
+      db.exec(`UPDATE matches SET created_at = datetime('now') WHERE created_at IS NULL;`);
+    }
   }
 
-  // ---- notifications (אם יש אצלך התראות) ----
+  // ---- notifications ----
   if (!tableExists(db, "notifications")) {
     db.exec(`
       CREATE TABLE notifications (
@@ -126,7 +135,15 @@ export function ensureSchema(db: Database.Database) {
       CREATE INDEX IF NOT EXISTS idx_notif_read ON notifications(read_at);
     `);
   } else {
-    if (!has(db, "notifications", "user_id"))  db.exec(`ALTER TABLE notifications ADD COLUMN user_id INTEGER;`);
-    if (!has(db, "notifications", "read_at"))  db.exec(`ALTER TABLE notifications ADD COLUMN read_at TEXT;`);
+    if (!has(db, "notifications", "user_id"))
+      db.exec(`ALTER TABLE notifications ADD COLUMN user_id INTEGER;`);
+
+    if (!has(db, "notifications", "read_at"))
+      db.exec(`ALTER TABLE notifications ADD COLUMN read_at TEXT;`);
+
+    if (!has(db, "notifications", "created_at")) {
+      db.exec(`ALTER TABLE notifications ADD COLUMN created_at TEXT;`);
+      db.exec(`UPDATE notifications SET created_at = datetime('now') WHERE created_at IS NULL;`);
+    }
   }
 }
