@@ -2,40 +2,41 @@ import React, { useEffect, useMemo, useState } from "react";
 import { fetchJSON } from "../../utils/fetchJSON";
 import { colors, buttonStyles, shadows } from "../../styles";
 
-// החלף את טיפוס המשתמש:
-type User = { userId: number; display_name?: string; email: string; psn?: string; status?: string };
+// טיפוס המשתמש המותאם ל-API הקיים
+type User = { 
+  id: string; 
+  email: string; 
+  psnUsername?: string; 
+  role: string;
+  status?: string; 
+  approvalStatus?: string;
+};
 
 // ===== Utils פשוטים =====
-function uniqueNumeric(ids: any[]): number[] {
-  return Array.from(new Set((ids || []).map(Number).filter(Number.isFinite)));
+function uniqueNumeric(ids: any[]): string[] {
+  return Array.from(new Set((ids || []).map(String).filter(Boolean)));
 }
 // ===== סוף תוספת =====
 
-// החלף את הפונקציה שמטעינה משתמשים:
+// טעינת משתמשים מה-API הקיים
 async function loadUsers(): Promise<User[]> {
-  console.log("🔄 Loading users from new API...");
+  console.log("🔄 Loading users from existing API...");
   try {
-    const data = await fetchJSON<{ ok: boolean; items: User[] }>("/api/admin/users/list?limit=500");
-    console.log("✅ New API response:", data);
-    return data.items || [];
+    const data = await fetchJSON<User[]>("/api/admin/users");
+    console.log("✅ API response:", data?.length, "users loaded");
+    
+    // סינון משתמשים פעילים ומאושרים בלבד
+    const activeUsers = data.filter(u => 
+      u.status === 'active' && 
+      (u.approvalStatus === 'approved' || !u.approvalStatus) &&
+      u.role === 'player' // רק שחקנים, לא מנהלים
+    );
+    
+    console.log("✅ Active players:", activeUsers.length);
+    return activeUsers;
   } catch (error) {
-    console.error("❌ New API failed, trying fallback...", error);
-    // Fallback to original API
-    try {
-      const fallbackData = await fetchJSON<any[]>("/api/admin/users");
-      console.log("✅ Fallback API response:", fallbackData);
-      // Convert to new format
-      return fallbackData.map(u => ({
-        userId: u.id,
-        email: u.email,
-        display_name: u.psnUsername || u.email?.split('@')[0] || '',
-        psn: u.psnUsername || '',
-        status: u.status || 'active'
-      }));
-    } catch (fallbackError) {
-      console.error("❌ Both APIs failed:", fallbackError);
-      return [];
-    }
+    console.error("❌ Failed to load users:", error);
+    return [];
   }
 }
 
@@ -128,10 +129,10 @@ export default function ManualBracketManager() {
   const [sendEmails, setSendEmails] = useState(true);
 
   const [tid, setTid] = useState<number|null>(null);
-  const [R16,setR16] = useState<number[]>([]);
-  const [QF,setQF]   = useState<number[]>([]);
-  const [SF,setSF]   = useState<number[]>([]);
-  const [F,setF]     = useState<number[]>([]);
+  const [R16,setR16] = useState<string[]>([]);
+  const [QF,setQF]   = useState<string[]>([]);
+  const [SF,setSF]   = useState<string[]>([]);
+  const [F,setF]     = useState<string[]>([]);
 
   useEffect(()=>{ loadUsers().then(setUsers).catch(e=>alert("שגיאה בטעינת משתמשים: "+e.message)); },[]);
 
@@ -139,12 +140,11 @@ export default function ManualBracketManager() {
     const q=query.trim().toLowerCase(); if(!q) return users;
     return users.filter(u =>
       (u.email||"").toLowerCase().includes(q) ||
-      (u.psn||"").toLowerCase().includes(q) ||
-      (u.display_name||"").toLowerCase().includes(q)
+      (u.psnUsername||"").toLowerCase().includes(q)
     );
   },[users,query]);
 
-  const toggle = (arr:number[], setter:(x:number[])=>void, id:number, max:number) => {
+  const toggle = (arr:string[], setter:(x:string[])=>void, id:string, max:number) => {
     setter(arr.includes(id) ? arr.filter(x=>x!==id) : (arr.length<max ? [...arr,id] : arr));
   };
 
@@ -160,7 +160,7 @@ export default function ManualBracketManager() {
         name,
         game,
         startsAt: new Date(startsAt).toISOString(),
-        seeds16,            // <-- מספרי
+        seeds16,            // <-- מזהי משתמשים
         sendEmails,
       };
 
@@ -214,23 +214,23 @@ export default function ManualBracketManager() {
   };
 
   const Card = (u: User) => (
-    <div key={u.userId} style={userCardStyle}>
+    <div key={u.id} style={userCardStyle}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
         <div style={{ fontWeight: 600, color: colors.text.primary }}>
-          {u.display_name || u.email}
+          {u.psnUsername || u.email}
         </div>
         <div style={{ display: "flex", gap: "4px" }}>
           <span style={{ ...badgeStyle, background: colors.neutral.gray200, color: colors.text.secondary }}>
-            ID #{u.userId}
+            {u.role}
           </span>
         </div>
       </div>
       <div style={{ fontSize: "12px", color: colors.text.secondary, marginBottom: "12px" }}>
-        PSN: {u.psn || '-'} | Email: {u.email} | Status: {u.status || 'active'}
+        PSN: {u.psnUsername || '-'} | Email: {u.email} | Status: {u.status || 'active'}
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
         {(["R16", "QF", "SF", "F"] as const).map(stage => {
-          const isSelected = {R16,QF,SF,F}[stage].includes(u.userId);
+          const isSelected = {R16,QF,SF,F}[stage].includes(u.id);
           const stageColor = getBadgeColor(stage);
           return (
             <button
@@ -241,7 +241,7 @@ export default function ManualBracketManager() {
                 color: isSelected ? colors.neutral.white : colors.text.primary,
                 boxShadow: isSelected ? `0 2px 8px ${stageColor.bg}` : "none",
               }}
-              onClick={()=>toggle({R16,QF,SF,F}[stage], {R16:setR16,QF:setQF,SF:setSF,F:setF}[stage], u.userId, {R16:16,QF:8,SF:4,F:2}[stage])}
+              onClick={()=>toggle({R16,QF,SF,F}[stage], {R16:setR16,QF:setQF,SF:setSF,F:setF}[stage], u.id, {R16:16,QF:8,SF:4,F:2}[stage])}
             >
               {stage === "R16" ? "שמינית" : stage === "QF" ? "רבע" : stage === "SF" ? "חצי" : "גמר"}
             </button>

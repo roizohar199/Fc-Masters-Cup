@@ -1,13 +1,10 @@
 // server/src/routes/manualBracket.ts
 import { Router } from "express";
-import Database from "better-sqlite3";
 import { randomUUID } from "crypto";
-import { ensureSchema } from "../utils/ensureSchema.js";
+import db from "../db.js";
 import { notifyUser } from "../utils/notify.js";
 
 const router = Router();
-const db = new Database(process.env.DB_PATH || "./server/tournaments.sqlite");
-ensureSchema(db);
 
 // ---------- עזרי סכמה בטוחה ----------
 function safeTableColumns(table: string): Array<{ name: string }> {
@@ -28,86 +25,7 @@ function listAllTables(): string[] {
   } catch { return []; }
 }
 
-// ---------- חיפוש user_id לפי מזהה חופשי ----------
-function findUserIdInUsersByNumericId(nLike: string): number | null {
-  const n = Number(nLike);
-  if (!Number.isFinite(n)) return null;
-  const row = db.prepare(`SELECT id FROM users WHERE id = ?`).get(n) as { id:number } | undefined;
-  return row?.id ?? null;
-}
-function findUserIdInUsersByFields(idLike: string): number | null {
-  // חיפוש ב־uuid/email/psn אם קיימים
-  const allUserCols = safeTableColumns("users").map(c => c.name);
-  console.log("[findUserIdInUsersByFields] Available users columns:", allUserCols);
-  
-  const candidates = ["uuid","public_id","user_uuid","external_id","uid","guid","email","psn"]
-    .filter(c => tableHasColumns("users", [c]));
-  console.log("[findUserIdInUsersByFields] Matching candidates:", candidates);
-  
-  for (const col of candidates) {
-    console.log(`[findUserIdInUsersByFields] Checking column: ${col}`);
-    const row = db.prepare(`SELECT id FROM users WHERE ${col} = ?`).get(idLike) as { id:number } | undefined;
-    if (row?.id != null) {
-      console.log(`[findUserIdInUsersByFields] Found in ${col}: user_id=${row.id}`);
-      return row.id;
-    }
-  }
-  return null;
-}
-function findUserIdInForeignTables(idLike: string): number | null {
-  // מחפש בטבלאות שמכילות id + user_id (למשל registrations / tournament_registrations)
-  const tables = listAllTables();
-  console.log("[findUserIdInForeignTables] All tables:", tables);
-  
-  const relevantTables = tables.filter(t => tableHasColumns(t, ["id","user_id"]));
-  console.log("[findUserIdInForeignTables] Tables with id+user_id:", relevantTables);
-  
-  for (const t of relevantTables) {
-    console.log(`[findUserIdInForeignTables] Searching in table: ${t}`);
-    const row = db.prepare(`SELECT user_id FROM ${t} WHERE id = ?`).get(idLike) as { user_id:number } | undefined;
-    if (row?.user_id != null) {
-      console.log(`[findUserIdInForeignTables] Found in ${t}: user_id=${row.user_id}`);
-      return row.user_id;
-    }
-  }
-  console.log("[findUserIdInForeignTables] Not found in any foreign table");
-  return null;
-}
-
-function resolveOneIdentifier(idLike: string): number | null {
-  console.log(`[resolveOneIdentifier] Trying to resolve: "${idLike}"`);
-  try {
-    // 1) users.id מספרי
-    console.log(`[resolveOneIdentifier] Step 1: Trying numeric ID`);
-    const a = findUserIdInUsersByNumericId(idLike);
-    if (a != null) {
-      console.log(`[resolveOneIdentifier] ✅ Found via numeric ID: ${a}`);
-      return a;
-    }
-
-    // 2) users.<uuid/email/psn> אם קיימים
-    console.log(`[resolveOneIdentifier] Step 2: Trying users fields`);
-    const b = findUserIdInUsersByFields(idLike);
-    if (b != null) {
-      console.log(`[resolveOneIdentifier] ✅ Found via users fields: ${b}`);
-      return b;
-    }
-
-    // 3) כל טבלה עם id + user_id (כמו registrations)
-    console.log(`[resolveOneIdentifier] Step 3: Trying foreign tables`);
-    const c = findUserIdInForeignTables(idLike);
-    if (c != null) {
-      console.log(`[resolveOneIdentifier] ✅ Found via foreign tables: ${c}`);
-      return c;
-    }
-
-    console.log(`[resolveOneIdentifier] ❌ Not found anywhere for: "${idLike}"`);
-    return null;
-  } catch (err) {
-    console.error("[resolveOneIdentifier] error:", (err as Error).message);
-    return null;
-  }
-}
+// נוקה - פונקציות שלא נחוצות יותר
 
 // --- SSE ---
 type Client = { id: string; res: any };
@@ -153,38 +71,6 @@ function hasCol(table: string, col: string): boolean {
   } catch { return false; }
 }
 
-router.get("/api/admin/users/list", (req, res) => {
-  console.log("🔔 [/api/admin/users/list] Called with query:", req.query);
-  try {
-    const limit = Math.max(1, Math.min(1000, Number(req.query.limit || 500)));
-    console.log("📊 [/api/admin/users/list] Using limit:", limit);
-
-    const fields: string[] = [`id AS userId`];
-    if (hasCol("users", "email")) fields.push("email");
-    if (hasCol("users", "display_name")) fields.push("display_name");
-    if (hasCol("users", "psn")) fields.push("psn");
-    if (hasCol("users", "status")) fields.push("status");
-    
-    console.log("📋 [/api/admin/users/list] Selected fields:", fields);
-
-    const sql = `SELECT ${fields.join(", ")} FROM users LIMIT ?`;
-    console.log("🔍 [/api/admin/users/list] SQL:", sql);
-    
-    const rows = db.prepare(sql).all(limit);
-    console.log("✅ [/api/admin/users/list] Found rows:", rows.length);
-    console.log("🔍 [/api/admin/users/list] Sample row:", rows[0]);
-
-    const result = { ok: true, items: rows };
-    console.log("📤 [/api/admin/users/list] Sending response:", JSON.stringify(result, null, 2));
-    
-    return res.json(result);
-  } catch (e) {
-    console.error("❌ [/api/admin/users/list] error:", (e as Error).message);
-    console.error("❌ [/api/admin/users/list] stack:", (e as Error).stack);
-    return res.status(500).json({ ok: false, error: "internal_error", message: (e as Error).message });
-  }
-});
-
 // ---------- API: Debug DB structure ----------
 router.get("/api/admin/debug/db-info", (req, res) => {
   try {
@@ -210,39 +96,7 @@ router.get("/api/admin/debug/db-info", (req, res) => {
   }
 });
 
-// ---------- API: מיפוי מזהים → user_id ----------
-router.post("/api/admin/users/resolve", (req, res) => {
-  try {
-    const identifiers = Array.isArray(req.body?.identifiers) ? req.body.identifiers : [];
-    const cleaned = identifiers
-      .map((x: any) => (x == null ? "" : String(x).trim()))
-      .filter((s: string) => s.length > 0);
-
-    console.log("[/api/admin/users/resolve] Input identifiers:", cleaned);
-
-    const resolved: Array<{ input: string; userId: number }> = [];
-    const unresolved: string[] = [];
-
-    for (const input of cleaned) {
-      const uid = resolveOneIdentifier(input);
-      if (uid != null) resolved.push({ input, userId: uid });
-      else unresolved.push(input);
-    }
-
-    console.log(
-      "[/api/admin/users/resolve]",
-      "in:", cleaned.length,
-      "resolved:", resolved.length,
-      "unresolved:", unresolved.length
-    );
-    console.log("[/api/admin/users/resolve] Final result:", { resolved, unresolved });
-
-    return res.json({ ok: true, resolved, unresolved });
-  } catch (e) {
-    console.error("[/api/admin/users/resolve] fatal:", (e as Error).message);
-    return res.status(500).json({ ok: false, error: "internal_error" });
-  }
-});
+// מחיקת endpoint שלא נחוץ יותר
 
 // (A) יצירת טורניר והצבה מיידית של 16 לשמינית — גרסה מוקשחת עם לוגים ברורים
 router.post("/api/admin/tournaments/create", (req, res) => {
@@ -253,10 +107,10 @@ router.post("/api/admin/tournaments/create", (req, res) => {
     // --- נירמול קלט ---
     if (!Array.isArray(seeds16)) seeds16 = [];
     
-    // מקבלים user_ids מספריים מהלקוח ישירות
-    const seeds: number[] = Array.from(
+    // מקבלים user_ids כמחרוזות מהלקוח
+    const seeds: string[] = Array.from(
       new Set(
-        (seeds16 as any[]).map((x) => Number(x)).filter((n) => Number.isFinite(n))
+        (seeds16 as any[]).map((x) => String(x)).filter((s) => s && s.trim().length > 0)
       )
     );
 
@@ -277,7 +131,7 @@ router.post("/api/admin/tournaments/create", (req, res) => {
 
     // בדיקת קיום ב-DB
     const placeholders = seeds.map(() => "?").join(",");
-    const exists = db.prepare(`SELECT id FROM users WHERE id IN (${placeholders})`).all(...seeds) as Array<{ id: number }>;
+    const exists = db.prepare(`SELECT id FROM users WHERE id IN (${placeholders})`).all(...seeds) as Array<{ id: string }>;
     const foundIds = new Set(exists.map(r => r.id));
     const missing = seeds.filter(id => !foundIds.has(id));
     if (missing.length) {
