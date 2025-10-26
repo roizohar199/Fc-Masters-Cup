@@ -2,51 +2,19 @@ import React, { useEffect, useMemo, useState } from "react";
 import { fetchJSON } from "../../utils/fetchJSON";
 import { colors, buttonStyles, shadows } from "../../styles";
 
-type User = { 
-  id: number; 
-  email: string; 
-  psnUsername?: string;
-  role?: string;
-  isOnline?: boolean;
-  approvalStatus?: string;
-};
+// החלף את טיפוס המשתמש:
+type User = { userId: number; display_name?: string; email: string; psn?: string; status?: string };
 
-// ===== הוספה למעלה בקובץ =====
-// במקום uniqueNumeric – משתמשים במחרוזות:
-function uniqueIds(ids: any[]): string[] {
-  return Array.from(
-    new Set(
-      (ids || [])
-        .map((x) => (x == null ? "" : String(x).trim()))
-        .filter((s) => s.length > 0)
-    )
-  );
-}
-function idsDiff(a: string[], b: string[]): string[] {
-  const sb = new Set(b);
-  return a.filter((x) => !sb.has(x));
+// ===== Utils פשוטים =====
+function uniqueNumeric(ids: any[]): number[] {
+  return Array.from(new Set((ids || []).map(Number).filter(Number.isFinite)));
 }
 // ===== סוף תוספת =====
 
-// טוען את כל המשתמשים הרשומים מה-API של האדמין
+// החלף את הפונקציה שמטעינה משתמשים:
 async function loadUsers(): Promise<User[]> {
-  const data = await fetchJSON<User[]>("/api/admin/users");
-  return data || [];
-}
-
-// פונקציה למיפוי UUID/מזהים ל-user_id מספרי
-async function resolveUserIds(identifiers: string[]): Promise<{ ok: boolean; userIds: number[]; unresolved: string[] }> {
-  const resp = await fetch("/api/admin/users/resolve", {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ identifiers }),
-  });
-  if (!resp.ok) throw new Error(`HTTP ${resp.status} @ /api/admin/users/resolve | ${await resp.text()}`);
-  const data = await resp.json();
-  const userIds = (data.resolved || []).map((r: any) => r.userId);
-  const unresolved = data.unresolved || [];
-  return { ok: true, userIds, unresolved };
+  const data = await fetchJSON<{ ok: boolean; items: User[] }>("/api/admin/users/list?limit=500");
+  return data.items || [];
 }
 
 const containerStyle: React.CSSProperties = {
@@ -149,7 +117,8 @@ export default function ManualBracketManager() {
     const q=query.trim().toLowerCase(); if(!q) return users;
     return users.filter(u =>
       (u.email||"").toLowerCase().includes(q) ||
-      (u.psnUsername||"").toLowerCase().includes(q)
+      (u.psn||"").toLowerCase().includes(q) ||
+      (u.display_name||"").toLowerCase().includes(q)
     );
   },[users,query]);
 
@@ -158,43 +127,22 @@ export default function ManualBracketManager() {
   };
 
   async function createTournament() {
-    // שלב 1: ייחוד IDs כפי שהם (UUID/mixed)
-    const picked = uniqueIds(R16);
-    console.log("🎯 [createTournament] Raw R16:", R16);
-    console.log("🎯 [createTournament] Unique picked:", picked);
-    
-    if (picked.length !== 16) {
-      alert(`צריך לבחור בדיוק 16 שחקנים ייחודיים. כרגע לאחר איחוד התקבלו ${picked.length}.`);
+    const seeds16 = uniqueNumeric(R16);
+    if (seeds16.length !== 16) {
+      alert(`צריך לבחור בדיוק 16 שחקנים ייחודיים. לאחר איחוד התקבלו ${seeds16.length}.`);
       return;
     }
 
     try {
-      // שלב 2: resolve ל־user_id מספרי
-      console.log("🔄 [createTournament] Calling resolveUserIds with:", picked);
-      const r = await resolveUserIds(picked);
-      console.log("✅ [createTournament] Resolve result:", r);
-      
-      if (r.userIds.length !== 16) {
-        alert(
-          "לא הצלחתי למפות את כל השחקנים ל־user_id ב־DB.\n" +
-          `מפותרים: ${r.userIds.length}/16\n` +
-          (r.unresolved.length ? `לא נמצאו: \n${r.unresolved.join("\n")}` : "")
-        );
-        return;
-      }
-
-      // שלב 3: יצירת טורניר עם מזהים מספריים בלבד
-      const startsAtISO = new Date(startsAt).toISOString();
       const payload = {
         name,
         game,
-        startsAt: startsAtISO,
-        seeds16: r.userIds, // מספרי!
+        startsAt: new Date(startsAt).toISOString(),
+        seeds16,            // <-- מספרי
         sendEmails,
       };
-      console.log("📤 [createTournament] Sending payload:", payload);
 
-      const res = await fetchJSON<{ ok: boolean; tournamentId: number; error?: string; reason?: string }>(
+      const res = await fetchJSON<{ ok: boolean; tournamentId?: number; error?: string; reason?: string }>(
         "/api/admin/tournaments/create",
         { method: "POST", body: JSON.stringify(payload) }
       );
@@ -203,11 +151,9 @@ export default function ManualBracketManager() {
         alert(`שגיאה ביצירה: ${res.error || res.reason || "unknown"}`);
         return;
       }
-
-      setTid(res.tournamentId);
+      setTid(res.tournamentId!);
       alert(`טורניר נוצר (#${res.tournamentId})`);
     } catch (e: any) {
-      console.error("❌ [createTournament] Error:", e);
       alert("שגיאה ביצירת טורניר: " + (e?.message || e));
     }
   }
@@ -245,25 +191,24 @@ export default function ManualBracketManager() {
     return stageColors[stage];
   };
 
-  const Card = (u:User)=>(
-    <div key={u.id} style={userCardStyle}>
+  const Card = (u: User) => (
+    <div key={u.userId} style={userCardStyle}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
         <div style={{ fontWeight: 600, color: colors.text.primary }}>
-          {u.email}
+          {u.display_name || u.email}
         </div>
         <div style={{ display: "flex", gap: "4px" }}>
-          {u.isOnline && <span style={{ ...badgeStyle, background: colors.success.light, color: colors.success.main }}>🟢 Online</span>}
           <span style={{ ...badgeStyle, background: colors.neutral.gray200, color: colors.text.secondary }}>
-            ID {u.id}
+            ID #{u.userId}
           </span>
         </div>
       </div>
       <div style={{ fontSize: "12px", color: colors.text.secondary, marginBottom: "12px" }}>
-        PSN: {u.psnUsername || '-'} | Role: {u.role || 'player'} | Status: {u.approvalStatus || 'approved'}
+        PSN: {u.psn || '-'} | Email: {u.email} | Status: {u.status || 'active'}
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
         {(["R16", "QF", "SF", "F"] as const).map(stage => {
-          const isSelected = {R16,QF,SF,F}[stage].includes(u.id);
+          const isSelected = {R16,QF,SF,F}[stage].includes(u.userId);
           const stageColor = getBadgeColor(stage);
           return (
             <button
@@ -274,7 +219,7 @@ export default function ManualBracketManager() {
                 color: isSelected ? colors.neutral.white : colors.text.primary,
                 boxShadow: isSelected ? `0 2px 8px ${stageColor.bg}` : "none",
               }}
-              onClick={()=>toggle({R16,QF,SF,F}[stage], {R16:setR16,QF:setQF,SF:setSF,F:setF}[stage], u.id, {R16:16,QF:8,SF:4,F:2}[stage])}
+              onClick={()=>toggle({R16,QF,SF,F}[stage], {R16:setR16,QF:setQF,SF:setSF,F:setF}[stage], u.userId, {R16:16,QF:8,SF:4,F:2}[stage])}
             >
               {stage === "R16" ? "שמינית" : stage === "QF" ? "רבע" : stage === "SF" ? "חצי" : "גמר"}
             </button>

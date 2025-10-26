@@ -145,6 +145,34 @@ function getBracket(tid: number) {
 
 // --- API ---
 
+// ===== Utils קטנים לעבודה בטוחה עם הסכמה =====
+function hasCol(table: string, col: string): boolean {
+  try {
+    const cols = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+    return cols.some(c => c.name === col);
+  } catch { return false; }
+}
+
+router.get("/api/admin/users/list", (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(1000, Number(req.query.limit || 500)));
+
+    const fields: string[] = [`id AS userId`];
+    if (hasCol("users", "email")) fields.push("email");
+    if (hasCol("users", "display_name")) fields.push("display_name");
+    if (hasCol("users", "psn")) fields.push("psn");
+    if (hasCol("users", "status")) fields.push("status");
+
+    const sql = `SELECT ${fields.join(", ")} FROM users LIMIT ?`;
+    const rows = db.prepare(sql).all(limit);
+
+    return res.json({ ok: true, items: rows });
+  } catch (e) {
+    console.error("[/api/admin/users/list] error:", (e as Error).message);
+    return res.status(500).json({ ok: false, error: "internal_error" });
+  }
+});
+
 // ---------- API: Debug DB structure ----------
 router.get("/api/admin/debug/db-info", (req, res) => {
   try {
@@ -213,7 +241,7 @@ router.post("/api/admin/tournaments/create", (req, res) => {
     // --- נירמול קלט ---
     if (!Array.isArray(seeds16)) seeds16 = [];
     
-    // כעת מקבלים user_ids מספריים מהלקוח (אחרי resolve)
+    // מקבלים user_ids מספריים מהלקוח ישירות
     const seeds: number[] = Array.from(
       new Set(
         (seeds16 as any[]).map((x) => Number(x)).filter((n) => Number.isFinite(n))
