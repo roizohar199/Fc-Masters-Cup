@@ -154,22 +154,34 @@ function hasCol(table: string, col: string): boolean {
 }
 
 router.get("/api/admin/users/list", (req, res) => {
+  console.log("🔔 [/api/admin/users/list] Called with query:", req.query);
   try {
     const limit = Math.max(1, Math.min(1000, Number(req.query.limit || 500)));
+    console.log("📊 [/api/admin/users/list] Using limit:", limit);
 
     const fields: string[] = [`id AS userId`];
     if (hasCol("users", "email")) fields.push("email");
     if (hasCol("users", "display_name")) fields.push("display_name");
     if (hasCol("users", "psn")) fields.push("psn");
     if (hasCol("users", "status")) fields.push("status");
+    
+    console.log("📋 [/api/admin/users/list] Selected fields:", fields);
 
     const sql = `SELECT ${fields.join(", ")} FROM users LIMIT ?`;
+    console.log("🔍 [/api/admin/users/list] SQL:", sql);
+    
     const rows = db.prepare(sql).all(limit);
+    console.log("✅ [/api/admin/users/list] Found rows:", rows.length);
+    console.log("🔍 [/api/admin/users/list] Sample row:", rows[0]);
 
-    return res.json({ ok: true, items: rows });
+    const result = { ok: true, items: rows };
+    console.log("📤 [/api/admin/users/list] Sending response:", JSON.stringify(result, null, 2));
+    
+    return res.json(result);
   } catch (e) {
-    console.error("[/api/admin/users/list] error:", (e as Error).message);
-    return res.status(500).json({ ok: false, error: "internal_error" });
+    console.error("❌ [/api/admin/users/list] error:", (e as Error).message);
+    console.error("❌ [/api/admin/users/list] stack:", (e as Error).stack);
+    return res.status(500).json({ ok: false, error: "internal_error", message: (e as Error).message });
   }
 });
 

@@ -13,8 +13,30 @@ function uniqueNumeric(ids: any[]): number[] {
 
 // החלף את הפונקציה שמטעינה משתמשים:
 async function loadUsers(): Promise<User[]> {
-  const data = await fetchJSON<{ ok: boolean; items: User[] }>("/api/admin/users/list?limit=500");
-  return data.items || [];
+  console.log("🔄 Loading users from new API...");
+  try {
+    const data = await fetchJSON<{ ok: boolean; items: User[] }>("/api/admin/users/list?limit=500");
+    console.log("✅ New API response:", data);
+    return data.items || [];
+  } catch (error) {
+    console.error("❌ New API failed, trying fallback...", error);
+    // Fallback to original API
+    try {
+      const fallbackData = await fetchJSON<any[]>("/api/admin/users");
+      console.log("✅ Fallback API response:", fallbackData);
+      // Convert to new format
+      return fallbackData.map(u => ({
+        userId: u.id,
+        email: u.email,
+        display_name: u.psnUsername || u.email?.split('@')[0] || '',
+        psn: u.psnUsername || '',
+        status: u.status || 'active'
+      }));
+    } catch (fallbackError) {
+      console.error("❌ Both APIs failed:", fallbackError);
+      return [];
+    }
+  }
 }
 
 const containerStyle: React.CSSProperties = {
