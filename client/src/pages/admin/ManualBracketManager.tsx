@@ -34,6 +34,21 @@ async function loadUsers(): Promise<User[]> {
   return data || [];
 }
 
+// פונקציה למיפוי UUID/מזהים ל-user_id מספרי
+async function resolveUserIds(identifiers: string[]): Promise<{ ok: boolean; userIds: number[]; unresolved: string[] }> {
+  const resp = await fetch("/api/admin/users/resolve", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ identifiers }),
+  });
+  if (!resp.ok) throw new Error(`HTTP ${resp.status} @ /api/admin/users/resolve | ${await resp.text()}`);
+  const data = await resp.json();
+  const userIds = (data.resolved || []).map((r: any) => r.userId);
+  const unresolved = data.unresolved || [];
+  return { ok: true, userIds, unresolved };
+}
+
 const containerStyle: React.CSSProperties = {
   minHeight: "100vh",
   background: colors.background.gradient,
@@ -143,54 +158,45 @@ export default function ManualBracketManager() {
   };
 
   async function createTournament() {
-    // דה-דופליקציה על בסיס מחרוזות (UUID/מספר – הכול כמחרוזת)
-    const seeds16 = uniqueIds(R16);
-    const missingCount = 16 - seeds16.length;
-
-    if (seeds16.length !== 16) {
-      alert(
-        `כדי ליצור טורניר צריך לבחור בדיוק 16 שחקנים ייחודיים.\n` +
-        `היום בחרת ${R16.length}, ולאחר ניקוי/איחוד התקבלו ${seeds16.length}.\n` +
-        (missingCount > 0 ? `חסרים עוד ${missingCount} שחקנים.` : "")
-      );
+    // שלב 1: ייחוד IDs כפי שהם (UUID/mixed)
+    const picked = uniqueIds(R16);
+    if (picked.length !== 16) {
+      alert(`צריך לבחור בדיוק 16 שחקנים ייחודיים. כרגע לאחר איחוד התקבלו ${picked.length}.`);
       return;
     }
 
-    // תאריך/שעה – ודא ISO תקין
-    const startsAtISO = new Date(startsAt).toISOString();
-
     try {
+      // שלב 2: resolve ל־user_id מספרי
+      const r = await resolveUserIds(picked);
+      if (r.userIds.length !== 16) {
+        alert(
+          "לא הצלחתי למפות את כל השחקנים ל־user_id ב־DB.\n" +
+          (r.unresolved.length ? `לא נמצאו: \n${r.unresolved.join("\n")}` : "")
+        );
+        return;
+      }
+
+      // שלב 3: יצירת טורניר עם מזהים מספריים בלבד
+      const startsAtISO = new Date(startsAt).toISOString();
       const payload = {
         name,
         game,
         startsAt: startsAtISO,
-        seeds16,     // שולחים כמחרוזות
+        seeds16: r.userIds, // מספרי!
         sendEmails,
       };
 
-      const res = await fetchJSON<{
-        ok: boolean; tournamentId?: number; error?: string; reason?: string; missing?: string[];
-        rawCount?: number; cleanedCount?: number;
-      }>(
+      const res = await fetchJSON<{ ok: boolean; tournamentId: number; error?: string; reason?: string }>(
         "/api/admin/tournaments/create",
         { method: "POST", body: JSON.stringify(payload) }
       );
 
       if (!res.ok) {
-        if (res.reason === "users_not_found" && Array.isArray(res.missing)) {
-          alert(`חלק מהמשתמשים שנבחרו לא קיימים ב-DB: ${res.missing.join(", ")}`);
-        } else if (res.reason === "need_16_players") {
-          alert(
-            `השרת קיבל פחות מ-16 IDs לאחר ניקוי/איחוד.\n` +
-            `נשלחו: ${res.rawCount ?? "?"}, לאחר ניקוי: ${res.cleanedCount ?? "?"}.`
-          );
-        } else {
-          alert(`שגיאה ביצירה: ${res.error || "unknown"}`);
-        }
+        alert(`שגיאה ביצירה: ${res.error || res.reason || "unknown"}`);
         return;
       }
 
-      setTid(res.tournamentId!);
+      setTid(res.tournamentId);
       alert(`טורניר נוצר (#${res.tournamentId})`);
     } catch (e: any) {
       alert("שגיאה ביצירת טורניר: " + (e?.message || e));

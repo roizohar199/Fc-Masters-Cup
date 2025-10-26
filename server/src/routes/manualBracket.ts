@@ -9,6 +9,36 @@ const router = Router();
 const db = new Database(process.env.DB_PATH || "./server/tournaments.sqlite");
 ensureSchema(db);
 
+// ===== הוספה למעלה בקובץ =====
+function getUserIdForIdentifier(idLike: string): number | null {
+  // ננסה לפי id מספרי
+  const n = Number(idLike);
+  if (Number.isFinite(n)) {
+    const row = db.prepare(`SELECT id FROM users WHERE id = ?`).get(n) as { id: number } | undefined;
+    if (row?.id != null) return row.id;
+  }
+
+  // נזהה אילו עמודות UUID קיימות בטבלת users (לצמצום סיכוי לשמות שונים)
+  const cols = db.prepare(`PRAGMA table_info('users')`).all() as Array<{ name: string }>;
+  const uuidCols = ["uuid", "public_id", "user_uuid", "external_id", "uid", "guid"]
+    .filter((c) => cols.some((x) => x.name === c));
+
+  // חפש בהתאמה מלאה בכל אחת מהעמודות הללו
+  for (const c of uuidCols) {
+    const row = db.prepare(`SELECT id FROM users WHERE ${c} = ?`).get(idLike) as { id: number } | undefined;
+    if (row?.id != null) return row.id;
+  }
+
+  // אופציונלי: התאמה גם לפי email/psn אם זה מה שמגיע מהקליינט
+  const byEmail = db.prepare(`SELECT id FROM users WHERE email = ?`).get(idLike) as { id: number } | undefined;
+  if (byEmail?.id != null) return byEmail.id;
+
+  const byPsn = db.prepare(`SELECT id FROM users WHERE psn = ?`).get(idLike) as { id: number } | undefined;
+  if (byPsn?.id != null) return byPsn.id;
+
+  return null;
+}
+
 // --- SSE ---
 type Client = { id: string; res: any };
 const streams = new Map<number, Set<Client>>();
@@ -45,6 +75,30 @@ function getBracket(tid: number) {
 
 // --- API ---
 
+// ===== API חדש: Resolve מזהים ל-user_id =====
+router.post("/api/admin/users/resolve", (req, res) => {
+  try {
+    const identifiers = Array.isArray(req.body?.identifiers) ? req.body.identifiers : [];
+    const cleaned = identifiers
+      .map((x: any) => (x == null ? "" : String(x).trim()))
+      .filter((s: string) => s.length > 0);
+
+    const resolved: Array<{ input: string; userId: number }> = [];
+    const unresolved: string[] = [];
+
+    for (const input of cleaned) {
+      const uid = getUserIdForIdentifier(input);
+      if (uid != null) resolved.push({ input, userId: uid });
+      else unresolved.push(input);
+    }
+
+    return res.json({ ok: true, resolved, unresolved });
+  } catch (e) {
+    console.error("[/api/admin/users/resolve] error:", (e as Error).message);
+    return res.status(500).json({ ok: false, error: "internal_error" });
+  }
+});
+
 // (A) יצירת טורניר והצבה מיידית של 16 לשמינית — גרסה מוקשחת עם לוגים ברורים
 router.post("/api/admin/tournaments/create", (req, res) => {
   const where = "[create]";
@@ -53,33 +107,34 @@ router.post("/api/admin/tournaments/create", (req, res) => {
 
     // --- נירמול קלט ---
     if (!Array.isArray(seeds16)) seeds16 = [];
-
-    // === נירמול ל-strings (UUID/מספר) והסרת ריקים ===
-    const seedsRaw: string[] = (seeds16 as any[]).map((x) => (x == null ? "" : String(x).trim()));
-    const seeds: string[] = Array.from(new Set(seedsRaw.filter((s) => s.length > 0)));
+    
+    // כעת מקבלים user_ids מספריים מהלקוח (אחרי resolve)
+    const seeds: number[] = Array.from(
+      new Set(
+        (seeds16 as any[]).map((x) => Number(x)).filter((n) => Number.isFinite(n))
+      )
+    );
 
     if (!name || !game || !startsAt) {
       console.error(where, "bad_request missing fields", { name, game, startsAt });
       return res.status(400).json({ ok: false, error: "bad_request", reason: "missing_fields" });
     }
     if (seeds.length !== 16) {
-      console.error(where, "need_16_players", { rawCount: seedsRaw.length, cleanedCount: seeds.length, seedsRaw });
+      console.error(where, "need_16_players", { rawCount: (seeds16 || []).length, cleanedCount: seeds.length, seeds16 });
       return res.status(400).json({
         ok: false,
         error: "bad_request",
         reason: "need_16_players",
-        rawCount: seedsRaw.length,
+        rawCount: (seeds16 || []).length,
         cleanedCount: seeds.length,
       });
     }
 
-    // בדיקת קיום ב-DB (id כטקסט/UUID או מספר – הכול עובד בפרמטרים)
+    // בדיקת קיום ב-DB
     const placeholders = seeds.map(() => "?").join(",");
-    const exists = db
-      .prepare(`SELECT id FROM users WHERE id IN (${placeholders})`)
-      .all(...seeds) as Array<{ id: string }>;
-    const foundIds = new Set(exists.map((r) => String(r.id)));
-    const missing = seeds.filter((id) => !foundIds.has(id));
+    const exists = db.prepare(`SELECT id FROM users WHERE id IN (${placeholders})`).all(...seeds) as Array<{ id: number }>;
+    const foundIds = new Set(exists.map(r => r.id));
+    const missing = seeds.filter(id => !foundIds.has(id));
     if (missing.length) {
       console.error(where, "users_not_found", { missing });
       return res.status(400).json({ ok: false, error: "bad_request", reason: "users_not_found", missing });
