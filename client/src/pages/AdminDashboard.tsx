@@ -2661,6 +2661,32 @@ export default function AdminDashboard() {
           >
             ✨ צור טורניר
           </button>
+          
+          {/* כפתור לניהול טורניר ידני */}
+          <a 
+            href="/admin/tournaments/manual"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 14,
+              borderRadius: 12,
+              border: "none",
+              fontSize: 16,
+              fontWeight: 700,
+              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              color: "#fff",
+              textDecoration: "none",
+              cursor: "pointer",
+              boxShadow: "0 4px 15px rgba(102, 126, 234, 0.4)",
+              transition: "all 0.3s",
+              gridColumn: "span 2"
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"}
+            onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}
+          >
+            🎯 ניהול טורניר ידני (חדש!)
+          </a>
         </div>
       </div>
 

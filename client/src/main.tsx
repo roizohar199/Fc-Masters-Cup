@@ -16,6 +16,10 @@ const Rules = lazy(() => import("./pages/Rules"));
 const AdminPanel = lazy(() => import("./pages/AdminPanel"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
+// New tournament bracket management pages
+const ManualBracketManager = lazy(() => import("./pages/admin/ManualBracketManager"));
+const TournamentBracketLive = lazy(() => import("./pages/public/TournamentBracketLive"));
+
 // Loading component
 const LoadingFallback = () => (
   <div style={{
@@ -88,6 +92,22 @@ const router = createBrowserRouter([
     element: (
       <Suspense fallback={<LoadingFallback />}>
         <AdminPanel />
+      </Suspense>
+    )
+  },
+  { 
+    path: "/admin/tournaments/manual", 
+    element: (
+      <Suspense fallback={<LoadingFallback />}>
+        <ManualBracketManager />
+      </Suspense>
+    )
+  },
+  { 
+    path: "/tournaments/:id/live", 
+    element: (
+      <Suspense fallback={<LoadingFallback />}>
+        <TournamentBracketLive />
       </Suspense>
     )
   },
