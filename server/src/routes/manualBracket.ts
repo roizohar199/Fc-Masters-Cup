@@ -77,98 +77,81 @@ router.post("/api/admin/tournaments/create", (req, res) => {
   const where = "[create]";
   try {
     let { name, game, startsAt, seeds16, sendEmails } = req.body || {};
-
-    // --- נירמול קלט ---
     if (!Array.isArray(seeds16)) seeds16 = [];
-    
-    // מקבלים user_ids כמחרוזות מהלקוח
-    const seeds: string[] = Array.from(
-      new Set(
-        (seeds16 as any[]).map((x) => String(x)).filter((s) => s && s.trim().length > 0)
-      )
-    );
 
+    // ניקוי/ייחוד מספרי
+    const seeds = Array.from(new Set((seeds16 as any[]).map(Number).filter(Number.isFinite)));
     if (!name || !game || !startsAt) {
-      console.error(where, "bad_request missing fields", { name, game, startsAt });
+      console.error(where, "missing fields", { name, game, startsAt });
       return res.status(400).json({ ok: false, error: "bad_request", reason: "missing_fields" });
     }
     if (seeds.length !== 16) {
-      console.error(where, "need_16_players", { rawCount: (seeds16 || []).length, cleanedCount: seeds.length, seeds16 });
-      return res.status(400).json({
-        ok: false,
-        error: "bad_request",
-        reason: "need_16_players",
-        rawCount: (seeds16 || []).length,
-        cleanedCount: seeds.length,
-      });
+      console.error(where, "need_16_players", { got: seeds.length, seeds });
+      return res.status(400).json({ ok: false, error: "bad_request", reason: "need_16_players", got: seeds.length });
     }
 
-    // בדיקת קיום ב-DB
+    // בדוק קיום ids
     const placeholders = seeds.map(() => "?").join(",");
-    const exists = db.prepare(`SELECT id FROM users WHERE id IN (${placeholders})`).all(...seeds) as Array<{ id: string }>;
-    const foundIds = new Set(exists.map(r => r.id));
-    const missing = seeds.filter(id => !foundIds.has(id));
+    const exists = db.prepare(`SELECT id FROM users WHERE id IN (${placeholders})`).all(...seeds) as Array<{id:number}>;
+    const found = new Set(exists.map(r => r.id));
+    const missing = seeds.filter(x => !found.has(x));
     if (missing.length) {
       console.error(where, "users_not_found", { missing });
       return res.status(400).json({ ok: false, error: "bad_request", reason: "users_not_found", missing });
     }
 
-    // --- שמירה בטרנזקציה ---
-    const tId = db.transaction(() => {
-      // יצירת טורניר במבנה הטבלה הקיים
-      const info = db
-        .prepare(
-          `INSERT INTO tournaments(name, game, starts_at, created_at)
-           VALUES (?,?,?,datetime('now'))`
-        )
-        .run(name, game, String(startsAt));
-      const tid = Number(info.lastInsertRowid);
+    const tid = db.transaction(() => {
+      // הכנסה לטבלת tournaments – עכשיו יש בטוח name/game/starts_at/current_stage/is_active
+      const info = db.prepare(
+        `INSERT INTO tournaments (name, game, starts_at, current_stage, is_active)
+         VALUES (?,?,?,?,1)`
+      ).run(name, game, String(startsAt), "R16");
+      const tournamentId = Number(info.lastInsertRowid);
 
-      console.log(`✅ Tournament created with ID: ${tid}`);
-      return tid;
+      // שיוך שחקנים לשמינית
+      const insTP = db.prepare(
+        `INSERT INTO tournament_players (tournament_id, user_id, stage, is_selected)
+         VALUES (?,?,?,1)`
+      );
+      for (const uid of seeds) insTP.run(tournamentId, uid, "R16");
+
+      // 8 משחקי R16: (1-2), (3-4), ...
+      const insM = db.prepare(
+        `INSERT INTO matches (tournament_id, round, pos, p1_user_id, p2_user_id)
+         VALUES (?,?,?,?,?)`
+      );
+      for (let i = 0; i < 8; i++) {
+        insM.run(tournamentId, "R16", i + 1, seeds[i * 2], seeds[i * 2 + 1]);
+      }
+      return tournamentId;
     })();
 
-    // --- מיילים/התראות (חינני; לא מפיל את הבקשה) ---
-    try {
-      if (sendEmails) {
-        const emails = db
-          .prepare(
-            `SELECT u.id AS userId, u.email, u.psnUsername AS displayName
-             FROM users u WHERE u.id IN (${placeholders})`
-          )
-          .all(...seeds) as Array<{ userId: string; email: string | null; displayName?: string | null }>;
-        
-        console.log(`📧 Sending emails to ${emails.length} users`);
-        for (const u of emails) {
-          try {
-            // שליחת התראה באמצעות אימייל בלבד (מעקף את בעיית ה-userId)
-            if (u.email) {
-              notifyUser({
-                db,
-                userId: null, // לא משתמש ב-userId כיוון שהוא UUID ולא number
-                email: u.email,
-                title: `נבחרת לטורניר ${name}`,
-                body: `שלום ${u.displayName || u.email || ""},<br/>נבחרת לטורניר ${name}. מועד: ${new Date(
-                  startsAt
-                ).toLocaleString("he-IL")}.`,
-              });
-              console.log(`✅ Email sent to: ${u.email}`);
-            }
-          } catch (emailErr) {
-            console.warn(`⚠️ Failed to send email to ${u.email}:`, emailErr);
+    // (אופציונלי) שליחת מיילים/התראות – עטוף ב-try לוגי בלבד
+    if (sendEmails) {
+      try {
+        const rows = db.prepare(`SELECT id, email, display_name FROM users WHERE id IN (${placeholders})`).all(...seeds) as any[];
+        for (const r of rows) {
+          if (r.email) {
+            notifyUser({
+              db,
+              userId: null, // לא משתמש ב-userId כיוון שיש בעיות עם UUIDs/numbers
+              email: r.email,
+              title: `נבחרת לטורניר ${name}`,
+              body: `שלום ${r.display_name || r.email || ""},<br/>נבחרת לטורניר ${name}. מועד: ${new Date(
+                startsAt
+              ).toLocaleString("he-IL")}.`,
+            });
           }
         }
+      } catch (e) {
+        console.warn(where, "notify skipped:", (e as Error).message);
       }
-    } catch (mailErr) {
-      console.warn(`${where} email/notify skipped:`, (mailErr as Error).message);
     }
 
-    return res.json({ ok: true, tournamentId: tId });
+    return res.json({ ok: true, tournamentId: tid });
   } catch (e) {
-    // נחזיר פרטים ידידותיים + נלוג
-    const msg = (e as Error).message || String(e);
-    console.error("[/api/admin/tournaments/create] fatal:", msg);
-    return res.status(500).json({ ok: false, error: "internal_error", message: msg });
+    console.error("[/api/admin/tournaments/create] fatal:", (e as Error).message);
+    return res.status(500).json({ ok: false, error: "internal_error", message: (e as Error).message });
   }
 });
 

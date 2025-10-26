@@ -17,6 +17,7 @@ import "dotenv/config";
 import { resolve as pResolve } from "path"; // <-- שימוש ב־alias במקום 'path'
 import fs from "fs";
 import Database from "better-sqlite3";
+import { ensureSchema } from "./utils/ensureSchema.js";
 
 // אם יש בקובץ למטה `import path from "path"` או `const path = require("path")` — מחק אותם.
 // מעכשיו משתמשים רק ב-pResolve בתוך בלוק המיגרציה הזה.
@@ -102,6 +103,11 @@ function ensureColumn(
          WHERE display_name IS NULL OR display_name = '';`
       );
     }
+
+    // ✅ הפעלת מחזק הסכימה המלא
+    console.log("[migrate] Running ensureSchema...");
+    ensureSchema(db);
+    console.log("[migrate] ensureSchema completed ✅");
 
     db.exec("COMMIT;");
     console.log("[migrate] OK ✅");
