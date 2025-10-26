@@ -37,39 +37,71 @@ function findUserIdInUsersByNumericId(nLike: string): number | null {
 }
 function findUserIdInUsersByFields(idLike: string): number | null {
   // חיפוש ב־uuid/email/psn אם קיימים
+  const allUserCols = safeTableColumns("users").map(c => c.name);
+  console.log("[findUserIdInUsersByFields] Available users columns:", allUserCols);
+  
   const candidates = ["uuid","public_id","user_uuid","external_id","uid","guid","email","psn"]
     .filter(c => tableHasColumns("users", [c]));
+  console.log("[findUserIdInUsersByFields] Matching candidates:", candidates);
+  
   for (const col of candidates) {
+    console.log(`[findUserIdInUsersByFields] Checking column: ${col}`);
     const row = db.prepare(`SELECT id FROM users WHERE ${col} = ?`).get(idLike) as { id:number } | undefined;
-    if (row?.id != null) return row.id;
+    if (row?.id != null) {
+      console.log(`[findUserIdInUsersByFields] Found in ${col}: user_id=${row.id}`);
+      return row.id;
+    }
   }
   return null;
 }
 function findUserIdInForeignTables(idLike: string): number | null {
   // מחפש בטבלאות שמכילות id + user_id (למשל registrations / tournament_registrations)
   const tables = listAllTables();
-  for (const t of tables) {
-    if (!tableHasColumns(t, ["id","user_id"])) continue;
+  console.log("[findUserIdInForeignTables] All tables:", tables);
+  
+  const relevantTables = tables.filter(t => tableHasColumns(t, ["id","user_id"]));
+  console.log("[findUserIdInForeignTables] Tables with id+user_id:", relevantTables);
+  
+  for (const t of relevantTables) {
+    console.log(`[findUserIdInForeignTables] Searching in table: ${t}`);
     const row = db.prepare(`SELECT user_id FROM ${t} WHERE id = ?`).get(idLike) as { user_id:number } | undefined;
-    if (row?.user_id != null) return row.user_id;
+    if (row?.user_id != null) {
+      console.log(`[findUserIdInForeignTables] Found in ${t}: user_id=${row.user_id}`);
+      return row.user_id;
+    }
   }
+  console.log("[findUserIdInForeignTables] Not found in any foreign table");
   return null;
 }
 
 function resolveOneIdentifier(idLike: string): number | null {
+  console.log(`[resolveOneIdentifier] Trying to resolve: "${idLike}"`);
   try {
     // 1) users.id מספרי
+    console.log(`[resolveOneIdentifier] Step 1: Trying numeric ID`);
     const a = findUserIdInUsersByNumericId(idLike);
-    if (a != null) return a;
+    if (a != null) {
+      console.log(`[resolveOneIdentifier] ✅ Found via numeric ID: ${a}`);
+      return a;
+    }
 
     // 2) users.<uuid/email/psn> אם קיימים
+    console.log(`[resolveOneIdentifier] Step 2: Trying users fields`);
     const b = findUserIdInUsersByFields(idLike);
-    if (b != null) return b;
+    if (b != null) {
+      console.log(`[resolveOneIdentifier] ✅ Found via users fields: ${b}`);
+      return b;
+    }
 
     // 3) כל טבלה עם id + user_id (כמו registrations)
+    console.log(`[resolveOneIdentifier] Step 3: Trying foreign tables`);
     const c = findUserIdInForeignTables(idLike);
-    if (c != null) return c;
+    if (c != null) {
+      console.log(`[resolveOneIdentifier] ✅ Found via foreign tables: ${c}`);
+      return c;
+    }
 
+    console.log(`[resolveOneIdentifier] ❌ Not found anywhere for: "${idLike}"`);
     return null;
   } catch (err) {
     console.error("[resolveOneIdentifier] error:", (err as Error).message);
@@ -113,6 +145,31 @@ function getBracket(tid: number) {
 
 // --- API ---
 
+// ---------- API: Debug DB structure ----------
+router.get("/api/admin/debug/db-info", (req, res) => {
+  try {
+    const tables = listAllTables();
+    const dbInfo: any = { tables: {} };
+    
+    for (const table of tables) {
+      const cols = safeTableColumns(table);
+      dbInfo.tables[table] = cols.map(c => c.name);
+    }
+    
+    // Sample data from users table
+    try {
+      const sampleUsers = db.prepare("SELECT * FROM users LIMIT 3").all();
+      dbInfo.sampleUsers = sampleUsers;
+    } catch {}
+    
+    console.log("[DEBUG] DB Info:", JSON.stringify(dbInfo, null, 2));
+    return res.json(dbInfo);
+  } catch (e) {
+    console.error("[DEBUG] DB Info error:", e);
+    return res.status(500).json({ error: "internal_error" });
+  }
+});
+
 // ---------- API: מיפוי מזהים → user_id ----------
 router.post("/api/admin/users/resolve", (req, res) => {
   try {
@@ -120,6 +177,8 @@ router.post("/api/admin/users/resolve", (req, res) => {
     const cleaned = identifiers
       .map((x: any) => (x == null ? "" : String(x).trim()))
       .filter((s: string) => s.length > 0);
+
+    console.log("[/api/admin/users/resolve] Input identifiers:", cleaned);
 
     const resolved: Array<{ input: string; userId: number }> = [];
     const unresolved: string[] = [];
@@ -136,6 +195,7 @@ router.post("/api/admin/users/resolve", (req, res) => {
       "resolved:", resolved.length,
       "unresolved:", unresolved.length
     );
+    console.log("[/api/admin/users/resolve] Final result:", { resolved, unresolved });
 
     return res.json({ ok: true, resolved, unresolved });
   } catch (e) {

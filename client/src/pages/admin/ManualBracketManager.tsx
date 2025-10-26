@@ -160,6 +160,9 @@ export default function ManualBracketManager() {
   async function createTournament() {
     // שלב 1: ייחוד IDs כפי שהם (UUID/mixed)
     const picked = uniqueIds(R16);
+    console.log("🎯 [createTournament] Raw R16:", R16);
+    console.log("🎯 [createTournament] Unique picked:", picked);
+    
     if (picked.length !== 16) {
       alert(`צריך לבחור בדיוק 16 שחקנים ייחודיים. כרגע לאחר איחוד התקבלו ${picked.length}.`);
       return;
@@ -167,10 +170,14 @@ export default function ManualBracketManager() {
 
     try {
       // שלב 2: resolve ל־user_id מספרי
+      console.log("🔄 [createTournament] Calling resolveUserIds with:", picked);
       const r = await resolveUserIds(picked);
+      console.log("✅ [createTournament] Resolve result:", r);
+      
       if (r.userIds.length !== 16) {
         alert(
           "לא הצלחתי למפות את כל השחקנים ל־user_id ב־DB.\n" +
+          `מפותרים: ${r.userIds.length}/16\n` +
           (r.unresolved.length ? `לא נמצאו: \n${r.unresolved.join("\n")}` : "")
         );
         return;
@@ -185,6 +192,7 @@ export default function ManualBracketManager() {
         seeds16: r.userIds, // מספרי!
         sendEmails,
       };
+      console.log("📤 [createTournament] Sending payload:", payload);
 
       const res = await fetchJSON<{ ok: boolean; tournamentId: number; error?: string; reason?: string }>(
         "/api/admin/tournaments/create",
@@ -199,6 +207,7 @@ export default function ManualBracketManager() {
       setTid(res.tournamentId);
       alert(`טורניר נוצר (#${res.tournamentId})`);
     } catch (e: any) {
+      console.error("❌ [createTournament] Error:", e);
       alert("שגיאה ביצירת טורניר: " + (e?.message || e));
     }
   }
