@@ -45,51 +45,100 @@ function getBracket(tid: number) {
 
 // --- API ---
 
-// (A) יצירת טורניר והצבה מיידית של 16 לשמינית
+// (A) יצירת טורניר והצבה מיידית של 16 לשמינית — גרסה מוקשחת עם לוגים ברורים
 router.post("/api/admin/tournaments/create", (req, res) => {
+  const where = "[create]";
   try {
-    const { name, game, startsAt, seeds16, sendEmails } = req.body || {};
-    if (!name || !game || !startsAt || !Array.isArray(seeds16) || seeds16.length !== 16) {
-      return res.status(400).json({ ok: false, error: "bad_request" });
+    let { name, game, startsAt, seeds16, sendEmails } = req.body || {};
+
+    // --- נירמול קלט ---
+    if (!Array.isArray(seeds16)) seeds16 = [];
+    // מספרים ייחודיים (להימנע מדופליקטים שגורמים ל-UNIQUE)
+    const seeds: number[] = Array.from(new Set(seeds16.map((x: any) => Number(x)).filter((n: number) => Number.isFinite(n))));
+
+    if (!name || !game || !startsAt) {
+      console.error(where, "bad_request missing fields", { name, game, startsAt });
+      return res.status(400).json({ ok: false, error: "bad_request", reason: "missing_fields" });
+    }
+    if (seeds.length !== 16) {
+      console.error(where, "bad_request seeds != 16", { count: seeds.length });
+      return res.status(400).json({ ok: false, error: "bad_request", reason: "need_16_players" });
     }
 
+    // --- בדיקה שכל המשתמשים קיימים במערכת ---
+    const placeholders = seeds.map(() => "?").join(",");
+    const exists = db
+      .prepare(`SELECT id FROM users WHERE id IN (${placeholders})`)
+      .all(...seeds) as Array<{ id: number }>;
+    const foundIds = new Set(exists.map((r) => r.id));
+    const missing: number[] = seeds.filter((id) => !foundIds.has(id));
+    if (missing.length) {
+      console.error(where, "some user ids not found", { missing });
+      return res.status(400).json({ ok: false, error: "bad_request", reason: "users_not_found", missing });
+    }
+
+    // --- שמירה בטרנזקציה ---
     const tId = db.transaction(() => {
-      const info = db.prepare(`INSERT INTO tournaments(name, game, starts_at, current_stage, is_active) VALUES (?,?,?,?,1)`)
-        .run(name, game, startsAt, 'R16');
+      const info = db
+        .prepare(
+          `INSERT INTO tournaments(name, game, starts_at, current_stage, is_active)
+           VALUES (?,?,?,?,1)`
+        )
+        .run(name, game, String(startsAt), "R16");
       const tid = Number(info.lastInsertRowid);
 
-      const insTP = db.prepare(`INSERT INTO tournament_players(tournament_id, user_id, stage, is_selected) VALUES (?,?,?,1)`);
-      seeds16.forEach((uid: number) => insTP.run(tid, uid, 'R16'));
+      // טבלת שיוכים לשלב (R16)
+      const insTP = db.prepare(
+        `INSERT INTO tournament_players(tournament_id, user_id, stage, is_selected)
+         VALUES (?,?,?,1)`
+      );
+      seeds.forEach((uid) => insTP.run(tid, uid, "R16"));
 
-      const insM = db.prepare(`INSERT INTO matches(tournament_id, round, pos, p1_user_id, p2_user_id) VALUES (?,?,?,?,?)`);
+      // בניית 8 משחקי שמינית: (1-2), (3-4), ...
+      const insM = db.prepare(
+        `INSERT INTO matches(tournament_id, round, pos, p1_user_id, p2_user_id)
+         VALUES (?,?,?,?,?)`
+      );
       for (let i = 0; i < 8; i++) {
-        insM.run(tid, 'R16', i + 1, seeds16[i * 2], seeds16[i * 2 + 1]);
+        insM.run(tid, "R16", i + 1, seeds[i * 2], seeds[i * 2 + 1]);
       }
+
       return tid;
     })();
 
-    // התראות/מיילים (חינני)
-    if (sendEmails) {
-      const emails = db.prepare(`
-        SELECT u.id AS userId, u.email, u.display_name AS displayName
-        FROM users u WHERE u.id IN (${seeds16.map(() => "?").join(",")})
-      `).all(...seeds16) as Array<{ userId: number; email: string | null; displayName?: string | null }>;
-      
-      for (const u of emails) {
-        notifyUser({
-          db, userId: u.userId, email: u.email || undefined,
-          title: `נבחרת לטורניר ${name}`,
-          body: `שלום ${u.displayName || u.email},<br/>נבחרת לשמינית הגמר. מועד: ${new Date(startsAt).toLocaleString("he-IL")}.`,
-        });
+    // --- מיילים/התראות (חינני; לא מפיל את הבקשה) ---
+    try {
+      if (sendEmails) {
+        const emails = db
+          .prepare(
+            `SELECT u.id AS userId, u.email, u.display_name AS displayName
+             FROM users u WHERE u.id IN (${placeholders})`
+          )
+          .all(...seeds) as Array<{ userId: number; email: string | null; displayName?: string | null }>;
+        for (const u of emails) {
+          notifyUser({
+            db,
+            userId: u.userId,
+            email: u.email || undefined,
+            title: `נבחרת לטורניר ${name}`,
+            body: `שלום ${u.displayName || u.email || ""},<br/>נבחרת לשמינית הגמר. מועד: ${new Date(
+              startsAt
+            ).toLocaleString("he-IL")}.`,
+          });
+        }
       }
+    } catch (mailErr) {
+      console.warn(`${where} email/notify skipped:`, (mailErr as Error).message);
     }
 
     const bracket = getBracket(tId);
     broadcast(tId, { type: "bracket", bracket });
     return res.json({ ok: true, tournamentId: tId, bracket });
   } catch (e) {
-    console.error("[create] error", e);
-    return res.status(500).json({ ok: false, error: "internal_error" });
+    // נחזיר פרטים ידידותיים + נלוג
+    const msg = (e as Error).message || String(e);
+    console.error("[/api/admin/tournaments/create] fatal:", msg);
+    return res.status(500).json({ ok: false, error: "internal_error", message: msg });
   }
 });
 

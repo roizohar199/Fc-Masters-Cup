@@ -127,12 +127,37 @@ export default function ManualBracketManager() {
 
   async function createTournament() {
     if (R16.length !== 16) return alert("בחר 16 לשמינית הגמר");
-    const payload = { name, game, startsAt: new Date(startsAt).toISOString(), seeds16: R16, sendEmails };
-    const res = await fetchJSON<{ ok:boolean; tournamentId:number }>("/api/admin/tournaments/create", {
-      method:"POST", body: JSON.stringify(payload)
-    });
-    setTid(res.tournamentId);
-    alert(`טורניר נוצר (#${res.tournamentId})`);
+    
+    // וודא פורמט ISO נכון לתאריך
+    let startsAtISO: string;
+    try {
+      startsAtISO = new Date(startsAt).toISOString();
+    } catch (e) {
+      return alert("שגיאה בתאריך/שעה - אנא בדוק שהערכים תקינים");
+    }
+    
+    const payload = { name, game, startsAt: startsAtISO, seeds16: R16, sendEmails };
+    
+    try {
+      const res = await fetchJSON<{ ok:boolean; tournamentId:number; reason?: string; missing?: number[] }>("/api/admin/tournaments/create", {
+        method:"POST", body: JSON.stringify(payload)
+      });
+      setTid(res.tournamentId);
+      alert(`טורניר נוצר בהצלחה! מזהה: #${res.tournamentId}`);
+    } catch (error: any) {
+      // טיפול בשגיאות ספציפיות מהשרת
+      const errorMsg = error.message || "שגיאה לא ידועה";
+      if (errorMsg.includes("missing_fields")) {
+        alert("שגיאה: חסרים שדות חובה (שם, משחק, תאריך)");
+      } else if (errorMsg.includes("need_16_players")) {
+        alert("שגיאה: יש לבחור בדיוק 16 שחקנים לשמינית הגמר");
+      } else if (errorMsg.includes("users_not_found")) {
+        alert("שגיאה: חלק מהשחקנים שנבחרו לא קיימים במערכת");
+      } else {
+        alert(`שגיאה ביצירת הטורניר: ${errorMsg}`);
+        console.error("Tournament creation error:", error);
+      }
+    }
   }
 
   async function saveRound(round:"R16"|"QF"|"SF"|"F") {
@@ -140,9 +165,22 @@ export default function ManualBracketManager() {
     const map = { R16, QF, SF, F } as const;
     const need = { R16:16, QF:8, SF:4, F:2 }[round];
     const list = map[round];
-    if (list.length !== need) return alert(`לשלב ${round} יש לבחור ${need} שחקנים (כעת ${list.length})`);
-    await fetchJSON(`/api/admin/tournaments/${tid}/assign`, { method:"POST", body: JSON.stringify({ round, userIds:list }) });
-    alert(`נשמר ${round}`);
+    
+    if (list.length !== need) {
+      return alert(`לשלב ${round} יש לבחור ${need} שחקנים (כעת ${list.length})`);
+    }
+    
+    try {
+      await fetchJSON(`/api/admin/tournaments/${tid}/assign`, { 
+        method:"POST", 
+        body: JSON.stringify({ round, userIds:list }) 
+      });
+      alert(`שלב ${round} נשמר בהצלחה!`);
+    } catch (error: any) {
+      const errorMsg = error.message || "שגיאה לא ידועה";
+      alert(`שגיאה בשמירת השלב ${round}: ${errorMsg}`);
+      console.error("Save round error:", error);
+    }
   }
 
   const getBadgeColor = (stage: "R16"|"QF"|"SF"|"F") => {
