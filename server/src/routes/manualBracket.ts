@@ -9,47 +9,70 @@ const router = Router();
 const db = new Database(process.env.DB_PATH || "./server/tournaments.sqlite");
 ensureSchema(db);
 
-// ===== תוספת מתוקנת =====
-function safeHasColumn(table: string, column: string): boolean {
+// ---------- עזרי סכמה בטוחה ----------
+function safeTableColumns(table: string): Array<{ name: string }> {
   try {
-    const cols = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
-    return cols.some((c) => c.name === column);
+    return db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
   } catch {
-    return false;
+    return [];
   }
 }
-
-function getUserIdForIdentifier(idLike: string): number | null {
+function tableHasColumns(table: string, cols: string[]) {
+  const have = safeTableColumns(table).map(c => c.name);
+  return cols.every(c => have.includes(c));
+}
+function listAllTables(): string[] {
   try {
-    // ננסה לפי id מספרי
-    const n = Number(idLike);
-    if (Number.isFinite(n)) {
-      const row = db.prepare(`SELECT id FROM users WHERE id = ?`).get(n) as { id: number } | undefined;
-      if (row?.id != null) return row.id;
-    }
+    const rows = db.prepare(`SELECT name FROM sqlite_master WHERE type='table'`).all() as Array<{name:string}>;
+    return rows.map(r => r.name);
+  } catch { return []; }
+}
 
-    // חיפוש בעמודות UUID אופציונליות
-    const uuidCols = ["uuid", "public_id", "user_uuid", "external_id", "uid", "guid"].filter((c) =>
-      safeHasColumn("users", c)
-    );
-    for (const c of uuidCols) {
-      const row = db.prepare(`SELECT id FROM users WHERE ${c} = ?`).get(idLike) as { id: number } | undefined;
-      if (row?.id != null) return row.id;
-    }
+// ---------- חיפוש user_id לפי מזהה חופשי ----------
+function findUserIdInUsersByNumericId(nLike: string): number | null {
+  const n = Number(nLike);
+  if (!Number.isFinite(n)) return null;
+  const row = db.prepare(`SELECT id FROM users WHERE id = ?`).get(n) as { id:number } | undefined;
+  return row?.id ?? null;
+}
+function findUserIdInUsersByFields(idLike: string): number | null {
+  // חיפוש ב־uuid/email/psn אם קיימים
+  const candidates = ["uuid","public_id","user_uuid","external_id","uid","guid","email","psn"]
+    .filter(c => tableHasColumns("users", [c]));
+  for (const col of candidates) {
+    const row = db.prepare(`SELECT id FROM users WHERE ${col} = ?`).get(idLike) as { id:number } | undefined;
+    if (row?.id != null) return row.id;
+  }
+  return null;
+}
+function findUserIdInForeignTables(idLike: string): number | null {
+  // מחפש בטבלאות שמכילות id + user_id (למשל registrations / tournament_registrations)
+  const tables = listAllTables();
+  for (const t of tables) {
+    if (!tableHasColumns(t, ["id","user_id"])) continue;
+    const row = db.prepare(`SELECT user_id FROM ${t} WHERE id = ?`).get(idLike) as { user_id:number } | undefined;
+    if (row?.user_id != null) return row.user_id;
+  }
+  return null;
+}
 
-    // חיפוש לפי email / psn אם קיימים
-    if (safeHasColumn("users", "email")) {
-      const byEmail = db.prepare(`SELECT id FROM users WHERE email = ?`).get(idLike) as { id: number } | undefined;
-      if (byEmail?.id != null) return byEmail.id;
-    }
-    if (safeHasColumn("users", "psn")) {
-      const byPsn = db.prepare(`SELECT id FROM users WHERE psn = ?`).get(idLike) as { id: number } | undefined;
-      if (byPsn?.id != null) return byPsn.id;
-    }
+function resolveOneIdentifier(idLike: string): number | null {
+  try {
+    // 1) users.id מספרי
+    const a = findUserIdInUsersByNumericId(idLike);
+    if (a != null) return a;
+
+    // 2) users.<uuid/email/psn> אם קיימים
+    const b = findUserIdInUsersByFields(idLike);
+    if (b != null) return b;
+
+    // 3) כל טבלה עם id + user_id (כמו registrations)
+    const c = findUserIdInForeignTables(idLike);
+    if (c != null) return c;
 
     return null;
   } catch (err) {
-    console.error("[getUserIdForIdentifier] error:", (err as Error).message);
+    console.error("[resolveOneIdentifier] error:", (err as Error).message);
     return null;
   }
 }
@@ -90,6 +113,7 @@ function getBracket(tid: number) {
 
 // --- API ---
 
+// ---------- API: מיפוי מזהים → user_id ----------
 router.post("/api/admin/users/resolve", (req, res) => {
   try {
     const identifiers = Array.isArray(req.body?.identifiers) ? req.body.identifiers : [];
@@ -101,12 +125,18 @@ router.post("/api/admin/users/resolve", (req, res) => {
     const unresolved: string[] = [];
 
     for (const input of cleaned) {
-      const uid = getUserIdForIdentifier(input);
+      const uid = resolveOneIdentifier(input);
       if (uid != null) resolved.push({ input, userId: uid });
       else unresolved.push(input);
     }
 
-    console.log("[/api/admin/users/resolve] resolved:", resolved.length, "unresolved:", unresolved.length);
+    console.log(
+      "[/api/admin/users/resolve]",
+      "in:", cleaned.length,
+      "resolved:", resolved.length,
+      "unresolved:", unresolved.length
+    );
+
     return res.json({ ok: true, resolved, unresolved });
   } catch (e) {
     console.error("[/api/admin/users/resolve] fatal:", (e as Error).message);
