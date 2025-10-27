@@ -296,106 +296,122 @@ router.post("/api/admin/tournaments/create", requireAuth, async (req, res) => {
   }
 });
 
-// Advance to next stage (QF, SF, F)
+// ----- helper: לזהות מזהה טורניר מכל צורה -----
+function coerceTournamentId(req: any): number | null {
+  // נסה ישירות מה-body (אם הוא אובייקט כבר):
+  let raw =
+    req?.body?.tournamentId ??
+    req?.body?.id ??
+    req?.body?.tid ??
+    req?.query?.tournamentId ??
+    req?.query?.id ??
+    req?.query?.tid;
+
+  // אם body הוא מחרוזת (למשל fetch בלי content-type) – ננסה לפענח JSON
+  if (raw == null && typeof req?.body === "string") {
+    try {
+      const parsed = JSON.parse(req.body);
+      raw = parsed?.tournamentId ?? parsed?.id ?? parsed?.tid;
+    } catch {}
+  }
+
+  // אם קיבלנו מערך – נקח את הראשון
+  if (Array.isArray(raw)) raw = raw[0];
+
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+// ----- advance stage -----
 router.post("/api/admin/advance-stage", requireAuth, async (req, res) => {
-  const where = "[advance-stage]";
   try {
-    // Extract tournament ID from multiple possible field names
-    const raw = req.body?.tournamentId ?? req.body?.id;
-    if (!raw) {
-      return res.status(400).json({ ok: false, error: "missing_tournament_id" });
+    const tournamentId = coerceTournamentId(req);
+    if (tournamentId == null) {
+      return res
+        .status(400)
+        .json({ ok: false, error: "bad_request", reason: "invalid_tournament_id" });
     }
 
-    const tournamentId = Number(raw);
-    if (!Number.isFinite(tournamentId) || tournamentId <= 0) {
-      return res.status(400).json({ ok: false, error: "invalid_tournament_id" });
-    }
+    // קרא את הטורניר
+    const t = db
+      .prepare(`SELECT id, name, current_stage FROM tournaments WHERE id = ?`)
+      .get(tournamentId) as { id: number; name?: string; current_stage?: string } | undefined;
 
-    const { stage, selectedIds, sendEmails } = req.body || {};
-    
-    if (!stage || !Array.isArray(selectedIds)) {
-      return res.status(400).json({ ok: false, error: "missing_fields" });
-    }
-
-    const validStages = ["QF", "SF", "F"] as const;
-    type Stage = typeof validStages[number];
-    
-    if (!validStages.includes(stage as any)) {
-      return res.status(400).json({ ok: false, error: "invalid_stage" });
-    }
-
-    const validatedStage = stage as Stage;
-    const requiredCounts: Record<Stage, number> = { QF: 8, SF: 4, F: 2 };
-    if (selectedIds.length !== requiredCounts[validatedStage]) {
-      return res.status(400).json({ ok: false, error: "wrong_count", expected: requiredCounts[validatedStage], got: selectedIds.length });
-    }
-
-    // Get tournament info
-    console.log(where, "Looking for tournament with ID:", tournamentId);
-    const tournament = db.prepare(`SELECT id, name FROM tournaments WHERE id = ?`).get(tournamentId) as any;
-    if (!tournament) {
-      console.log(where, "Tournament not found for ID:", tournamentId);
-      // Debug: list all tournaments
-      const allTournaments = db.prepare(`SELECT id, name FROM tournaments ORDER BY id DESC LIMIT 5`).all();
-      console.log(where, "Available tournaments:", allTournaments);
+    if (!t) {
       return res.status(404).json({ ok: false, error: "tournament_not_found" });
     }
-    console.log(where, "Found tournament:", tournament);
 
-    // Get users info
-    const placeholders = selectedIds.map(() => '?').join(',');
-    const users = db.prepare(`SELECT id, email, psnUsername FROM users WHERE id IN (${placeholders})`).all(...selectedIds) as any[];
+    // קבע שלב יעד (אם לא נשלח – נגזור מהשלב הנוכחי)
+    const stageNow = (t.current_stage || "R16").toUpperCase();
+    const nextMap: Record<string, string> = { R16: "QF", QF: "SF", SF: "F", F: "FINISHED" };
+    const to = String(req?.body?.to ?? req?.body?.stage ?? nextMap[stageNow] ?? stageNow).toUpperCase();
 
-    // Send notifications and emails
-    if (sendEmails) {
-      const { uuid } = await import("../utils/ids.js");
-      const { nowISO } = await import("../lib/util.js");
-      const { sendTournamentSelectionEmail } = await import("../email.js");
+    // עדכון השלב (רק אם העמודה קיימת)
+    const cols = db.prepare(`PRAGMA table_info(tournaments)`).all() as Array<{ name: string }>;
+    if (cols.some(c => c.name === "current_stage")) {
+      db.prepare(`UPDATE tournaments SET current_stage = ? WHERE id = ?`).run(to, tournamentId);
+    }
+
+    // יצירת התראות ומיילים לשחקנים שנבחרו
+    const { stage, selectedIds, sendEmails } = req.body || {};
+    
+    if (stage && Array.isArray(selectedIds) && selectedIds.length > 0 && sendEmails) {
+      const validStages = ["QF", "SF", "F"] as const;
+      type Stage = typeof validStages[number];
+      const validatedStage = stage as Stage;
       
-      for (const user of users) {
-        if (user.email && user.id) {
-          const notificationId = uuid();
-          const stageNames: Record<Stage, string> = { QF: "רבע גמר", SF: "חצי גמר", F: "גמר" };
-          
-          try {
-            db.prepare(`
-              INSERT INTO notifications (id, userId, type, title, message, data, createdAt)
-              VALUES (?, ?, ?, ?, ?, ?, ?)
-            `).run(
-              notificationId,
-              user.id,
-              'tournament_stage_advance',
-              `התקדמת לשלב ${stageNames[validatedStage]}: ${tournament.name}`,
-              `מזל טוב! התקדמת לשלב ${stageNames[validatedStage]} בטורניר "${tournament.name}". המשך להצליח!`,
-              JSON.stringify({ tournamentId, stage: validatedStage }),
-              nowISO()
-            );
-            console.log(where, "Notification created for user:", user.id);
-          } catch (e) {
-            console.warn(where, "Failed to insert notification:", (e as Error).message);
-          }
+      if (validStages.includes(validatedStage)) {
+        const { uuid } = await import("../utils/ids.js");
+        const { nowISO } = await import("../lib/util.js");
+        const { sendTournamentSelectionEmail } = await import("../email.js");
+        
+        const placeholders = selectedIds.map(() => '?').join(',');
+        const users = db.prepare(`SELECT id, email, psnUsername FROM users WHERE id IN (${placeholders})`).all(...selectedIds) as any[];
+        
+        const stageNames = { QF: "רבע גמר", SF: "חצי גמר", F: "גמר" };
+        
+        for (const user of users) {
+          if (user.email && user.id) {
+            const notificationId = uuid();
+            
+            try {
+              db.prepare(`
+                INSERT INTO notifications (id, userId, type, title, message, data, createdAt)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+              `).run(
+                notificationId,
+                user.id,
+                'tournament_stage_advance',
+                `התקדמת לשלב ${stageNames[validatedStage]}: ${t.name || `טורניר #${tournamentId}`}`,
+                `מזל טוב! התקדמת לשלב ${stageNames[validatedStage]} בטורניר "${t.name || `טורניר #${tournamentId}`}". המשך להצליח!`,
+                JSON.stringify({ tournamentId, stage: validatedStage }),
+                nowISO()
+              );
+            } catch (e) {
+              console.warn("[advance-stage] Failed to insert notification:", (e as Error).message);
+            }
 
-          // Send email
-          try {
-            await sendTournamentSelectionEmail({
-              userEmail: user.email,
-              userName: user.psnUsername || user.email,
-              tournamentTitle: `${tournament.name} - ${stageNames[validatedStage]}`,
-              tournamentDate: undefined,
-              telegramLink: undefined,
-              prizeFirst: 500,
-              prizeSecond: undefined
-            });
-          } catch (e) {
-            console.warn(where, "Failed to send email:", (e as Error).message);
+            try {
+              await sendTournamentSelectionEmail({
+                userEmail: user.email,
+                userName: user.psnUsername || user.email,
+                tournamentTitle: `${t.name || `טורניר #${tournamentId}`} - ${stageNames[validatedStage]}`,
+                tournamentDate: undefined,
+                telegramLink: undefined,
+                prizeFirst: 500,
+                prizeSecond: undefined
+              });
+            } catch (e) {
+              console.warn("[advance-stage] Failed to send email:", (e as Error).message);
+            }
           }
         }
       }
     }
 
-    return res.json({ ok: true, message: `נבחרו ${selectedIds.length} שחקנים לשלב ${validatedStage}` });
-  } catch (e) {
-    console.error("[advance-stage] fatal:", (e as Error).message);
+    return res.json({ ok: true, tournamentId, from: stageNow, to });
+  } catch (e: any) {
+    console.error("[/api/admin/advance-stage] fatal:", (e as Error).message);
     return res.status(500).json({ ok: false, error: "internal_error", message: (e as Error).message });
   }
 });
