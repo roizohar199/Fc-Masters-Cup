@@ -19,6 +19,7 @@ export function PlayerNotifications({ isMobile }: PlayerNotificationsProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     loadNotifications();
@@ -96,6 +97,19 @@ export function PlayerNotifications({ isMobile }: PlayerNotificationsProps) {
     }
   }
 
+  function formatDateTime(dateString: string) {
+    const date = new Date(dateString);
+    const datePart = date.toLocaleDateString('he-IL', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const timePart = date.toLocaleTimeString('he-IL', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    return { datePart, timePart };
+  }
 
   if (loading) {
     return null;
@@ -146,92 +160,153 @@ export function PlayerNotifications({ isMobile }: PlayerNotificationsProps) {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {notifications.slice(0, 3).map((notification) => (
-          <div
-            key={notification.id}
-            style={{
-              padding: isMobile ? 12 : 16,
-              borderRadius: 8,
-              backgroundColor: notification.isRead ? "#f8f9fa" : "#e3f2fd",
-              border: notification.isRead ? "1px solid #e0e0e0" : "2px solid #2196f3",
-              cursor: "pointer",
-              transition: "all 0.2s ease"
-            }}
-            onClick={() => {
-              if (!notification.isRead) {
-                markAsRead(notification.id);
-              }
-            }}
-          >
-            <div style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: 12
-            }}>
+        {(showAll ? notifications : notifications.slice(0, 3)).map((notification) => {
+          const { datePart, timePart } = formatDateTime(notification.createdAt);
+          return (
+            <div
+              key={notification.id}
+              style={{
+                padding: isMobile ? 12 : 16,
+                borderRadius: 8,
+                backgroundColor: notification.isRead ? "#f8f9fa" : "#e3f2fd",
+                border: notification.isRead ? "1px solid #e0e0e0" : "2px solid #2196f3",
+                cursor: "pointer",
+                transition: "all 0.2s ease"
+              }}
+              onClick={() => {
+                if (!notification.isRead) {
+                  markAsRead(notification.id);
+                }
+              }}
+            >
               <div style={{
-                fontSize: isMobile ? 20 : 24,
-                marginTop: 2
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 12
               }}>
-                {notification.type === 'tournament_selection' ? '🎯' : '📢'}
-              </div>
-              <div style={{ flex: 1 }}>
-                <h4 style={{
-                  fontSize: isMobile ? 14 : 16,
-                  fontWeight: 700,
-                  color: "#333",
-                  margin: "0 0 4px 0"
+                <div style={{
+                  fontSize: isMobile ? 20 : 24,
+                  marginTop: 2
                 }}>
-                  {notification.title}
-                </h4>
-                <p style={{
-                  fontSize: isMobile ? 12 : 14,
-                  color: "#666",
-                  margin: 0,
-                  lineHeight: 1.4
-                }}>
-                  {notification.message}
-                </p>
-                {notification.data && (
-                  <div style={{
-                    marginTop: 8,
-                    padding: 8,
-                    backgroundColor: "rgba(33, 150, 243, 0.1)",
-                    borderRadius: 6,
-                    fontSize: isMobile ? 11 : 12,
-                    color: "#1976d2"
+                  {notification.type === 'tournament_selection' ? '🎯' : '📢'}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <h4 style={{
+                    fontSize: isMobile ? 14 : 16,
+                    fontWeight: 700,
+                    color: "#333",
+                    margin: "0 0 4px 0"
                   }}>
-                    {notification.data.tournamentDate && (
-                      <div>📅 תאריך: {new Date(notification.data.tournamentDate).toLocaleDateString('he-IL')}</div>
-                    )}
-                    {notification.data.prizeFirst && (
-                      <div>🏆 פרס ראשון: {notification.data.prizeFirst} ₪</div>
-                    )}
+                    {notification.title}
+                  </h4>
+                  <p style={{
+                    fontSize: isMobile ? 12 : 14,
+                    color: "#666",
+                    margin: "0 0 8px 0",
+                    lineHeight: 1.4
+                  }}>
+                    {notification.message}
+                  </p>
+                  {/* תאריך ושעה */}
+                  <div style={{
+                    fontSize: isMobile ? 11 : 12,
+                    color: "#999",
+                    display: "flex",
+                    gap: 8,
+                    alignItems: "center"
+                  }}>
+                    <span>📅 {datePart}</span>
+                    <span>🕒 {timePart}</span>
                   </div>
+                  {notification.data && (
+                    <div style={{
+                      marginTop: 8,
+                      padding: 8,
+                      backgroundColor: "rgba(33, 150, 243, 0.1)",
+                      borderRadius: 6,
+                      fontSize: isMobile ? 11 : 12,
+                      color: "#1976d2"
+                    }}>
+                      {notification.data.tournamentDate && (
+                        <div>📅 תאריך: {new Date(notification.data.tournamentDate).toLocaleDateString('he-IL')}</div>
+                      )}
+                      {notification.data.prizeFirst && (
+                        <div>🏆 פרס ראשון: {notification.data.prizeFirst} ₪</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {!notification.isRead && (
+                  <div style={{
+                    width: 8,
+                    height: 8,
+                    backgroundColor: "#2196f3",
+                    borderRadius: "50%",
+                    marginTop: 4
+                  }} />
                 )}
               </div>
-              {!notification.isRead && (
-                <div style={{
-                  width: 8,
-                  height: 8,
-                  backgroundColor: "#2196f3",
-                  borderRadius: "50%",
-                  marginTop: 4
-                }} />
-              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {notifications.length > 3 && (
-        <div style={{
-          textAlign: "center",
-          marginTop: 12,
-          fontSize: isMobile ? 12 : 14,
-          color: "#666"
-        }}>
+      {notifications.length > 3 && !showAll && (
+        <button
+          onClick={() => setShowAll(true)}
+          style={{
+            width: "100%",
+            padding: isMobile ? "10px" : "12px",
+            marginTop: 12,
+            border: "2px solid #2196f3",
+            borderRadius: 8,
+            backgroundColor: "#fff",
+            color: "#2196f3",
+            fontSize: isMobile ? 13 : 14,
+            fontWeight: 700,
+            cursor: "pointer",
+            transition: "all 0.2s ease"
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "#2196f3";
+            e.currentTarget.style.color = "#fff";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "#fff";
+            e.currentTarget.style.color = "#2196f3";
+          }}
+        >
           ועוד {notifications.length - 3} הודעות...
-        </div>
+        </button>
+      )}
+      
+      {showAll && notifications.length > 3 && (
+        <button
+          onClick={() => setShowAll(false)}
+          style={{
+            width: "100%",
+            padding: isMobile ? "10px" : "12px",
+            marginTop: 12,
+            border: "2px solid #666",
+            borderRadius: 8,
+            backgroundColor: "#fff",
+            color: "#666",
+            fontSize: isMobile ? 13 : 14,
+            fontWeight: 700,
+            cursor: "pointer",
+            transition: "all 0.2s ease"
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "#666";
+            e.currentTarget.style.color = "#fff";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "#fff";
+            e.currentTarget.style.color = "#666";
+          }}
+        >
+          הצג פחות
+        </button>
       )}
     </div>
   );
