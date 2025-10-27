@@ -332,12 +332,25 @@ router.post("/api/admin/advance-stage", requireAuth, async (req, res) => {
         .json({ ok: false, error: "bad_request", reason: "invalid_tournament_id" });
     }
 
-    // קרא את הטורניר
-    const t = db
-      .prepare(`SELECT id, name, current_stage FROM tournaments WHERE id = ?`)
-      .get(tournamentId) as { id: number; name?: string; current_stage?: string } | undefined;
+    // חיפוש גמיש: קודם לפי id (אם קיימת עמודה כזו), ואם לא – לפי rowid
+    const hasIdCol = (() => {
+      try {
+        const cols = db.prepare(`PRAGMA table_info(tournaments)`).all() as Array<{ name: string }>;
+        return cols.some(c => c.name === "id");
+      } catch { return false; }
+    })();
+
+    let t: { id?: number; name?: string; current_stage?: string } | undefined;
+
+    if (hasIdCol) {
+      t = db.prepare(`SELECT id, name, current_stage FROM tournaments WHERE id = ?`).get(tournamentId) as any;
+    }
+    if (!t) {
+      t = db.prepare(`SELECT rowid as id, name, current_stage FROM tournaments WHERE rowid = ?`).get(tournamentId) as any;
+    }
 
     if (!t) {
+      console.warn("[advance-stage] tournament_not_found", { tournamentId, hasIdCol });
       return res.status(404).json({ ok: false, error: "tournament_not_found" });
     }
 
@@ -347,9 +360,14 @@ router.post("/api/admin/advance-stage", requireAuth, async (req, res) => {
     const to = String(req?.body?.to ?? req?.body?.stage ?? nextMap[stageNow] ?? stageNow).toUpperCase();
 
     // עדכון השלב (רק אם העמודה קיימת)
-    const cols = db.prepare(`PRAGMA table_info(tournaments)`).all() as Array<{ name: string }>;
-    if (cols.some(c => c.name === "current_stage")) {
-      db.prepare(`UPDATE tournaments SET current_stage = ? WHERE id = ?`).run(to, tournamentId);
+    try {
+      const cols = db.prepare(`PRAGMA table_info(tournaments)`).all() as Array<{ name: string }>;
+      if (cols.some(c => c.name === "current_stage")) {
+        const whereCol = hasIdCol ? "id" : "rowid";
+        db.prepare(`UPDATE tournaments SET current_stage = ? WHERE ${whereCol} = ?`).run(to, tournamentId);
+      }
+    } catch (e) {
+      console.warn("[advance-stage] stage update warning:", (e as Error).message);
     }
 
     // יצירת התראות ומיילים לשחקנים שנבחרו
