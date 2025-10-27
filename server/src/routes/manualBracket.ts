@@ -256,7 +256,7 @@ router.post("/api/admin/tournaments/create", requireAuth, async (req, res) => {
       return tournamentId;
     })();
 
-    // מחק tournament_registrations למשתמשים שנבחרו (כדי שיוכלו להביע עניין בטורניר הבא)
+    // עדכן tournament_registrations למשתמשים שנבחרו - שנה את ה-state ל-'selected'
     const hasIdCol = (() => {
       try {
         const cols = db.prepare(`PRAGMA table_info(tournaments)`).all() as Array<{ name: string }>;
@@ -265,12 +265,28 @@ router.post("/api/admin/tournaments/create", requireAuth, async (req, res) => {
     })();
     
     if (hasIdCol && tid) {
-      // מחק registration למשתמשים שנבחרו לטורניר הזה
+      // עדכן state ל-'selected' למשתמשים שנבחרו לטורניר הזה
       for (const userId of seeds) {
         try {
-          db.prepare(`DELETE FROM tournament_registrations WHERE tournamentId = ? AND userId = ?`).run(tid, userId);
+          db.prepare(`
+            UPDATE tournament_registrations 
+            SET state = 'selected', updatedAt = ?
+            WHERE tournamentId = ? AND userId = ?
+          `).run(nowISO(), tid, userId);
+          
+          // אם אין registration קיים, צור אחד חדש עם state='selected'
+          const existing = db.prepare(`
+            SELECT id FROM tournament_registrations WHERE tournamentId = ? AND userId = ?
+          `).get(tid, userId);
+          
+          if (!existing) {
+            db.prepare(`
+              INSERT INTO tournament_registrations (id, tournamentId, userId, state, createdAt, updatedAt)
+              VALUES (?, ?, ?, 'selected', ?, ?)
+            `).run(uuid(), tid, userId, nowISO(), nowISO());
+          }
         } catch (e) {
-          // אם אין registration - לא משנה
+          console.error(`Failed to update registration for user ${userId}:`, e);
         }
       }
     }

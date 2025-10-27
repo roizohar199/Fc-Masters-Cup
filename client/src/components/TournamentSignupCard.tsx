@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import { api } from "../api";
 
 type Status = "collecting" | "closed" | "running" | "finished";
-type MyState = "registered" | "cancelled" | null;
+type MyState = "registered" | "cancelled" | "selected" | null;
 
 interface TournamentSignupCardProps {
   tournamentId: string;
@@ -49,11 +49,11 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
   const myState = data?.myState as MyState;
 
   // מערכת רישום מוקדם - תמיד פעילה
-  const canJoinEarly = !isFull && myState !== "registered";
+  const canJoinEarly = !isFull && myState !== "registered" && myState !== "selected";
   const canLeaveEarly = myState === "registered";
   
   // המערכת הישנה - רק כשהטורניר פעיל
-  const canJoin = t?.status === "collecting" && !isFull && myState !== "registered";
+  const canJoin = t?.status === "collecting" && !isFull && myState !== "registered" && myState !== "selected";
   const canLeave = t?.status === "collecting" && myState === "registered";
 
   async function join() {
@@ -353,7 +353,31 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
         </div>
       )}
 
-      {isFull && myState !== "registered" && (
+      {myState === "selected" && (
+        <div
+          style={{
+            padding: isMobile ? 12 : 16,
+            borderRadius: 12,
+            background: "linear-gradient(135deg, #ffd700 0%, #ffed4e 100%)",
+            border: "2px solid #ffc107",
+            marginBottom: isMobile ? 16 : 20,
+            textAlign: "center",
+          }}
+        >
+          <p
+            style={{
+              margin: 0,
+              fontSize: isMobile ? 15 : 17,
+              fontWeight: 700,
+              color: "#ff6f00",
+            }}
+          >
+            🎉 נבחרת לטורניר! מחכים לראות אותך על המגרש! 🏆
+          </p>
+        </div>
+      )}
+
+      {isFull && myState !== "registered" && myState !== "selected" && (
         <div
           style={{
             padding: isMobile ? 12 : 16,

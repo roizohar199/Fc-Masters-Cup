@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { fetchJSON } from "../../utils/fetchJSON";
 import { colors, buttonStyles, shadows } from "../../styles";
 
@@ -120,6 +121,7 @@ const userCardStyle: React.CSSProperties = {
 };
 
 export default function ManualBracketManager() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [query, setQuery] = useState("");
 
@@ -298,7 +300,23 @@ export default function ManualBracketManager() {
     <div style={containerStyle}>
       <div style={mainContentStyle}>
         <header style={headerStyle}>
-          <h1 style={titleStyle}>יצירת טורניר + שיוך ידני</h1>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <button 
+              onClick={() => navigate("/")}
+              style={{
+                ...buttonStyles.secondary,
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "10px 20px",
+                fontSize: "16px",
+              }}
+              title="חזרה לדף הבית"
+            >
+              🏠 דף הבית
+            </button>
+            <h1 style={titleStyle}>יצירת טורניר + שיוך ידני</h1>
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
             {(["R16", "QF", "SF", "F"] as const).map(stage => {
               const count = {R16,QF,SF,F}[stage].length;
