@@ -109,26 +109,44 @@ router.post("/api/admin/tournaments/create", async (req, res) => {
     const { nowISO } = await import("../lib/util.js");
 
     const tid = db.transaction(() => {
-      // First, check if tournaments table has the new schema
-      const hasNameColumn = db.prepare(`PRAGMA table_info(tournaments)`).all().some((col: any) => col.name === 'name');
-      
-      let tournamentId: string;
-      
-      if (hasNameColumn) {
-        // New schema with name column
-        const info = db.prepare(
-          `INSERT INTO tournaments (name, game, starts_at, current_stage, is_active)
-           VALUES (?,?,?,?,1)`
-        ).run(name, game, String(startsAt), "R16");
-        tournamentId = String(info.lastInsertRowid);
-      } else {
-        // Old schema - use title column (name -> title)
-        const info = db.prepare(
-          `INSERT INTO tournaments (title, game, platform, timezone, createdAt, prizeFirst, prizeSecond, nextTournamentDate, telegramLink)
-           VALUES (?,?,?,?,?,?,?,?,?)`
-        ).run(name, game, "PS5", "Asia/Jerusalem", new Date().toISOString(), 500, 0, startsAt, null);
-        tournamentId = String(info.lastInsertRowid);
+      // Helper function to check columns
+      function safeHasColumn(table: string, column: string): boolean {
+        try {
+          const cols = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+          return cols.some((c) => c.name === column);
+        } catch {
+          return false;
+        }
       }
+
+      const startsAtISO = String(startsAt);
+      const hasTitleCol = safeHasColumn("tournaments", "title");
+      const hasNameCol = safeHasColumn("tournaments", "name");
+
+      // If has title column (sometimes NOT NULL) - fill it with same value as name
+      let insertSql: string;
+      let params: any[];
+      let tournamentId: string;
+
+      if (hasTitleCol && hasNameCol) {
+        // Both columns exist - fill both
+        insertSql = `INSERT INTO tournaments (name, title, game, starts_at, current_stage, is_active)
+                     VALUES (?,?,?,?,?,1)`;
+        params = [name, name, game, startsAtISO, "R16"];
+      } else if (hasTitleCol) {
+        // Only title exists (old schema)
+        insertSql = `INSERT INTO tournaments (title, game, platform, timezone, createdAt, prizeFirst, prizeSecond, nextTournamentDate, telegramLink)
+                     VALUES (?,?,?,?,?,?,?,?,?)`;
+        params = [name, game, "PS5", "Asia/Jerusalem", new Date().toISOString(), 500, 0, startsAt, null];
+      } else {
+        // Only name exists (new schema)
+        insertSql = `INSERT INTO tournaments (name, game, starts_at, current_stage, is_active)
+                     VALUES (?,?,?,?,1)`;
+        params = [name, game, startsAtISO, "R16"];
+      }
+
+      const info = db.prepare(insertSql).run(...params);
+      tournamentId = String(info.lastInsertRowid);
       
       console.log(where, "Created tournament with ID:", tournamentId);
 

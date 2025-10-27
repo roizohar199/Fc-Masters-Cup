@@ -47,6 +47,20 @@ export function ensureSchema(db: Database.Database) {
       CREATE INDEX IF NOT EXISTS idx_tournaments_active ON tournaments(is_active);
     `);
   } else {
+    const hasName  = has(db, "tournaments", "name");
+    const hasTitle = has(db, "tournaments", "title");
+
+    // אם יש title בלי name – נוסיף name ונסנכרן
+    if (!hasName && hasTitle) {
+      db.exec(`ALTER TABLE tournaments ADD COLUMN name TEXT;`);
+      db.exec(`UPDATE tournaments SET name = title WHERE name IS NULL;`);
+    }
+
+    // אם יש גם name וגם title – ודא שאין רשומות עם title ריק בזמן שהשם קיים
+    if (hasName && hasTitle) {
+      db.exec(`UPDATE tournaments SET title = COALESCE(title, name) WHERE title IS NULL;`);
+    }
+
     if (!has(db, "tournaments", "name"))          db.exec(`ALTER TABLE tournaments ADD COLUMN name TEXT;`);
     if (!has(db, "tournaments", "game"))          db.exec(`ALTER TABLE tournaments ADD COLUMN game TEXT;`);
     if (!has(db, "tournaments", "starts_at"))     db.exec(`ALTER TABLE tournaments ADD COLUMN starts_at TEXT;`);
