@@ -73,14 +73,18 @@ router.get("/api/admin/debug/db-info", (req, res) => {
 // מחיקת endpoint שלא נחוץ יותר
 
 // (A) יצירת טורניר והצבה מיידית של 16 לשמינית — גרסה מוקשחת עם לוגים ברורים
-router.post("/api/admin/tournaments/create", (req, res) => {
+router.post("/api/admin/tournaments/create", async (req, res) => {
   const where = "[create]";
   try {
     let { name, game, startsAt, seeds16, sendEmails } = req.body || {};
     if (!Array.isArray(seeds16)) seeds16 = [];
 
-    // ניקוי/ייחוד מספרי
-    const seeds = Array.from(new Set((seeds16 as any[]).map(Number).filter(Number.isFinite)));
+    console.log(where, "Received seeds16:", seeds16);
+    
+    // ניקוי/ייחוד - keep as strings (UUIDs)
+    const seeds = Array.from(new Set((seeds16 as any[]).filter(s => s && typeof s === 'string')));
+    console.log(where, "Processed seeds:", seeds);
+    
     if (!name || !game || !startsAt) {
       console.error(where, "missing fields", { name, game, startsAt });
       return res.status(400).json({ ok: false, error: "bad_request", reason: "missing_fields" });
@@ -90,9 +94,9 @@ router.post("/api/admin/tournaments/create", (req, res) => {
       return res.status(400).json({ ok: false, error: "bad_request", reason: "need_16_players", got: seeds.length });
     }
 
-    // בדוק קיום ids
+    // בדוק קיום ids - update type to handle UUID strings
     const placeholders = seeds.map(() => "?").join(",");
-    const exists = db.prepare(`SELECT id FROM users WHERE id IN (${placeholders})`).all(...seeds) as Array<{id:number}>;
+    const exists = db.prepare(`SELECT id FROM users WHERE id IN (${placeholders})`).all(...seeds) as Array<{id:string}>;
     const found = new Set(exists.map(r => r.id));
     const missing = seeds.filter(x => !found.has(x));
     if (missing.length) {
@@ -100,28 +104,61 @@ router.post("/api/admin/tournaments/create", (req, res) => {
       return res.status(400).json({ ok: false, error: "bad_request", reason: "users_not_found", missing });
     }
 
+    // Import utilities outside transaction
+    const { uuid, genToken, genPin } = await import("../utils/ids.js");
+    const { nowISO } = await import("../lib/util.js");
+
     const tid = db.transaction(() => {
-      // הכנסה לטבלת tournaments – עכשיו יש בטוח name/game/starts_at/current_stage/is_active
-      const info = db.prepare(
-        `INSERT INTO tournaments (name, game, starts_at, current_stage, is_active)
-         VALUES (?,?,?,?,1)`
-      ).run(name, game, String(startsAt), "R16");
-      const tournamentId = Number(info.lastInsertRowid);
+      // First, check if tournaments table has the new schema
+      const hasNameColumn = db.prepare(`PRAGMA table_info(tournaments)`).all().some((col: any) => col.name === 'name');
+      
+      let tournamentId: string;
+      
+      if (hasNameColumn) {
+        // New schema with name column
+        const info = db.prepare(
+          `INSERT INTO tournaments (name, game, starts_at, current_stage, is_active)
+           VALUES (?,?,?,?,1)`
+        ).run(name, game, String(startsAt), "R16");
+        tournamentId = String(info.lastInsertRowid);
+      } else {
+        // Old schema - use title column
+        const info = db.prepare(
+          `INSERT INTO tournaments (title, game, platform, timezone, createdAt, prizeFirst, prizeSecond, nextTournamentDate, telegramLink)
+           VALUES (?,?,?,?,?,?,?,?,?)`
+        ).run(name, game, "PS5", "Asia/Jerusalem", new Date().toISOString(), 500, 0, startsAt, null);
+        tournamentId = String(info.lastInsertRowid);
+      }
 
-      // שיוך שחקנים לשמינית
-      const insTP = db.prepare(
-        `INSERT INTO tournament_players (tournament_id, user_id, stage, is_selected)
-         VALUES (?,?,?,1)`
-      );
-      for (const uid of seeds) insTP.run(tournamentId, uid, "R16");
+      // שיוך שחקנים לשמינית - check if tournament_players table exists
+      const hasTournamentPlayers = db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='tournament_players'`).get();
+      
+      if (hasTournamentPlayers) {
+        const insTP = db.prepare(
+          `INSERT OR IGNORE INTO tournament_players (tournament_id, user_id, stage, is_selected)
+           VALUES (?,?,?,1)`
+        );
+        for (const uid of seeds) insTP.run(tournamentId, uid, "R16");
+      }
 
-      // 8 משחקי R16: (1-2), (3-4), ...
+      // 8 משחקי R16: (1-2), (3-4), ... - use old schema
       const insM = db.prepare(
-        `INSERT INTO matches (tournament_id, round, pos, p1_user_id, p2_user_id)
-         VALUES (?,?,?,?,?)`
+        `INSERT INTO matches (tournamentId, round, homeId, awayId, status, token, pin, createdAt)
+         VALUES (?,?,?,?,?,?,?,?)`
       );
+      
       for (let i = 0; i < 8; i++) {
-        insM.run(tournamentId, "R16", i + 1, seeds[i * 2], seeds[i * 2 + 1]);
+        const matchId = uuid();
+        insM.run(
+          tournamentId, 
+          "R16", 
+          seeds[i * 2], 
+          seeds[i * 2 + 1], 
+          "PENDING", 
+          genToken(), 
+          genPin(),
+          nowISO()
+        );
       }
       return tournamentId;
     })();
