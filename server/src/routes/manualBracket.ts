@@ -305,14 +305,17 @@ router.post("/api/admin/advance-stage", async (req, res) => {
       return res.status(400).json({ ok: false, error: "missing_fields" });
     }
 
-    const validStages = ["QF", "SF", "F"];
-    if (!validStages.includes(stage)) {
+    const validStages = ["QF", "SF", "F"] as const;
+    type Stage = typeof validStages[number];
+    
+    if (!validStages.includes(stage as any)) {
       return res.status(400).json({ ok: false, error: "invalid_stage" });
     }
 
-    const requiredCounts = { QF: 8, SF: 4, F: 2 };
-    if (selectedIds.length !== requiredCounts[stage]) {
-      return res.status(400).json({ ok: false, error: "wrong_count", expected: requiredCounts[stage], got: selectedIds.length });
+    const validatedStage = stage as Stage;
+    const requiredCounts: Record<Stage, number> = { QF: 8, SF: 4, F: 2 };
+    if (selectedIds.length !== requiredCounts[validatedStage]) {
+      return res.status(400).json({ ok: false, error: "wrong_count", expected: requiredCounts[validatedStage], got: selectedIds.length });
     }
 
     // Get tournament info
@@ -334,7 +337,7 @@ router.post("/api/admin/advance-stage", async (req, res) => {
       for (const user of users) {
         if (user.email && user.id) {
           const notificationId = uuid();
-          const stageNames = { QF: "רבע גמר", SF: "חצי גמר", F: "גמר" };
+          const stageNames: Record<Stage, string> = { QF: "רבע גמר", SF: "חצי גמר", F: "גמר" };
           
           try {
             db.prepare(`
@@ -344,9 +347,9 @@ router.post("/api/admin/advance-stage", async (req, res) => {
               notificationId,
               user.id,
               'tournament_stage_advance',
-              `התקדמת לשלב ${stageNames[stage]}: ${tournament.name}`,
-              `מזל טוב! התקדמת לשלב ${stageNames[stage]} בטורניר "${tournament.name}". המשך להצליח!`,
-              JSON.stringify({ tournamentId, stage }),
+              `התקדמת לשלב ${stageNames[validatedStage]}: ${tournament.name}`,
+              `מזל טוב! התקדמת לשלב ${stageNames[validatedStage]} בטורניר "${tournament.name}". המשך להצליח!`,
+              JSON.stringify({ tournamentId, stage: validatedStage }),
               nowISO()
             );
             console.log(where, "Notification created for user:", user.id);
@@ -359,7 +362,7 @@ router.post("/api/admin/advance-stage", async (req, res) => {
             await sendTournamentSelectionEmail({
               userEmail: user.email,
               userName: user.psnUsername || user.email,
-              tournamentTitle: `${tournament.name} - ${stageNames[stage]}`,
+              tournamentTitle: `${tournament.name} - ${stageNames[validatedStage]}`,
               tournamentDate: undefined,
               telegramLink: undefined,
               prizeFirst: 500,
@@ -372,7 +375,7 @@ router.post("/api/admin/advance-stage", async (req, res) => {
       }
     }
 
-    return res.json({ ok: true, message: `נבחרו ${selectedIds.length} שחקנים לשלב ${stage}` });
+    return res.json({ ok: true, message: `נבחרו ${selectedIds.length} שחקנים לשלב ${validatedStage}` });
   } catch (e) {
     console.error("[advance-stage] fatal:", (e as Error).message);
     return res.status(500).json({ ok: false, error: "internal_error", message: (e as Error).message });
