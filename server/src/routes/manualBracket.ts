@@ -373,37 +373,39 @@ router.post("/api/admin/advance-stage", requireAuth, async (req, res) => {
       return res.status(404).json({ ok: false, error: "tournament_not_found" });
     }
 
+    // קרא פרמטרים מהבקשה
+    const { stage, selectedIds, sendEmails } = req.body || {};
+    
     // קבע שלב יעד (אם לא נשלח – נגזור מהשלב הנוכחי)
     const stageNow = (t.current_stage || "R16").toUpperCase();
     const nextMap: Record<string, string> = { R16: "QF", QF: "SF", SF: "F", F: "FINISHED" };
-    const to = String(req?.body?.to ?? req?.body?.stage ?? nextMap[stageNow] ?? stageNow).toUpperCase();
+    const to = String(req?.body?.to ?? stage ?? nextMap[stageNow] ?? stageNow).toUpperCase();
 
-      // עדכון השלב (רק אם העמודה קיימת)
-      try {
-        const cols = db.prepare(`PRAGMA table_info(tournaments)`).all() as Array<{ name: string }>;
-        if (cols.some(c => c.name === "current_stage")) {
-          const whereCol = hasIdCol ? "id" : "rowid";
-          db.prepare(`UPDATE tournaments SET current_stage = ? WHERE ${whereCol} = ?`).run(to, tournamentId);
-        }
-      } catch (e) {
-        console.warn("[advance-stage] stage update warning:", (e as Error).message);
+    // עדכון השלב (רק אם העמודה קיימת)
+    try {
+      const cols = db.prepare(`PRAGMA table_info(tournaments)`).all() as Array<{ name: string }>;
+      if (cols.some(c => c.name === "current_stage")) {
+        const whereCol = hasIdCol ? "id" : "rowid";
+        db.prepare(`UPDATE tournaments SET current_stage = ? WHERE ${whereCol} = ?`).run(to, tournamentId);
       }
+    } catch (e) {
+      console.warn("[advance-stage] stage update warning:", (e as Error).message);
+    }
 
-      // מחק tournament_registrations למשתמשים שנבחרו (כדי שיוכלו להביע עניין בטורניר הבא)
-      if (hasIdCol) {
-        // מחק registration למשתמשים שנבחרו לטורניר הזה
-        for (const userId of selectedIds) {
-          try {
-            db.prepare(`DELETE FROM tournament_registrations WHERE tournamentId = ? AND userId = ?`).run(tournamentId, userId);
-          } catch (e) {
-            // אם אין registration - לא משנה
-            console.warn(`[advance-stage] Could not delete registration for user ${userId}:`, (e as Error).message);
-          }
+    // מחק tournament_registrations למשתמשים שנבחרו (כדי שיוכלו להביע עניין בטורניר הבא)
+    if (hasIdCol && Array.isArray(selectedIds) && selectedIds.length > 0) {
+      // מחק registration למשתמשים שנבחרו לטורניר הזה
+      for (const userId of selectedIds) {
+        try {
+          db.prepare(`DELETE FROM tournament_registrations WHERE tournamentId = ? AND userId = ?`).run(tournamentId, userId);
+        } catch (e) {
+          // אם אין registration - לא משנה
+          console.warn(`[advance-stage] Could not delete registration for user ${userId}:`, (e as Error).message);
         }
       }
+    }
 
     // יצירת התראות ומיילים לשחקנים שנבחרו
-    const { stage, selectedIds, sendEmails } = req.body || {};
     
     if (stage && Array.isArray(selectedIds) && selectedIds.length > 0 && sendEmails) {
       const validStages = ["QF", "SF", "F"] as const;
