@@ -66,6 +66,13 @@ export function ensureSchema(db: Database.Database) {
     if (!has(db, "tournaments", "starts_at"))     db.exec(`ALTER TABLE tournaments ADD COLUMN starts_at TEXT;`);
     if (!has(db, "tournaments", "current_stage")) db.exec(`ALTER TABLE tournaments ADD COLUMN current_stage TEXT;`);
     if (!has(db, "tournaments", "is_active"))     db.exec(`ALTER TABLE tournaments ADD COLUMN is_active INTEGER; UPDATE tournaments SET is_active=1 WHERE is_active IS NULL;`);
+    
+    // ✅ PLATFORM – להוסיף אם חסר ולבצע BACKFILL
+    if (!has(db, "tournaments", "platform")) {
+      db.exec(`ALTER TABLE tournaments ADD COLUMN platform TEXT;`);
+    }
+    // נמלא רשומות ישנות שבהן אין פלטפורמה (גם אם העמודה NOT NULL)
+    db.exec(`UPDATE tournaments SET platform = COALESCE(NULLIF(platform,''),'ps5') WHERE platform IS NULL OR platform = '';`);
 
     // ⛔ בלי DEFAULT לא-קבוע: מוסיפים עמודה ואז ממלאים ערך קיים
     if (!has(db, "tournaments", "created_at")) {

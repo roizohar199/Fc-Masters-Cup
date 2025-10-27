@@ -122,22 +122,41 @@ router.post("/api/admin/tournaments/create", async (req, res) => {
       const startsAtISO = String(startsAt);
       const hasTitleCol = safeHasColumn("tournaments", "title");
       const hasNameCol = safeHasColumn("tournaments", "name");
+      const hasPlatformCol = safeHasColumn("tournaments", "platform");
+
+      // פלטפורמה: אם לא נשלחה מהקליינט – נגדיר ערך סביר
+      const platformVal = "ps5"; // Default platform
 
       // If has title column (sometimes NOT NULL) - fill it with same value as name
       let insertSql: string;
       let params: any[];
       let tournamentId: string;
 
-      if (hasTitleCol && hasNameCol) {
-        // Both columns exist - fill both
+      if (hasTitleCol && hasNameCol && hasPlatformCol) {
+        // All columns exist - fill all
+        insertSql = `INSERT INTO tournaments (name, title, game, platform, starts_at, current_stage, is_active)
+                     VALUES (?,?,?,?,?,?,1)`;
+        params = [name, name, game, platformVal, startsAtISO, "R16"];
+      } else if (hasTitleCol && hasNameCol) {
+        // Both name and title exist - no platform
         insertSql = `INSERT INTO tournaments (name, title, game, starts_at, current_stage, is_active)
                      VALUES (?,?,?,?,?,1)`;
         params = [name, name, game, startsAtISO, "R16"];
-      } else if (hasTitleCol) {
-        // Only title exists (old schema)
+      } else if (hasTitleCol && hasPlatformCol) {
+        // Only title and platform exist (very old schema)
         insertSql = `INSERT INTO tournaments (title, game, platform, timezone, createdAt, prizeFirst, prizeSecond, nextTournamentDate, telegramLink)
                      VALUES (?,?,?,?,?,?,?,?,?)`;
-        params = [name, game, "PS5", "Asia/Jerusalem", new Date().toISOString(), 500, 0, startsAt, null];
+        params = [name, game, platformVal, "Asia/Jerusalem", new Date().toISOString(), 500, 0, startsAt, null];
+      } else if (hasTitleCol) {
+        // Only title exists (old schema)
+        insertSql = `INSERT INTO tournaments (title, game, timezone, createdAt, prizeFirst, prizeSecond, nextTournamentDate, telegramLink)
+                     VALUES (?,?,?,?,?,?,?,?)`;
+        params = [name, game, "Asia/Jerusalem", new Date().toISOString(), 500, 0, startsAt, null];
+      } else if (hasPlatformCol) {
+        // Only platform exists with name
+        insertSql = `INSERT INTO tournaments (name, game, platform, starts_at, current_stage, is_active)
+                     VALUES (?,?,?,?,?,1)`;
+        params = [name, game, platformVal, startsAtISO, "R16"];
       } else {
         // Only name exists (new schema)
         insertSql = `INSERT INTO tournaments (name, game, starts_at, current_stage, is_active)
@@ -158,28 +177,51 @@ router.post("/api/admin/tournaments/create", async (req, res) => {
           `INSERT OR IGNORE INTO tournament_players (tournament_id, user_id, stage, is_selected)
            VALUES (?,?,?,1)`
         );
-        for (const uid of seeds) insTP.run(tournamentId, uid, "R16");
+        for (const uid of seeds) insTP.run(Number(tournamentId), Number(uid), "R16");
       }
 
-      // 8 משחקי R16: (1-2), (3-4), ... - use old schema
-      const insM = db.prepare(
-        `INSERT INTO matches (id, tournamentId, round, homeId, awayId, status, token, pin, createdAt)
-         VALUES (?,?,?,?,?,?,?,?,?)`
-      );
+      // 8 משחקי R16: (1-2), (3-4), ...
+      // Check if matches table has old schema or new schema
+      const hasMatchesOld = db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='matches'`).get();
+      const hasNewSchema = db.prepare(`PRAGMA table_info(matches)`).all().some((col: any) => col.name === 'tournamentId');
       
-      for (let i = 0; i < 8; i++) {
-        const matchId = uuid();
-        insM.run(
-          matchId,
-          tournamentId, 
-          "R16", 
-          seeds[i * 2], 
-          seeds[i * 2 + 1], 
-          "PENDING", 
-          genToken(), 
-          genPin(),
-          nowISO()
+      if (hasNewSchema) {
+        // New schema with tournamentId, homeId, awayId
+        const insM = db.prepare(
+          `INSERT INTO matches (id, tournamentId, round, homeId, awayId, status, token, pin, createdAt)
+           VALUES (?,?,?,?,?,?,?,?,?)`
         );
+        
+        for (let i = 0; i < 8; i++) {
+          const matchId = uuid();
+          insM.run(
+            matchId,
+            tournamentId, 
+            "R16", 
+            seeds[i * 2], 
+            seeds[i * 2 + 1], 
+            "PENDING", 
+            genToken(), 
+            genPin(),
+            nowISO()
+          );
+        }
+      } else if (hasMatchesOld) {
+        // Old schema with tournament_id, p1_user_id, p2_user_id
+        const insM = db.prepare(
+          `INSERT INTO matches (tournament_id, round, pos, p1_user_id, p2_user_id)
+           VALUES (?,?,?,?,?)`
+        );
+        
+        for (let i = 0; i < 8; i++) {
+          insM.run(
+            Number(tournamentId),
+            "R16", 
+            i + 1, 
+            Number(seeds[i * 2]), 
+            Number(seeds[i * 2 + 1])
+          );
+        }
       }
       return tournamentId;
     })();
