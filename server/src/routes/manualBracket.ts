@@ -123,35 +123,39 @@ router.post("/api/admin/tournaments/create", async (req, res) => {
       const hasTitleCol = safeHasColumn("tournaments", "title");
       const hasNameCol = safeHasColumn("tournaments", "name");
       const hasPlatformCol = safeHasColumn("tournaments", "platform");
+      const hasTimezoneCol = safeHasColumn("tournaments", "timezone");
+      const hasCreatedAtCol = safeHasColumn("tournaments", "createdAt");
 
       // פלטפורמה: אם לא נשלחה מהקליינט – נגדיר ערך סביר
       const platformVal = "ps5"; // Default platform
+      const timezoneVal = "Asia/Jerusalem"; // Default timezone
 
       // If has title column (sometimes NOT NULL) - fill it with same value as name
       let insertSql: string;
       let params: any[];
       let tournamentId: string;
 
-      if (hasTitleCol && hasNameCol && hasPlatformCol) {
-        // All columns exist - fill all
-        insertSql = `INSERT INTO tournaments (name, title, game, platform, starts_at, current_stage, is_active)
-                     VALUES (?,?,?,?,?,?,1)`;
-        params = [name, name, game, platformVal, startsAtISO, "R16"];
+      // התמודדות עם הסכמות השונות
+      if (hasTitleCol && hasPlatformCol && hasTimezoneCol && hasCreatedAtCol) {
+        // Old schema with all required fields
+        insertSql = `INSERT INTO tournaments (title, game, platform, timezone, createdAt, prizeFirst, prizeSecond, nextTournamentDate, telegramLink)
+                     VALUES (?,?,?,?,?,?,?,?,?)`;
+        params = [name, game, platformVal, timezoneVal, new Date().toISOString(), 500, 0, startsAt, null];
+      } else if (hasTitleCol && hasNameCol && hasPlatformCol && hasTimezoneCol) {
+        // Both new and old schema fields
+        insertSql = `INSERT INTO tournaments (name, title, game, platform, timezone, starts_at, current_stage, is_active)
+                     VALUES (?,?,?,?,?,?,?,1)`;
+        params = [name, name, game, platformVal, timezoneVal, startsAtISO, "R16"];
       } else if (hasTitleCol && hasNameCol) {
-        // Both name and title exist - no platform
+        // Both name and title exist - no platform/timezone
         insertSql = `INSERT INTO tournaments (name, title, game, starts_at, current_stage, is_active)
                      VALUES (?,?,?,?,?,1)`;
         params = [name, name, game, startsAtISO, "R16"];
-      } else if (hasTitleCol && hasPlatformCol) {
-        // Only title and platform exist (very old schema)
-        insertSql = `INSERT INTO tournaments (title, game, platform, timezone, createdAt, prizeFirst, prizeSecond, nextTournamentDate, telegramLink)
-                     VALUES (?,?,?,?,?,?,?,?,?)`;
-        params = [name, game, platformVal, "Asia/Jerusalem", new Date().toISOString(), 500, 0, startsAt, null];
-      } else if (hasTitleCol) {
-        // Only title exists (old schema)
-        insertSql = `INSERT INTO tournaments (title, game, timezone, createdAt, prizeFirst, prizeSecond, nextTournamentDate, telegramLink)
-                     VALUES (?,?,?,?,?,?,?,?)`;
-        params = [name, game, "Asia/Jerusalem", new Date().toISOString(), 500, 0, startsAt, null];
+      } else if (hasPlatformCol && hasTimezoneCol) {
+        // Only platform and timezone exist
+        insertSql = `INSERT INTO tournaments (name, game, platform, timezone, starts_at, current_stage, is_active)
+                     VALUES (?,?,?,?,?,?,1)`;
+        params = [name, game, platformVal, timezoneVal, startsAtISO, "R16"];
       } else if (hasPlatformCol) {
         // Only platform exists with name
         insertSql = `INSERT INTO tournaments (name, game, platform, starts_at, current_stage, is_active)

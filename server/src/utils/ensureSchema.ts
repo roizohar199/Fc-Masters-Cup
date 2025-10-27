@@ -73,6 +73,13 @@ export function ensureSchema(db: Database.Database) {
     }
     // נמלא רשומות ישנות שבהן אין פלטפורמה (גם אם העמודה NOT NULL)
     db.exec(`UPDATE tournaments SET platform = COALESCE(NULLIF(platform,''),'ps5') WHERE platform IS NULL OR platform = '';`);
+    
+    // ✅ TIMEZONE – להוסיף אם חסר ולבצע BACKFILL
+    if (!has(db, "tournaments", "timezone")) {
+      db.exec(`ALTER TABLE tournaments ADD COLUMN timezone TEXT;`);
+    }
+    // נמלא רשומות ישנות שבהן אין timezone (גם אם העמודה NOT NULL)
+    db.exec(`UPDATE tournaments SET timezone = COALESCE(NULLIF(timezone,''),'Asia/Jerusalem') WHERE timezone IS NULL OR timezone = '';`);
 
     // ⛔ בלי DEFAULT לא-קבוע: מוסיפים עמודה ואז ממלאים ערך קיים
     if (!has(db, "tournaments", "created_at")) {
