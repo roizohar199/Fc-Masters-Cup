@@ -300,9 +300,20 @@ router.post("/api/admin/tournaments/create", requireAuth, async (req, res) => {
 router.post("/api/admin/advance-stage", requireAuth, async (req, res) => {
   const where = "[advance-stage]";
   try {
-    let { tournamentId, stage, selectedIds, sendEmails } = req.body || {};
+    // Extract tournament ID from multiple possible field names
+    const raw = req.body?.tournamentId ?? req.body?.id;
+    if (!raw) {
+      return res.status(400).json({ ok: false, error: "missing_tournament_id" });
+    }
+
+    const tournamentId = Number(raw);
+    if (!Number.isFinite(tournamentId) || tournamentId <= 0) {
+      return res.status(400).json({ ok: false, error: "invalid_tournament_id" });
+    }
+
+    const { stage, selectedIds, sendEmails } = req.body || {};
     
-    if (!tournamentId || !stage || !Array.isArray(selectedIds)) {
+    if (!stage || !Array.isArray(selectedIds)) {
       return res.status(400).json({ ok: false, error: "missing_fields" });
     }
 
@@ -319,13 +330,13 @@ router.post("/api/admin/advance-stage", requireAuth, async (req, res) => {
       return res.status(400).json({ ok: false, error: "wrong_count", expected: requiredCounts[validatedStage], got: selectedIds.length });
     }
 
-    // Get tournament info - handle both integer and string tournamentId
-    console.log(where, "Looking for tournament with ID:", tournamentId, "type:", typeof tournamentId);
-    const tournament = db.prepare(`SELECT id, name FROM tournaments WHERE CAST(id AS TEXT) = CAST(? AS TEXT)`).get(tournamentId) as any;
+    // Get tournament info
+    console.log(where, "Looking for tournament with ID:", tournamentId);
+    const tournament = db.prepare(`SELECT id, name FROM tournaments WHERE id = ?`).get(tournamentId) as any;
     if (!tournament) {
       console.log(where, "Tournament not found for ID:", tournamentId);
       // Debug: list all tournaments
-      const allTournaments = db.prepare(`SELECT id, name FROM tournaments LIMIT 5`).all();
+      const allTournaments = db.prepare(`SELECT id, name FROM tournaments ORDER BY id DESC LIMIT 5`).all();
       console.log(where, "Available tournaments:", allTournaments);
       return res.status(404).json({ ok: false, error: "tournament_not_found" });
     }
