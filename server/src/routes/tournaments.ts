@@ -470,14 +470,9 @@ tournaments.post("/:id/select-players-manually", async (req, res) => {
       return res.status(400).json({ error: "Must select at least one player" });
     }
     
-    // המרת tournamentId למספר אם צריך
-    const tournamentIdNum = parseInt(tournamentId);
-    if (isNaN(tournamentIdNum)) {
-      return res.status(400).json({ error: "Invalid tournament ID" });
-    }
-    
+    // tournamentId is already a string (UUID)
     const result = selectPlayersManually({
-      tournamentId: tournamentIdNum,
+      tournamentId: tournamentId,
       stage,
       selectedPlayerIds: playerIds,
       sendEmails,

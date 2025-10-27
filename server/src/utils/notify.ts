@@ -4,7 +4,7 @@ import { sendEmailSafe } from "./sendEmailSafe.js";
 
 export type NotifyArgs = {
   db: Database.Database;
-  userId?: number | null;
+  userId?: string | number | null;
   email?: string | null;
   title: string;
   body: string;

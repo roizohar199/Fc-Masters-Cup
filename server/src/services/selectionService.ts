@@ -8,8 +8,8 @@ export type Stage = "R16" | "QF" | "SF" | "F";
 
 export interface SelectionResult {
   stage: Stage;
-  tournamentId: number;
-  selected: Array<{ userId: number; email: string; displayName: string }>;
+  tournamentId: string;
+  selected: Array<{ userId: string; email: string; displayName: string }>;
   total: number;
 }
 
@@ -72,9 +72,9 @@ function normalizeStage(stage: string): Stage {
  * המנהל בוחר בדיוק איזה שחקנים יקבלו מייל והודעה
  */
 export function selectPlayersManually(opts: {
-  tournamentId: number;
+  tournamentId: string;
   stage: Stage | string;
-  selectedPlayerIds: number[]; // רשימת ID של שחקנים שנבחרו ידנית
+  selectedPlayerIds: string[]; // רשימת ID של שחקנים שנבחרו ידנית
   sendEmails?: boolean;
   createHomepageNotice?: boolean;
 }): SelectionResult {
@@ -90,7 +90,7 @@ export function selectPlayersManually(opts: {
     SELECT id, email, COALESCE(psnUsername, email, 'Player') AS display_name
     FROM users 
     WHERE id IN (${opts.selectedPlayerIds.map(() => '?').join(',')})
-  `).all(...opts.selectedPlayerIds) as Array<{id: number, email: string, display_name: string}>;
+  `).all(...opts.selectedPlayerIds) as Array<{id: string, email: string, display_name: string}>;
 
   if (players.length !== opts.selectedPlayerIds.length) {
     throw new Error("חלק מהשחקנים שנבחרו לא קיימים במערכת");
@@ -102,7 +102,7 @@ export function selectPlayersManually(opts: {
     VALUES (?,?,?)
   `);
   
-  const tx = db.transaction((playerIds: number[]) => {
+  const tx = db.transaction((playerIds: string[]) => {
     playerIds.forEach(playerId => insert.run(opts.tournamentId, playerId, stage));
   });
   tx(opts.selectedPlayerIds);
@@ -161,7 +161,7 @@ function defaultSlotsFor(stage: Stage): number {
  * - שומר ב-tournament_participants, שולח מייל ויוצר התראות.
  */
 export function selectPlayersForStage(opts: {
-  tournamentId: number;
+  tournamentId: string;
   stage: Stage | string;
   slots?: number; // אם לא צוין — ברירת מחדל בהתאם לשלב
   sendEmails?: boolean;
@@ -175,7 +175,7 @@ export function selectPlayersForStage(opts: {
     .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='registrations';")
     .get();
 
-  type Candidate = { user_id: number; email: string; display_name: string; rating?: number; recent_activity?: number };
+  type Candidate = { user_id: string; email: string; display_name: string; rating?: number; recent_activity?: number };
   let candidates: Candidate[] = [];
 
   if (hasRegistrations) {
@@ -224,7 +224,7 @@ export function selectPlayersForStage(opts: {
     VALUES (?,?,?)
   `);
   const tx = db.transaction((rows: typeof selected) => {
-    rows.forEach(r => insert.run(opts.tournamentId, r.user_id, stage));
+    rows.forEach(r => insert.run(opts.tournamentId, String(r.user_id), stage));
   });
   tx(selected);
 
@@ -269,7 +269,7 @@ export function selectPlayersForStage(opts: {
  * בחירת שחקנים ספציפיים לפי רשימת IDs
  */
 export function selectSpecificPlayers(opts: {
-  tournamentId: number;
+  tournamentId: string;
   stage: Stage | string;
   selectedUserIds: string[];
   sendEmails?: boolean;
@@ -283,7 +283,7 @@ export function selectSpecificPlayers(opts: {
     SELECT id AS user_id, email, COALESCE(psnUsername, email, 'Player') AS display_name
     FROM users
     WHERE id IN (${opts.selectedUserIds.map(() => '?').join(',')})
-  `).all(...opts.selectedUserIds) as Array<{ user_id: number; email: string; display_name: string }>;
+  `).all(...opts.selectedUserIds) as Array<{ user_id: string; email: string; display_name: string }>;
 
   if (selectedUsers.length === 0) {
     throw new Error("No eligible players found from the selected list.");
@@ -305,7 +305,7 @@ export function selectSpecificPlayers(opts: {
     VALUES (?,?,?)
   `);
   const tx = db.transaction((rows: typeof newSelections) => {
-    rows.forEach(r => insert.run(opts.tournamentId, r.user_id, stage));
+    rows.forEach(r => insert.run(opts.tournamentId, String(r.user_id), stage));
   });
   tx(newSelections);
 

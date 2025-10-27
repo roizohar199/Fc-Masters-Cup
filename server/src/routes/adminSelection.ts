@@ -97,7 +97,7 @@ router.post("/players/:playerId/payment-status", (req: any, res) => {
 // מומלץ לחבר כאן מידלוור isSuperAdmin
 router.post("/tournaments/:id/select", (req: any, res) => {
   try {
-    const tournamentId = Number(req.params.id);
+    const tournamentIdString = String(req.params.id); // Keep as string (UUID)
     const stage = String(req.body.stage || "R16").toUpperCase();
     const slots = req.body.slots ? Number(req.body.slots) : undefined;
     const notifyEmail = req.body.notifyEmail !== false;
@@ -107,7 +107,7 @@ router.post("/tournaments/:id/select", (req: any, res) => {
     // אם נשלחה רשימת שחקנים ספציפית, נשתמש בה
     if (selectedUserIds.length > 0) {
       const result = selectSpecificPlayers({
-        tournamentId,
+        tournamentId: tournamentIdString,
         stage,
         selectedUserIds,
         sendEmails: notifyEmail,
@@ -117,7 +117,7 @@ router.post("/tournaments/:id/select", (req: any, res) => {
     } else {
       // אחרת, נשתמש בלוגיקה הרגילה
       const result = selectPlayersForStage({
-        tournamentId,
+        tournamentId: tournamentIdString,
         stage,
         slots,
         sendEmails: notifyEmail,
