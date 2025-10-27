@@ -378,7 +378,24 @@ router.post("/api/admin/advance-stage", requireAuth, async (req, res) => {
       type Stage = typeof validStages[number];
       const validatedStage = stage as Stage;
       
-      if (validStages.includes(validatedStage)) {
+      // בדיקת מספר נכון של שחקנים לכל שלב
+      const requiredCounts: Record<Stage, number> = { QF: 8, SF: 4, F: 2 };
+      
+      if (!validStages.includes(validatedStage)) {
+        return res.status(400).json({ ok: false, error: "invalid_stage" });
+      }
+      
+      if (selectedIds.length !== requiredCounts[validatedStage]) {
+        return res.status(400).json({ 
+          ok: false, 
+          error: "wrong_count", 
+          expected: requiredCounts[validatedStage], 
+          got: selectedIds.length 
+        });
+      }
+      
+      // Create notifications and send emails
+      {
         const { uuid } = await import("../utils/ids.js");
         const { nowISO } = await import("../lib/util.js");
         const { sendTournamentSelectionEmail } = await import("../email.js");
