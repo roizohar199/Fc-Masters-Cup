@@ -319,11 +319,13 @@ router.post("/api/admin/advance-stage", requireAuth, async (req, res) => {
       return res.status(400).json({ ok: false, error: "wrong_count", expected: requiredCounts[validatedStage], got: selectedIds.length });
     }
 
-    // Get tournament info
-    const tournament = db.prepare(`SELECT name FROM tournaments WHERE id = ?`).get(tournamentId) as any;
+    // Get tournament info - handle both integer and string tournamentId
+    const tournament = db.prepare(`SELECT id, name FROM tournaments WHERE id = ? OR id = ?`).get(tournamentId, Number(tournamentId)) as any;
     if (!tournament) {
+      console.log(where, "Tournament not found for ID:", tournamentId);
       return res.status(404).json({ ok: false, error: "tournament_not_found" });
     }
+    console.log(where, "Found tournament:", tournament);
 
     // Get users info
     const placeholders = selectedIds.map(() => '?').join(',');
