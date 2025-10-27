@@ -427,9 +427,9 @@ export async function sendTournamentSelectionEmail(params: {
   tournamentDate?: string;
   telegramLink?: string;
   prizeFirst: number;
-  prizeSecond: number;
+  prizeSecond?: number;
 }) {
-  const { userEmail, userName, tournamentTitle, tournamentDate, telegramLink, prizeFirst, prizeSecond } = params;
+  const { userEmail, userName, tournamentTitle, tournamentDate, telegramLink, prizeFirst } = params;
   const transport = getTransporter();
 
   const subject = `🎉 נבחרת להשתתף בטורניר: ${tournamentTitle}`;
@@ -468,10 +468,6 @@ export async function sendTournamentSelectionEmail(params: {
                 <p style="margin: 0; color: #6c757d; font-size: 14px;">🥇 פרס ראשון:</p>
                 <p style="margin: 5px 0 0 0; color: #333; font-weight: 600;">${prizeFirst} ₪</p>
               </div>
-              <div>
-                <p style="margin: 0; color: #6c757d; font-size: 14px;">🥈 פרס שני:</p>
-                <p style="margin: 5px 0 0 0; color: #333; font-weight: 600;">${prizeSecond} ₪</p>
-              </div>
             </div>
           </div>
           
@@ -481,7 +477,6 @@ export async function sendTournamentSelectionEmail(params: {
               <li>הטורניר יתחיל בקרוב - הישאר ערני לעדכונים</li>
               <li>הכן את הקונסולה והכישורים שלך ל-FC25/FC26</li>
               <li>התכונן להתחרות מול השחקנים הטובים ביותר</li>
-              <li>שים לב להוראות הגשת תוצאות - חובה להעלות וידאו!</li>
             </ul>
           </div>
           
@@ -501,16 +496,6 @@ export async function sendTournamentSelectionEmail(params: {
             </div>
           </div>
           ` : ''}
-          
-          <div style="background: #fff3e0; padding: 20px; border-radius: 10px; border: 2px solid #ff9800; margin: 20px 0;">
-            <p style="color: #e65100; font-size: 15px; margin: 0; font-weight: 600;">
-              ⚠️ חשוב לדעת:
-            </p>
-            <p style="color: #5d4037; font-size: 14px; line-height: 1.6; margin: 10px 0 0 0;">
-              בכל משחק יש להעלות וידאו של המחצית השנייה כהוכחה לניצחון. 
-              אי העלאת הוכחה תגרור פסילה מהמשחק ללא החזר כספי.
-            </p>
-          </div>
           
           <div style="text-align: center; margin-top: 40px;">
             <a href="${process.env.SITE_URL || "http://localhost:5173"}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 18px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">

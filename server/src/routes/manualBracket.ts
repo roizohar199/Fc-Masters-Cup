@@ -230,21 +230,57 @@ router.post("/api/admin/tournaments/create", async (req, res) => {
       return tournamentId;
     })();
 
-    // (אופציונלי) שליחת מיילים/התראות – עטוף ב-try לוגי בלבד
+    // יצירת התראות למשתמשים שנבחרו
     if (sendEmails) {
       try {
-        const rows = db.prepare(`SELECT id, email, display_name FROM users WHERE id IN (${placeholders})`).all(...seeds) as any[];
+        const { uuid } = await import("../utils/ids.js");
+        const { nowISO } = await import("../lib/util.js");
+        const { sendTournamentSelectionEmail } = await import("../email.js");
+        
+        const rows = db.prepare(`SELECT id, email, psnUsername, display_name FROM users WHERE id IN (${placeholders})`).all(...seeds) as any[];
+        
         for (const r of rows) {
-          if (r.email) {
-            notifyUser({
-              db,
-              userId: null, // לא משתמש ב-userId כיוון שיש בעיות עם UUIDs/numbers
-              email: r.email,
-              title: `נבחרת לטורניר ${name}`,
-              body: `שלום ${r.display_name || r.email || ""},<br/>נבחרת לטורניר ${name}. מועד: ${new Date(
-                startsAt
-              ).toLocaleString("he-IL")}.`,
-            });
+          if (r.email && r.id) {
+            const notificationId = uuid();
+            const notificationData = {
+              tournamentId: tid,
+              tournamentTitle: name,
+              tournamentDate: startsAt
+            };
+
+            // יצירת התראה במסד הנתונים עם הסכמה הנכונה
+            try {
+              db.prepare(`
+                INSERT INTO notifications (id, userId, type, title, message, data, createdAt)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+              `).run(
+                notificationId,
+                r.id,
+                'tournament_selection',
+                `נבחרת להשתתף בטורניר: ${name}`,
+                `מזל טוב! נבחרת להשתתף בטורניר "${name}". הטורניר יתחיל בקרוב - הישאר ערני לעדכונים!`,
+                JSON.stringify(notificationData),
+                nowISO()
+              );
+              console.log(where, "Notification created for user:", r.id);
+            } catch (e) {
+              console.warn(where, "Failed to insert notification:", (e as Error).message);
+            }
+
+            // שליחת מייל
+            try {
+              await sendTournamentSelectionEmail({
+                userEmail: r.email,
+                userName: r.psnUsername || r.display_name || r.email,
+                tournamentTitle: name,
+                tournamentDate: startsAt,
+                telegramLink: undefined,
+                prizeFirst: 500,
+                prizeSecond: undefined
+              });
+            } catch (e) {
+              console.warn(where, "Failed to send email:", (e as Error).message);
+            }
           }
         }
       } catch (e) {
@@ -259,8 +295,88 @@ router.post("/api/admin/tournaments/create", async (req, res) => {
   }
 });
 
-// הוסר - endpoint לא רלוונטי למבנה הקיים
+// Advance to next stage (QF, SF, F)
+router.post("/api/admin/advance-stage", async (req, res) => {
+  const where = "[advance-stage]";
+  try {
+    let { tournamentId, stage, selectedIds, sendEmails } = req.body || {};
+    
+    if (!tournamentId || !stage || !Array.isArray(selectedIds)) {
+      return res.status(400).json({ ok: false, error: "missing_fields" });
+    }
 
-// נוקה - endpoints לא רלוונטיים למבנה הקיים
+    const validStages = ["QF", "SF", "F"];
+    if (!validStages.includes(stage)) {
+      return res.status(400).json({ ok: false, error: "invalid_stage" });
+    }
+
+    const requiredCounts = { QF: 8, SF: 4, F: 2 };
+    if (selectedIds.length !== requiredCounts[stage]) {
+      return res.status(400).json({ ok: false, error: "wrong_count", expected: requiredCounts[stage], got: selectedIds.length });
+    }
+
+    // Get tournament info
+    const tournament = db.prepare(`SELECT name FROM tournaments WHERE id = ?`).get(tournamentId) as any;
+    if (!tournament) {
+      return res.status(404).json({ ok: false, error: "tournament_not_found" });
+    }
+
+    // Get users info
+    const placeholders = selectedIds.map(() => '?').join(',');
+    const users = db.prepare(`SELECT id, email, psnUsername FROM users WHERE id IN (${placeholders})`).all(...selectedIds) as any[];
+
+    // Send notifications and emails
+    if (sendEmails) {
+      const { uuid } = await import("../utils/ids.js");
+      const { nowISO } = await import("../lib/util.js");
+      const { sendTournamentSelectionEmail } = await import("../email.js");
+      
+      for (const user of users) {
+        if (user.email && user.id) {
+          const notificationId = uuid();
+          const stageNames = { QF: "רבע גמר", SF: "חצי גמר", F: "גמר" };
+          
+          try {
+            db.prepare(`
+              INSERT INTO notifications (id, userId, type, title, message, data, createdAt)
+              VALUES (?, ?, ?, ?, ?, ?, ?)
+            `).run(
+              notificationId,
+              user.id,
+              'tournament_stage_advance',
+              `התקדמת לשלב ${stageNames[stage]}: ${tournament.name}`,
+              `מזל טוב! התקדמת לשלב ${stageNames[stage]} בטורניר "${tournament.name}". המשך להצליח!`,
+              JSON.stringify({ tournamentId, stage }),
+              nowISO()
+            );
+            console.log(where, "Notification created for user:", user.id);
+          } catch (e) {
+            console.warn(where, "Failed to insert notification:", (e as Error).message);
+          }
+
+          // Send email
+          try {
+            await sendTournamentSelectionEmail({
+              userEmail: user.email,
+              userName: user.psnUsername || user.email,
+              tournamentTitle: `${tournament.name} - ${stageNames[stage]}`,
+              tournamentDate: undefined,
+              telegramLink: undefined,
+              prizeFirst: 500,
+              prizeSecond: undefined
+            });
+          } catch (e) {
+            console.warn(where, "Failed to send email:", (e as Error).message);
+          }
+        }
+      }
+    }
+
+    return res.json({ ok: true, message: `נבחרו ${selectedIds.length} שחקנים לשלב ${stage}` });
+  } catch (e) {
+    console.error("[advance-stage] fatal:", (e as Error).message);
+    return res.status(500).json({ ok: false, error: "internal_error", message: (e as Error).message });
+  }
+});
 
 export default router;

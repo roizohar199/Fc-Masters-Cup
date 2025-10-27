@@ -198,6 +198,54 @@ export default function ManualBracketManager() {
 
   // הוסר - פונקציית שמירת שלבים לא רלוונטית למבנה הפשוט
 
+  async function advanceStage(stage: "QF"|"SF"|"F", requiredCount: number, stageName: string) {
+    const selected = {QF,SF,F}[stage];
+    const selectedIds = uniqueNumeric(selected);
+    
+    if (selectedIds.length !== requiredCount) {
+      alert(`צריך לבחור בדיוק ${requiredCount} שחקנים ל${stageName}. נבחרו ${selectedIds.length}.`);
+      return;
+    }
+
+    if (!tid) {
+      alert("אין טורניר פעיל. צור טורניר תחילה.");
+      return;
+    }
+
+    if (sendEmails) {
+      const confirmed = confirm(`האם להעלות ${requiredCount} שחקנים ל${stageName}? ההתראות והמיילים יישלחו אוטומטית.`);
+      if (!confirmed) return;
+    }
+
+    try {
+      const response = await fetchJSON<{ ok: boolean; message?: string }>(
+        `/api/admin/advance-stage`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            tournamentId: tid,
+            stage,
+            selectedIds,
+            sendEmails
+          }),
+          headers: {
+            "Content-Type": "application/json"
+          }
+        }
+      );
+
+      if (!response.ok) {
+        alert(`❌ שגיאה: ${response.message || 'unknown error'}`);
+        return;
+      }
+
+      alert(`✅ ${requiredCount} שחקנים הועלו לשלב ${stageName}! מיילים נשלחו.`);
+    } catch (e: any) {
+      console.error(`❌ Error advancing to ${stage}:`, e);
+      alert(`שגיאה: ${e?.message || e}`);
+    }
+  }
+
   const getBadgeColor = (stage: "R16"|"QF"|"SF"|"F") => {
     const stageColors = {
       R16: { bg: colors.stages.r16.light, color: colors.stages.r16.border },
@@ -251,22 +299,40 @@ export default function ManualBracketManager() {
       <div style={mainContentStyle}>
         <header style={headerStyle}>
           <h1 style={titleStyle}>יצירת טורניר + שיוך ידני</h1>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
             {(["R16", "QF", "SF", "F"] as const).map(stage => {
               const count = {R16,QF,SF,F}[stage].length;
               const max = {R16:16,QF:8,SF:4,F:2}[stage];
               const stageColor = getBadgeColor(stage);
+              const isComplete = count === max;
+              const stageNames = {R16: "שמינית", QF: "רבע", SF: "חצי", F: "גמר"};
+              
               return (
-                <span 
-                  key={stage}
-                  style={{ 
-                    ...badgeStyle, 
-                    background: count === max ? stageColor.color : colors.neutral.gray200,
-                    color: count === max ? colors.neutral.white : colors.text.primary 
-                  }}
-                >
-                  {stage === "R16" ? "שמינית" : stage === "QF" ? "רבע" : stage === "SF" ? "חצי" : "גמר"} {count}/{max}
-                </span>
+                <div key={stage} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span 
+                    style={{ 
+                      ...badgeStyle, 
+                      background: isComplete ? stageColor.color : colors.neutral.gray200,
+                      color: isComplete ? colors.neutral.white : colors.text.primary 
+                    }}
+                  >
+                    {stageNames[stage]} {count}/{max}
+                  </span>
+                  {stage !== "R16" && isComplete && (
+                    <button 
+                      onClick={() => advanceStage(stage as "QF"|"SF"|"F", max, stageNames[stage])}
+                      style={{
+                        ...buttonStyles.small,
+                        background: stageColor.color,
+                        color: colors.neutral.white,
+                        fontSize: "12px",
+                        padding: "4px 12px"
+                      }}
+                    >
+                      העבר לשלב
+                    </button>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -281,7 +347,7 @@ export default function ManualBracketManager() {
             <div>
               <label style={labelStyle}>משחק</label>
               <select style={selectStyle} value={game} onChange={e=>setGame(e.target.value)}>
-                <option>FC25</option><option>FC24</option><option>PRO_CLUBS</option>
+                <option>FC25</option><option>FC26</option>
               </select>
             </div>
             <div>
@@ -325,7 +391,7 @@ export default function ManualBracketManager() {
         }}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", justifyContent: "center" }}>
             <div style={{ fontSize: "14px", color: colors.text.secondary, textAlign: "center" }}>
-              💡 יצירת הטורניר תשמור אוטומטיט את השחקנים הנבחרים
+              💡 יצירת הטורניר תשמור אוטומטית את השחקנים הנבחרים, מנהלים נא לשים לב שמשתתף שאתם בוחרים אכן שילם ושלח אישור תשלום.
             </div>
           </div>
         </footer>
