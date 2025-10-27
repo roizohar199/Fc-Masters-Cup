@@ -122,13 +122,15 @@ router.post("/api/admin/tournaments/create", async (req, res) => {
         ).run(name, game, String(startsAt), "R16");
         tournamentId = String(info.lastInsertRowid);
       } else {
-        // Old schema - use title column
+        // Old schema - use title column (name -> title)
         const info = db.prepare(
           `INSERT INTO tournaments (title, game, platform, timezone, createdAt, prizeFirst, prizeSecond, nextTournamentDate, telegramLink)
            VALUES (?,?,?,?,?,?,?,?,?)`
         ).run(name, game, "PS5", "Asia/Jerusalem", new Date().toISOString(), 500, 0, startsAt, null);
         tournamentId = String(info.lastInsertRowid);
       }
+      
+      console.log(where, "Created tournament with ID:", tournamentId);
 
       // שיוך שחקנים לשמינית - check if tournament_players table exists
       const hasTournamentPlayers = db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='tournament_players'`).get();
@@ -143,13 +145,14 @@ router.post("/api/admin/tournaments/create", async (req, res) => {
 
       // 8 משחקי R16: (1-2), (3-4), ... - use old schema
       const insM = db.prepare(
-        `INSERT INTO matches (tournamentId, round, homeId, awayId, status, token, pin, createdAt)
-         VALUES (?,?,?,?,?,?,?,?)`
+        `INSERT INTO matches (id, tournamentId, round, homeId, awayId, status, token, pin, createdAt)
+         VALUES (?,?,?,?,?,?,?,?,?)`
       );
       
       for (let i = 0; i < 8; i++) {
         const matchId = uuid();
         insM.run(
+          matchId,
           tournamentId, 
           "R16", 
           seeds[i * 2], 
