@@ -320,9 +320,13 @@ router.post("/api/admin/advance-stage", requireAuth, async (req, res) => {
     }
 
     // Get tournament info - handle both integer and string tournamentId
-    const tournament = db.prepare(`SELECT id, name FROM tournaments WHERE id = ? OR id = ?`).get(tournamentId, Number(tournamentId)) as any;
+    console.log(where, "Looking for tournament with ID:", tournamentId, "type:", typeof tournamentId);
+    const tournament = db.prepare(`SELECT id, name FROM tournaments WHERE CAST(id AS TEXT) = CAST(? AS TEXT)`).get(tournamentId) as any;
     if (!tournament) {
       console.log(where, "Tournament not found for ID:", tournamentId);
+      // Debug: list all tournaments
+      const allTournaments = db.prepare(`SELECT id, name FROM tournaments LIMIT 5`).all();
+      console.log(where, "Available tournaments:", allTournaments);
       return res.status(404).json({ ok: false, error: "tournament_not_found" });
     }
     console.log(where, "Found tournament:", tournament);
