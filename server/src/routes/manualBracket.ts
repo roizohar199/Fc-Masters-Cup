@@ -3,6 +3,7 @@ import { Router } from "express";
 import { randomUUID } from "crypto";
 import db from "../db.js";
 import { notifyUser } from "../utils/notify.js";
+import { requireAuth } from "../auth.js";
 
 const router = Router();
 
@@ -73,7 +74,7 @@ router.get("/api/admin/debug/db-info", (req, res) => {
 // מחיקת endpoint שלא נחוץ יותר
 
 // (A) יצירת טורניר והצבה מיידית של 16 לשמינית — גרסה מוקשחת עם לוגים ברורים
-router.post("/api/admin/tournaments/create", async (req, res) => {
+router.post("/api/admin/tournaments/create", requireAuth, async (req, res) => {
   const where = "[create]";
   try {
     let { name, game, startsAt, seeds16, sendEmails } = req.body || {};
@@ -296,7 +297,7 @@ router.post("/api/admin/tournaments/create", async (req, res) => {
 });
 
 // Advance to next stage (QF, SF, F)
-router.post("/api/admin/advance-stage", async (req, res) => {
+router.post("/api/admin/advance-stage", requireAuth, async (req, res) => {
   const where = "[advance-stage]";
   try {
     let { tournamentId, stage, selectedIds, sendEmails } = req.body || {};
