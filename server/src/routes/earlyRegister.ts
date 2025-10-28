@@ -1,5 +1,6 @@
 import { Router } from "express";
 import Database from "better-sqlite3";
+import db from "../db.js";
 
 const router = Router();
 
@@ -9,11 +10,6 @@ router.options("/", (_req, res) => res.sendStatus(204));
 type AppDb = Database.Database;
 type RegistrationRow = { id: number; status: string };
 
-function getDb(req: any): AppDb {
-  const db = (req.app?.locals?.db || req.app?.get("db")) as AppDb | undefined;
-  if (!db) throw new Error("DB instance not found on app.locals.db");
-  return db;
-}
 
 router.post("/", (req, res) => {
   console.log("[early-register] BODY:", req.body);
@@ -23,8 +19,6 @@ router.post("/", (req, res) => {
   }
 
   try {
-    const db = getDb(req);
-
     const existing = db
       .prepare<[number, number], RegistrationRow | undefined>(
         `SELECT id, status
