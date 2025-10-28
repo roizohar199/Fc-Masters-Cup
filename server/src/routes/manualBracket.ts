@@ -477,8 +477,13 @@ router.post("/api/admin/advance-stage", requireAuth, async (req, res) => {
 
     // מחק tournament_registrations למשתמשים שנבחרו (כדי שיוכלו להביע עניין בטורניר הבא)
     if (hasIdCol && Array.isArray(selectedIds) && selectedIds.length > 0) {
-      // מחק registration למשתמשים שנבחרו לטורניר הזה
-      for (const userId of selectedIds) {
+      // מחק registration למשתמשים שנבחרו לטורניר הזה - עם פתרון ID בטוח
+      for (const rawId of selectedIds) {
+        const userId = resolveUserId(String(rawId));
+        if (!userId) {
+          console.warn(`[advance-stage] Skip id=${rawId} — cannot resolve to users.id`);
+          continue;
+        }
         try {
           db.prepare(`DELETE FROM tournament_registrations WHERE tournamentId = ? AND userId = ?`).run(tournamentId, userId);
         } catch (e) {
@@ -517,8 +522,16 @@ router.post("/api/admin/advance-stage", requireAuth, async (req, res) => {
         const { nowISO } = await import("../lib/util.js");
         const { sendTournamentSelectionEmail } = await import("../email.js");
         
-        const placeholders = selectedIds.map(() => '?').join(',');
-        const users = db.prepare(`SELECT id, email, psnUsername FROM users WHERE id IN (${placeholders})`).all(...selectedIds) as any[];
+        // פתור את כל ה-IDs ל-userIds תקינים לפני השאילתה
+        const resolvedUserIds = selectedIds.map(rawId => resolveUserId(String(rawId))).filter(Boolean) as string[];
+        
+        if (resolvedUserIds.length === 0) {
+          console.warn("[advance-stage] No valid user IDs found in selectedIds");
+          return res.json({ ok: true, tournamentId, from: stageNow, to });
+        }
+        
+        const placeholders = resolvedUserIds.map(() => '?').join(',');
+        const users = db.prepare(`SELECT id, email, psnUsername FROM users WHERE id IN (${placeholders})`).all(...resolvedUserIds) as any[];
         
         const stageNames = { QF: "רבע גמר", SF: "חצי גמר", F: "גמר" };
         
