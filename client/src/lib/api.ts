@@ -84,3 +84,24 @@ export async function apiPatch<T>(
 export async function markAllNotificationsRead(): Promise<void> {
   await apiPatch("/me/notifications/mark-all-read", {});
 }
+
+const API_BASE = import.meta.env.VITE_API_BASE ?? "/api";
+
+export async function apiPost<TReq, TRes>(path: string, body: TReq): Promise<TRes> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`POST ${path} failed: ${res.status}`);
+  return res.json() as Promise<TRes>;
+}
+
+// שימוש ייעודי למסלול:
+export type EarlyRegisterReq = { tournamentId: number; userId: number };
+export type EarlyRegisterRes = { ok: true; registrationId: number; status: string } | { ok: false; error: string };
+
+export function earlyRegister(payload: EarlyRegisterReq) {
+  return apiPost<EarlyRegisterReq, EarlyRegisterRes>("/early-register", payload);
+}
