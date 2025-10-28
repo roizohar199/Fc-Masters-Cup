@@ -1,3 +1,4 @@
+import { sendMail } from "./services/mailer.js";
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 
@@ -18,27 +19,41 @@ function getTransporter() {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
-    logger: false, // לוגים ב-test-send.js בלבד
-    debug: false,  // debug ב-test-send.js בלבד
+    logger: true, // לוגים מפורטים לדיון
+    debug: true,  // debug מפורט לדיון
+    requireTLS: true, // דרישת TLS לשרתי HOSTINGER
   };
   
   // אם אין הגדרות SMTP, נשתמש במצב פיתוח (לוג בלבד)
   if (!emailConfig.auth.user || !emailConfig.auth.pass) {
     console.warn("[email] ⚠️ SMTP credentials not configured. Email will be logged only.");
     console.log("[email] Expected env vars: SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, EMAIL_FROM");
+    console.log("[email] Current values:");
+    console.log(`  SMTP_HOST: ${process.env.SMTP_HOST || 'NOT_SET'}`);
+    console.log(`  SMTP_PORT: ${process.env.SMTP_PORT || 'NOT_SET'}`);
+    console.log(`  SMTP_SECURE: ${process.env.SMTP_SECURE || 'NOT_SET'}`);
+    console.log(`  SMTP_USER: ${process.env.SMTP_USER || 'NOT_SET'}`);
+    console.log(`  SMTP_PASS: ${process.env.SMTP_PASS ? '***' : 'NOT_SET'}`);
+    console.log(`  EMAIL_FROM: ${process.env.EMAIL_FROM || 'NOT_SET'}`);
     return null;
   }
   
   console.log("[email] 📧 Creating SMTP transporter with config:");
-  console.log('Got hereeee12345');
   console.log(`  Host: ${emailConfig.host}`);
   console.log(`  Port: ${emailConfig.port}`);
   console.log(`  Secure: ${emailConfig.secure}`);
   console.log(`  User: ${emailConfig.auth.user}`);
   console.log(`  Pass: ${emailConfig.auth.pass ? '***' + emailConfig.auth.pass.slice(-4) : 'NOT_SET'}`);
+  console.log(`  RequireTLS: ${emailConfig.requireTLS}`);
   
-  transporter = nodemailer.createTransport(emailConfig);
-  return transporter;
+  try {
+    transporter = nodemailer.createTransport(emailConfig);
+    console.log("[email] ✅ SMTP transporter created successfully");
+    return transporter;
+  } catch (error) {
+    console.error("[email] ❌ Failed to create SMTP transporter:", error);
+    return null;
+  }
 }
 
 export async function sendWelcomeEmail(email: string) {
@@ -430,103 +445,98 @@ export async function sendTournamentSelectionEmail(params: {
   prizeSecond?: number;
 }) {
   const { userEmail, userName, tournamentTitle, tournamentDate, telegramLink, prizeFirst } = params;
-  const transport = getTransporter();
 
   const subject = `🎉 נבחרת להשתתף בטורניר: ${tournamentTitle}`;
-  const emailContent = {
-    from: process.env.EMAIL_FROM || process.env.SMTP_FROM || `"FC Masters Cup" <${process.env.SMTP_USER}>`,
-    to: userEmail,
-    subject,
-    html: `
-      <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px;">
-        <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-          <h1 style="color: #28a745; text-align: center; font-size: 32px; margin-bottom: 20px;">
-            🎉 מזל טוב! נבחרת להשתתף!
-          </h1>
-          
-          <div style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-right: 4px solid #28a745;">
-            <p style="font-size: 18px; color: #333; line-height: 1.8; margin: 0;">
-              שלום <strong>${userName || userEmail}</strong>,<br><br>
-              <strong>נבחרת להשתתף בטורניר "${tournamentTitle}"!</strong> 🏆
-            </p>
-          </div>
-          
-          <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #e9ecef;">
-            <h3 style="color: #495057; font-size: 18px; margin: 0 0 15px 0;">📋 פרטי הטורניר:</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-              <div>
-                <p style="margin: 0; color: #6c757d; font-size: 14px;">🏆 שם הטורניר:</p>
-                <p style="margin: 5px 0 0 0; color: #333; font-weight: 600;">${tournamentTitle}</p>
-              </div>
-              ${tournamentDate ? `
-              <div>
-                <p style="margin: 0; color: #6c757d; font-size: 14px;">📅 תאריך:</p>
-                <p style="margin: 5px 0 0 0; color: #333; font-weight: 600;">${tournamentDate}</p>
-              </div>
-              ` : ''}
-              <div>
-                <p style="margin: 0; color: #6c757d; font-size: 14px;">🥇 פרס ראשון:</p>
-                <p style="margin: 5px 0 0 0; color: #333; font-weight: 600;">${prizeFirst} ₪</p>
-              </div>
+  const html = `
+    <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px;">
+      <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+        <h1 style="color: #28a745; text-align: center; font-size: 32px; margin-bottom: 20px;">
+          🎉 מזל טוב! נבחרת להשתתף!
+        </h1>
+        
+        <div style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-right: 4px solid #28a745;">
+          <p style="font-size: 18px; color: #333; line-height: 1.8; margin: 0;">
+            שלום <strong>${userName || userEmail}</strong>,<br><br>
+            <strong>נבחרת להשתתף בטורניר "${tournamentTitle}"!</strong> 🏆
+          </p>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #e9ecef;">
+          <h3 style="color: #495057; font-size: 18px; margin: 0 0 15px 0;">📋 פרטי הטורניר:</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div>
+              <p style="margin: 0; color: #6c757d; font-size: 14px;">🏆 שם הטורניר:</p>
+              <p style="margin: 5px 0 0 0; color: #333; font-weight: 600;">${tournamentTitle}</p>
             </div>
-          </div>
-          
-          <div style="margin: 30px 0;">
-            <h2 style="color: #667eea; font-size: 22px; margin-bottom: 15px;">📋 מה הלאה?</h2>
-            <ul style="color: #555; font-size: 16px; line-height: 2;">
-              <li>הטורניר יתחיל בקרוב - הישאר ערני לעדכונים</li>
-              <li>הכן את הקונסולה והכישורים שלך ל-FC25/FC26</li>
-              <li>התכונן להתחרות מול השחקנים הטובים ביותר</li>
-            </ul>
-          </div>
-          
-          ${telegramLink ? `
-          <div style="background: #e1f5fe; padding: 20px; border-radius: 10px; border: 2px solid #0288d1; margin: 20px 0;">
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
-              <div style="display: flex; align-items: center; gap: 10px;">
-                <div style="font-size: 28px;">💬</div>
-                <div>
-                  <h3 style="color: #01579b; font-size: 18px; margin: 0;">הצטרף לקבוצת הטלגרם</h3>
-                  <p style="color: #0277bd; font-size: 14px; margin: 4px 0 0 0;">קבל עדכונים ושוחח עם שחקנים אחרים</p>
-                </div>
-              </div>
-              <a href="${telegramLink}" target="_blank" rel="noopener noreferrer" style="padding: 12px 24px; background: #0288d1; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 15px; text-align: center;">
-                הצטרף 📱
-              </a>
+            ${tournamentDate ? `
+            <div>
+              <p style="margin: 0; color: #6c757d; font-size: 14px;">📅 תאריך:</p>
+              <p style="margin: 5px 0 0 0; color: #333; font-weight: 600;">${tournamentDate}</p>
             </div>
-          </div>
-          ` : ''}
-          
-          <div style="text-align: center; margin-top: 40px;">
-            <a href="${process.env.SITE_URL || "https://www.fcmasterscup.com"}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 18px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
-              כניסה לאתר 🎮
-            </a>
-          </div>
-          
-          <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #f0f0f0; text-align: center;">
-            <p style="color: #999; font-size: 14px; margin: 5px 0;">
-              בהצלחה בטורניר! 🏆
-            </p>
-            <p style="color: #999; font-size: 12px; margin: 5px 0;">
-              FC Masters Cup • PS5 • FC25/FC26
-            </p>
+            ` : ''}
+            <div>
+              <p style="margin: 0; color: #6c757d; font-size: 14px;">🥇 פרס ראשון:</p>
+              <p style="margin: 5px 0 0 0; color: #333; font-weight: 600;">${prizeFirst} ₪</p>
+            </div>
           </div>
         </div>
+        
+        <div style="margin: 30px 0;">
+          <h2 style="color: #667eea; font-size: 22px; margin-bottom: 15px;">📋 מה הלאה?</h2>
+          <ul style="color: #555; font-size: 16px; line-height: 2;">
+            <li>הטורניר יתחיל בקרוב - הישאר ערני לעדכונים</li>
+            <li>הכן את הקונסולה והכישורים שלך ל-FC25/FC26</li>
+            <li>התכונן להתחרות מול השחקנים הטובים ביותר</li>
+          </ul>
+        </div>
+        
+        ${telegramLink ? `
+        <div style="background: #e1f5fe; padding: 20px; border-radius: 10px; border: 2px solid #0288d1; margin: 20px 0;">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="font-size: 28px;">💬</div>
+              <div>
+                <h3 style="color: #01579b; font-size: 18px; margin: 0;">הצטרף לקבוצת הטלגרם</h3>
+                <p style="color: #0277bd; font-size: 14px; margin: 4px 0 0 0;">קבל עדכונים ושוחח עם שחקנים אחרים</p>
+              </div>
+            </div>
+            <a href="${telegramLink}" target="_blank" rel="noopener noreferrer" style="padding: 12px 24px; background: #0288d1; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 15px; text-align: center;">
+              הצטרף 📱
+            </a>
+          </div>
+        </div>
+        ` : ''}
+        
+        <div style="text-align: center; margin-top: 40px;">
+          <a href="${process.env.SITE_URL || "https://www.fcmasterscup.com"}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 18px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+            כניסה לאתר 🎮
+          </a>
+        </div>
+        
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #f0f0f0; text-align: center;">
+          <p style="color: #999; font-size: 14px; margin: 5px 0;">
+            בהצלחה בטורניר! 🏆
+          </p>
+          <p style="color: #999; font-size: 12px; margin: 5px 0;">
+            FC Masters Cup • PS5 • FC25/FC26
+          </p>
+        </div>
       </div>
-    `,
-  };
-
-  if (!transport) {
-    console.log("[email] 📧 Tournament selection email (dev mode):", emailContent);
-    return true;
-  }
+    </div>
+  `;
 
   try {
-    await transport.sendMail(emailContent);
-    console.log(`[email] ✅ Tournament selection email sent to: ${userEmail}`);
+    console.log(`[email] 📤 Attempting to send tournament selection email to: ${userEmail}`);
+    const result = await sendMail({
+      to: userEmail,
+      subject,
+      html
+    });
+    console.log(`[email] ✅ Tournament selection email sent successfully to: ${userEmail}`);
+    console.log(`[email] Message ID: ${result.messageId}`);
     return true;
   } catch (error) {
-    console.error(`[email] ❌ Failed to send tournament selection email:`, error);
+    console.error(`[email] ❌ Failed to send tournament selection email to ${userEmail}:`, error);
     return false;
   }
 }

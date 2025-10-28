@@ -138,6 +138,7 @@ import { auth } from "./routes/auth.js";
 import { userSettings } from "./routes/userSettings.js";
 import { admin } from "./routes/admin.js";
 import { adminUsers } from "./routes/adminUsers.js";
+import adminEmail from "./routes/adminEmail.js";
 import { approvalRequests } from "./routes/approvalRequests.js";
 import { tournamentRegistrations } from "./routes/tournamentRegistrations.js";
 import { notificationsRouter } from "./modules/notifications/routes.js";
@@ -282,6 +283,7 @@ app.use("/api/admin", requireAuth, adminRouter);
 
 // SMTP Admin routes (requires admin auth)
 app.use("/api/admin/smtp", requireAuth, smtpAdminRouter);
+app.use("/api/admin/email", requireAuth, adminEmail);
 
 // Users routes (public - basic user info)
 app.use("/api/users", usersRouter);
