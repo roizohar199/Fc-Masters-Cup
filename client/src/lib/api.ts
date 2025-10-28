@@ -87,20 +87,28 @@ export async function markAllNotificationsRead(): Promise<void> {
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "/api";
 
+function withTimeout<T>(p: Promise<T>, ms = 10000): Promise<T> {
+  let t: any;
+  const timeout = new Promise<never>((_, rej) => t = setTimeout(() => rej(new Error("Request timeout")), ms));
+  return Promise.race([p, timeout]).finally(() => clearTimeout(t));
+}
+
 export async function apiPost<TReq, TRes>(path: string, body: TReq): Promise<TRes> {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await withTimeout(fetch(`${API_BASE}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
     body: JSON.stringify(body),
-  });
+  }));
   if (!res.ok) throw new Error(`POST ${path} failed: ${res.status}`);
   return res.json() as Promise<TRes>;
 }
 
 // שימוש ייעודי למסלול:
 export type EarlyRegisterReq = { tournamentId: number; userId: number };
-export type EarlyRegisterRes = { ok: true; registrationId: number; status: string } | { ok: false; error: string };
+export type EarlyRegisterRes =
+  | { ok: true; registrationId: number; status: string; updated?: boolean }
+  | { ok: false; error: string };
 
 export function earlyRegister(payload: EarlyRegisterReq) {
   return apiPost<EarlyRegisterReq, EarlyRegisterRes>("/early-register", payload);

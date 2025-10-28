@@ -212,8 +212,11 @@ app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 // ── לוג בסיסי לבדיקת בקשות ───────────────────────────────
-app.use((req, _res, next) => {
-  console.log(`[REQ] ${req.method} ${req.url}`);
+app.use((req, res, next) => {
+  const started = Date.now();
+  res.on("finish", () => {
+    console.log(`[API] ${req.method} ${req.originalUrl} → ${res.statusCode} (${Date.now() - started}ms)`);
+  });
   next();
 });
 
@@ -306,6 +309,9 @@ app.use(manualBracketRouter);
 
 // Early register routes (public)
 app.use("/api", earlyRegisterRouter);
+
+// ✅ פינג מהיר לאבחון
+app.get("/api/early-register/ping", (_req, res) => res.json({ ok: true, pong: true }));
 
 // ✅ API 404 handler - must come AFTER all API routes but BEFORE SPA fallback
 app.use(apiNotFoundHandler);
