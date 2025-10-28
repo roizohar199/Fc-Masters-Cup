@@ -191,9 +191,6 @@ app.use((req, res, next) => {
 // ✅ זה הנתיב שצריך להיות — לפני כל דבר אחר
 app.use("/api/early-register", earlyRegisterRouter);
 
-// ✅ סגירת 404 לכל API שלא תואם
-app.use("/api", (req, res) => res.status(404).json({ ok: false, error: "NOT_FOUND" }));
-
 // Rate Limiting - prevent abuse
 // בפיתוח: מקל, בפרודקשן: חמור
 const isProduction = process.env.NODE_ENV === "production";
