@@ -158,6 +158,7 @@ import { initPresence } from "./presence/index.js";
 import adminSelection from "./routes/adminSelection.js";
 import meNotifications from "./routes/meNotifications.js";
 import manualBracketRouter from "./routes/manualBracket.js";
+import earlyRegisterRouter from "./routes/earlyRegister.js";
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -293,6 +294,9 @@ app.use("/api/settings", requireAuth, settings);
 
 // Manual bracket routes (mixed auth - public views, admin creation)
 app.use(manualBracketRouter);
+
+// Early register routes (public)
+app.use("/api", earlyRegisterRouter);
 
 // ✅ API 404 handler - must come AFTER all API routes but BEFORE SPA fallback
 app.use(apiNotFoundHandler);
