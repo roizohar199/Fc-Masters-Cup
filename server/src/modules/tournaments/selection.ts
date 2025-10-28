@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 
 const db = createDbConnection();
 
-export function selectParticipants(tournamentId: string, userIds: string[]) {
+export async function selectParticipants(tournamentId: string, userIds: string[]) {
   const now = new Date().toISOString();
   const update = db.prepare(`
     UPDATE tournament_registrations
@@ -35,7 +35,7 @@ export function selectParticipants(tournamentId: string, userIds: string[]) {
       );
       
       // שליחת מייל
-      const ctaUrl = `${process.env.SITE_URL || 'http://localhost:5173'}/bracket`;
+      const ctaUrl = `${process.env.SITE_URL || 'https://www.fcmasterscup.com'}/bracket`;
       const html = tournamentSelectionTemplate({
         userName: u?.psnUsername || undefined,
         tournamentName: tRow?.title ?? "FC Masters Cup",
@@ -43,8 +43,10 @@ export function selectParticipants(tournamentId: string, userIds: string[]) {
         ctaUrl
       });
       
-      // לא חוסם את הטרנזקציה – נשלח אחרי
-      queueEmail(u.email, `נבחרת לטורניר ${tRow?.title ?? ""}`, html);
+      // שליחת מייל ישירה
+      sendMailSafe(u.email, `נבחרת לטורניר ${tRow?.title ?? ""}`, html)
+        .then(() => console.log(`📧 Email sent to: ${u.email}`))
+        .catch((e) => console.error(`❌ Email error for ${u.email}:`, e));
     }
   });
   t(userIds);

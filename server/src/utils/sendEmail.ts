@@ -8,7 +8,7 @@ const smtpUser = process.env.SMTP_USER || "";
 const smtpPass = process.env.SMTP_PASS || "";
 const from =
   process.env.EMAIL_FROM ||
-  (smtpUser ? `FC Masters Cup <${smtpUser}>` : "FC Masters Cup <no-reply@k-rstudio.com>");
+  (smtpUser ? `FC Masters Cup <${smtpUser}>` : "FC Masters Cup <no-reply@fcmasterscup.com>");
 
 // חשוב: createTransport (לא createTransporter)
 const transporter: Transporter = nodemailer.createTransport({

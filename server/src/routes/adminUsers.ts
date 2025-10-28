@@ -121,7 +121,7 @@ adminUsers.get("/approve-user", async (req, res) => {
           <p>המשתמש הבא אושר ויכול כעת להתחבר לאתר:</p>
           <div class="email">${user.email}</div>
           <p>המשתמש קיבל מייל אישור והוא יכול כעת להתחבר לאתר.</p>
-          <a href="${process.env.SITE_URL || 'http://localhost:5173'}/admin">חזרה לפאנל הניהול</a>
+          <a href="${process.env.SITE_URL || 'https://www.fcmasterscup.com'}/admin">חזרה לפאנל הניהול</a>
         </div>
       </body>
       </html>
@@ -232,7 +232,7 @@ adminUsers.get("/reject-user", async (req, res) => {
           <h1>❌ המשתמש נדחה</h1>
           <p>המשתמש הבא נדחה ולא יוכל להתחבר לאתר:</p>
           <div class="email">${user.email}</div>
-          <a href="${process.env.SITE_URL || 'http://localhost:5173'}/admin">חזרה לפאנל הניהול</a>
+          <a href="${process.env.SITE_URL || 'https://www.fcmasterscup.com'}/admin">חזרה לפאנל הניהול</a>
         </div>
       </body>
       </html>

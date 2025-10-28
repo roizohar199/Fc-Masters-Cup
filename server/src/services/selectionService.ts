@@ -71,13 +71,13 @@ function normalizeStage(stage: string): Stage {
  * בחירה ידנית של שחקנים על ידי המנהל
  * המנהל בוחר בדיוק איזה שחקנים יקבלו מייל והודעה
  */
-export function selectPlayersManually(opts: {
+export async function selectPlayersManually(opts: {
   tournamentId: string;
   stage: Stage | string;
   selectedPlayerIds: string[]; // רשימת ID של שחקנים שנבחרו ידנית
   sendEmails?: boolean;
   createHomepageNotice?: boolean;
-}): SelectionResult {
+}): Promise<SelectionResult> {
   const db = getDb();
   const stage = normalizeStage(opts.stage);
   
@@ -108,9 +108,10 @@ export function selectPlayersManually(opts: {
   tx(opts.selectedPlayerIds);
 
   // שליחת מיילים והתראות
+  const emailPromises = [];
   for (const player of players) {
     if (opts.sendEmails !== false) {
-      const link = `${process.env.SITE_URL || "https://www.k-rstudio.com"}/tournaments/${opts.tournamentId}`;
+      const link = `${process.env.SITE_URL || "https://www.fcmasterscup.com"}/tournaments/${opts.tournamentId}`;
       const subject = `נבחרת לטורניר – שלב ${stage} | FC Masters Cup`;
       const html = `
         <p>שלום ${player.display_name},</p>
@@ -118,7 +119,11 @@ export function selectPlayersManually(opts: {
         <p>לפרטים ולעדכונים:<br><a href="${link}">${link}</a></p>
         <p>בהצלחה! ⚽</p>
       `;
-      sendEmail({ to: player.email, subject, html }).catch(() => {});
+      emailPromises.push(
+        sendEmail({ to: player.email, subject, html })
+          .then(() => console.log(`📧 Email sent to: ${player.email}`))
+          .catch((e) => console.error(`❌ Email error for ${player.email}:`, e))
+      );
     }
     
     if (opts.createHomepageNotice !== false) {
@@ -136,6 +141,9 @@ export function selectPlayersManually(opts: {
       }
     }
   }
+  
+  // המתן לכל המיילים להישלח
+  await Promise.all(emailPromises);
 
   return {
     selected: players.map(p => ({
@@ -160,13 +168,13 @@ function defaultSlotsFor(stage: Stage): number {
  * - סידור לפי rating ו- recent_activity (יורד), ואז shuffle דטרמיניסטי לפי seed.
  * - שומר ב-tournament_participants, שולח מייל ויוצר התראות.
  */
-export function selectPlayersForStage(opts: {
+export async function selectPlayersForStage(opts: {
   tournamentId: string;
   stage: Stage | string;
   slots?: number; // אם לא צוין — ברירת מחדל בהתאם לשלב
   sendEmails?: boolean;
   createHomepageNotice?: boolean;
-}): SelectionResult {
+}): Promise<SelectionResult> {
   const db = getDb();
   const stage = normalizeStage(opts.stage);
   const slots = Math.max(1, opts.slots ?? defaultSlotsFor(stage));
@@ -229,9 +237,10 @@ export function selectPlayersForStage(opts: {
   tx(selected);
 
   // התראות ומיילים
+  const emailPromises = [];
   for (const s of selected) {
     if (opts.sendEmails !== false) {
-      const link = `${process.env.SITE_URL || "https://www.k-rstudio.com"}/tournaments/${opts.tournamentId}`;
+      const link = `${process.env.SITE_URL || "https://www.fcmasterscup.com"}/tournaments/${opts.tournamentId}`;
       const subject = `נבחרת לטורניר – שלב ${stage} | FC Masters Cup`;
       const html = `
         <p>שלום ${s.display_name},</p>
@@ -239,7 +248,11 @@ export function selectPlayersForStage(opts: {
         <p>לפרטים ולעדכונים:<br><a href="${link}">${link}</a></p>
         <p>בהצלחה! ⚽</p>
       `;
-      sendEmail({ to: s.email, subject, html }).catch(() => {});
+      emailPromises.push(
+        sendEmail({ to: s.email, subject, html })
+          .then(() => console.log(`📧 Email sent to: ${s.email}`))
+          .catch((e) => console.error(`❌ Email error for ${s.email}:`, e))
+      );
     }
     if (opts.createHomepageNotice !== false) {
       try {
@@ -256,6 +269,9 @@ export function selectPlayersForStage(opts: {
       }
     }
   }
+  
+  // המתן לכל המיילים להישלח
+  await Promise.all(emailPromises);
 
   return {
     stage,
@@ -268,13 +284,13 @@ export function selectPlayersForStage(opts: {
 /**
  * בחירת שחקנים ספציפיים לפי רשימת IDs
  */
-export function selectSpecificPlayers(opts: {
+export async function selectSpecificPlayers(opts: {
   tournamentId: string;
   stage: Stage | string;
   selectedUserIds: string[];
   sendEmails?: boolean;
   createHomepageNotice?: boolean;
-}): SelectionResult {
+}): Promise<SelectionResult> {
   const db = getDb();
   const stage = normalizeStage(opts.stage);
 
@@ -310,9 +326,10 @@ export function selectSpecificPlayers(opts: {
   tx(newSelections);
 
   // התראות ומיילים
+  const emailPromises = [];
   for (const s of newSelections) {
     if (opts.sendEmails !== false) {
-      const link = `${process.env.SITE_URL || "https://www.k-rstudio.com"}/tournaments/${opts.tournamentId}`;
+      const link = `${process.env.SITE_URL || "https://www.fcmasterscup.com"}/tournaments/${opts.tournamentId}`;
       const subject = `נבחרת לטורניר – שלב ${stage} | FC Masters Cup`;
       const html = `
         <p>שלום ${s.display_name},</p>
@@ -320,7 +337,11 @@ export function selectSpecificPlayers(opts: {
         <p>לפרטים ולעדכונים:<br><a href="${link}">${link}</a></p>
         <p>בהצלחה! ⚽</p>
       `;
-      sendEmail({ to: s.email, subject, html }).catch(() => {});
+      emailPromises.push(
+        sendEmail({ to: s.email, subject, html })
+          .then(() => console.log(`📧 Email sent to: ${s.email}`))
+          .catch((e) => console.error(`❌ Email error for ${s.email}:`, e))
+      );
     }
     if (opts.createHomepageNotice !== false) {
       try {
@@ -337,6 +358,9 @@ export function selectSpecificPlayers(opts: {
       }
     }
   }
+  
+  // המתן לכל המיילים להישלח
+  await Promise.all(emailPromises);
 
   return {
     stage,

@@ -12,7 +12,7 @@ tournamentsRouter.post("/:id/select", async (req: any, res) => {
   const userIds: string[] = req.body.userIds || [];
   if (!userIds.length) return res.status(400).json({ error: "userIds required" });
 
-  selectParticipants(id, userIds);
+  await selectParticipants(id, userIds);
   await flushEmailQueue();
   res.json({ ok: true });
 });

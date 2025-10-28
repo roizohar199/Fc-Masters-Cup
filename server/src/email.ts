@@ -83,7 +83,7 @@ export async function sendWelcomeEmail(email: string) {
           </div>
           
           <div style="text-align: center; margin-top: 40px;">
-            <a href="${process.env.SITE_URL || "http://localhost:5173"}" 
+            <a href="${process.env.SITE_URL || "https://www.fcmasterscup.com"}" 
                style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 18px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
               כניסה לאתר 🎮
             </a>
@@ -176,7 +176,7 @@ export async function sendAdminNotification(adminEmail: string, user: { email: s
           </div>
           
           <div style="text-align: center; margin-top: 40px;">
-            <a href="${process.env.SITE_URL || "http://localhost:5173"}/admin" 
+            <a href="${process.env.SITE_URL || "https://www.fcmasterscup.com"}/admin" 
                style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 18px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
               פאנל ניהול 👨‍💼
             </a>
@@ -210,7 +210,7 @@ export async function sendAdminNotification(adminEmail: string, user: { email: s
 export async function sendPasswordResetEmail(email: string, token: string) {
   const transport = getTransporter();
   const encodedEmail = encodeURIComponent(email);
-  const resetUrl = `${process.env.SITE_URL || "http://localhost:5173"}/reset-password?token=${token}&email=${encodedEmail}`;
+  const resetUrl = `${process.env.SITE_URL || "https://www.fcmasterscup.com"}/reset-password?token=${token}&email=${encodedEmail}`;
   
   const emailContent = {
     from: process.env.EMAIL_FROM || process.env.SMTP_FROM || `"FC Masters Cup" <${process.env.SMTP_USER}>`,
@@ -307,7 +307,7 @@ export async function sendPasswordResetSuccessEmail(email: string) {
           </div>
           
           <div style="text-align: center; margin-top: 40px;">
-            <a href="${process.env.SITE_URL || "http://localhost:5173"}" 
+            <a href="${process.env.SITE_URL || "https://www.fcmasterscup.com"}" 
                style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 18px; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);">
               כניסה לאתר 🎮
             </a>
@@ -389,7 +389,7 @@ export async function sendTournamentRegistrationEmail(params: {
           </div>
           
           <div style="text-align: center; margin-top: 40px;">
-            <a href="${process.env.SITE_URL || "http://localhost:5173"}/admin" 
+            <a href="${process.env.SITE_URL || "https://www.fcmasterscup.com"}/admin" 
                style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 18px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
               פאנל ניהול 👨‍💼
             </a>
@@ -498,7 +498,7 @@ export async function sendTournamentSelectionEmail(params: {
           ` : ''}
           
           <div style="text-align: center; margin-top: 40px;">
-            <a href="${process.env.SITE_URL || "http://localhost:5173"}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 18px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+            <a href="${process.env.SITE_URL || "https://www.fcmasterscup.com"}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 18px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
               כניסה לאתר 🎮
             </a>
           </div>
@@ -620,7 +620,7 @@ export async function sendUserApprovedEmail(email: string) {
           </div>
           
           <div style="text-align: center; margin-top: 40px;">
-            <a href="${process.env.SITE_URL || "http://localhost:5173"}" 
+            <a href="${process.env.SITE_URL || "https://www.fcmasterscup.com"}" 
                style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 18px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
               כניסה לאתר 🎮
             </a>
@@ -840,7 +840,7 @@ export async function sendAdminApprovalRequest(adminEmail: string, user: { email
           </div>
           
           <div style="text-align: center; margin-top: 40px;">
-            <a href="${process.env.SITE_URL || "http://localhost:5173"}/admin" 
+            <a href="${process.env.SITE_URL || "https://www.fcmasterscup.com"}/admin" 
                style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 18px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
               כניסה לפאנל ניהול 🔧
             </a>

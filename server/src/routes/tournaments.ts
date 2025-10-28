@@ -446,7 +446,7 @@ tournaments.post("/:id/select", async (req: any, res) => {
     // Import selection functions dynamically to avoid circular dependencies
     const { selectParticipants, flushEmailQueue } = await import("../modules/tournaments/selection.js");
     
-    selectParticipants(tournamentId, userIds);
+    await selectParticipants(tournamentId, userIds);
     await flushEmailQueue();
     
     res.json({ ok: true, message: `Selected ${userIds.length} participants for tournament` });
@@ -471,7 +471,7 @@ tournaments.post("/:id/select-players-manually", async (req, res) => {
     }
     
     // tournamentId is already a string (UUID)
-    const result = selectPlayersManually({
+    const result = await selectPlayersManually({
       tournamentId: tournamentId,
       stage,
       selectedPlayerIds: playerIds,
