@@ -16,8 +16,7 @@ function getDb(req: any): AppDb {
 }
 
 router.post("/", (req, res) => {
-  console.log("[early-register] incoming body:", req.body); // 🧭 דיבוג
-
+  console.log("[early-register] BODY:", req.body);
   const { tournamentId, userId } = req.body || {};
   if (!tournamentId || !userId) {
     return res.status(400).json({ ok: false, error: "MISSING_PARAMS" });

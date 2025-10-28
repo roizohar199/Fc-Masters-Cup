@@ -169,6 +169,31 @@ const app = express();
 // אנחנו מאחורי Nginx - trust proxy headers
 app.set("trust proxy", 1);
 
+// --- CORS בסיסי ---
+app.use(cors({
+  origin: process.env.CORS_ORIGIN ?? "https://www.fcmasterscup.com",
+  credentials: true,
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
+}));
+app.options("*", (_req, res) => res.sendStatus(204));
+
+// --- JSON parser ---
+app.use(express.json({ limit: "1mb" }));
+
+// --- לוגים לאבחון ---
+app.use((req, res, next) => {
+  const t0 = Date.now();
+  res.on("finish", () => console.log(`[API] ${req.method} ${req.originalUrl} → ${res.statusCode} (${Date.now() - t0}ms)`));
+  next();
+});
+
+// ✅ זה הנתיב שצריך להיות — לפני כל דבר אחר
+app.use("/api/early-register", earlyRegisterRouter);
+
+// ✅ סגירת 404 לכל API שלא תואם
+app.use("/api", (req, res) => res.status(404).json({ ok: false, error: "NOT_FOUND" }));
+
 // Rate Limiting - prevent abuse
 // בפיתוח: מקל, בפרודקשן: חמור
 const isProduction = process.env.NODE_ENV === "production";
@@ -207,27 +232,8 @@ app.use(
 
 app.use(withCookies());
 
-// ✅ לסגור כל OPTIONS באופן מיידי כדי למנוע Pending בפריפלייט
-app.options("*", (req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", process.env.CORS_ORIGIN ?? "https://www.fcmasterscup.com");
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,PUT,DELETE,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
-  return res.sendStatus(204);
-});
-
-// ── Body parsers ─────────────────────────────────────────
-app.use(express.json({ limit: "1mb" }));
+// ── Body parsers נוספים ─────────────────────────────────────────
 app.use(express.urlencoded({ extended: true }));
-
-// ── לוג בסיסי לבדיקת בקשות ───────────────────────────────
-app.use((req, res, next) => {
-  const started = Date.now();
-  res.on("finish", () => {
-    console.log(`[API] ${req.method} ${req.originalUrl} → ${res.statusCode} (${Date.now() - started}ms)`);
-  });
-  next();
-});
 
 // ✅ בריאות ציבורית – לפני כל ה-auth
 app.get("/api/health", (_req, res) => {
@@ -238,9 +244,6 @@ app.get("/api/health", (_req, res) => {
     time: new Date().toISOString(),
   });
 });
-
-// ✅ תחבר את early-register לפני כל requireAuth/guards אחרים
-app.use("/api/early-register", earlyRegisterRouter);
 
 // Apply rate limiting to all API routes
 app.use("/api/", apiLimiter);
