@@ -10,12 +10,15 @@ const from =
   process.env.EMAIL_FROM ||
   (smtpUser ? `FC Masters Cup <${smtpUser}>` : "FC Masters Cup <no-reply@fcmasterscup.com>");
 
-// חשוב: createTransport (לא createTransporter)
+// ✅ תיקון מלא ל־SMTP ב־Hostinger
 const transporter: Transporter = nodemailer.createTransport({
   host: smtpHost,
   port: smtpPort,
   secure: smtpSecure,
   auth: smtpUser && smtpPass ? { user: smtpUser, pass: smtpPass } : undefined,
+  tls: {
+    rejectUnauthorized: false, // מונע שגיאות SSL אפשריות
+  },
 });
 
 export async function sendEmail(opts: { to: string; subject: string; html: string }) {

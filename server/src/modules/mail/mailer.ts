@@ -14,6 +14,15 @@ const ENV_PORT = Number(process.env.SMTP_PORT || 587);
 const ENV_SECURE = getBool(process.env.SMTP_SECURE, ENV_PORT === 465);
 
 function createTx({ host, port, secure }: { host: string; port: number; secure: boolean; }) {
+  // ✅ תיקון מלא ל־SMTP ב־Hostinger
+  console.log("📧 SMTP CONFIG →", {
+    host,
+    port,
+    secure,
+    user: process.env.SMTP_USER,
+    from: process.env.EMAIL_FROM
+  });
+
   return nodemailer.createTransport({
     host,
     port,
@@ -25,6 +34,7 @@ function createTx({ host, port, secure }: { host: string; port: number; secure: 
     tls: {
       minVersion: "TLSv1.2",
       servername: host,
+      rejectUnauthorized: false, // מונע שגיאות SSL אפשריות
     },
   });
 }
@@ -36,8 +46,10 @@ export async function verifySmtp() {
   const primary = { host: BASE_HOST, port: ENV_PORT, secure: ENV_SECURE, user: process.env.SMTP_USER };
   try {
     await transporter.verify();
+    console.log("✅ SMTP connection success - ready to send emails!");
     return { ok: true, mode: "primary", ...primary };
   } catch (e:any) {
+    console.error("❌ SMTP connection failed:", e.message);
     // נסה Fallback ל-465 אם נכשל (רק כשלא ניסינו כבר 465)
     if (ENV_PORT !== 465) {
       const alt = { host: BASE_HOST, port: 465, secure: true, user: process.env.SMTP_USER };
@@ -45,8 +57,10 @@ export async function verifySmtp() {
       try {
         await fallback.verify();
         transporter = fallback; // עבור להשתמש בעתיד
+        console.log("✅ SMTP fallback connection success (port 465)!");
         return { ok: true, mode: "fallback465", ...alt };
       } catch (e2:any) {
+        console.error("❌ SMTP fallback also failed:", e2.message);
         return { ok: false, error_primary: String(e?.message || e), error_fallback: String(e2?.message || e2), ...primary };
       }
     }

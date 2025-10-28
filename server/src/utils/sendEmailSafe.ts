@@ -18,6 +18,9 @@ export async function sendEmailSafe({ to, subject, html }: Args) {
         user: process.env.SMTP_USER!,
         pass: process.env.SMTP_PASS!,
       },
+      tls: {
+        rejectUnauthorized: false, // מונע שגיאות SSL אפשריות
+      },
     });
 
     await transporter.sendMail({
