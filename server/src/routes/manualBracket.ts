@@ -7,6 +7,21 @@ import { requireAuth } from "../auth.js";
 
 const router = Router();
 
+// === helper: resolve playerId/userId to a VALID users.id ===
+function resolveUserId(rawId: string): string | null {
+  // אם זה כבר userId קיים
+  const u = db.prepare("SELECT id FROM users WHERE id = ?").get(rawId) as { id?: string } | undefined;
+  if (u?.id) return u.id;
+
+  // אם זה playerId -> מצא את ה-userId שלו
+  const p = db.prepare("SELECT userId FROM players WHERE id = ?").get(rawId) as { userId?: string } | undefined;
+  if (p?.userId) {
+    const u2 = db.prepare("SELECT id FROM users WHERE id = ?").get(p.userId) as { id?: string } | undefined;
+    if (u2?.id) return u2.id;
+  }
+  return null;
+}
+
 // ---------- עזרי סכמה בטוחה ----------
 function safeTableColumns(table: string): Array<{ name: string }> {
   try {
@@ -265,28 +280,55 @@ router.post("/api/admin/tournaments/create", requireAuth, async (req, res) => {
     })();
     
     if (hasIdCol && tid) {
-      // עדכן state ל-'selected' למשתמשים שנבחרו לטורניר הזה
-      for (const userId of seeds) {
+      // === safe update/insert for tournament_registrations ===
+      db.pragma("foreign_keys = ON");
+
+      const nowISO = new Date().toISOString();
+
+      const updReg = db.prepare(`
+        UPDATE tournament_registrations
+           SET tournamentId = @tournamentId,
+               state        = @state,
+               updatedAt    = @now
+         WHERE userId       = @userId
+      `);
+
+      const insReg = db.prepare(`
+        INSERT INTO tournament_registrations (id, tournamentId, userId, state, createdAt, updatedAt)
+        VALUES (@id, @tournamentId, @userId, @state, @now, @now)
+      `);
+
+      const ensureRegistrationTx = db.transaction((userId: string, tournamentId: string) => {
+        const changed = updReg.run({
+          userId,
+          tournamentId,
+          state: "selected",
+          now: nowISO,
+        }).changes;
+
+        if (changed === 0) {
+          // אין רשומה קיימת → צור אחת חדשה
+          insReg.run({
+            id: randomUUID(),
+            userId,
+            tournamentId,
+            state: "selected",
+            now: nowISO,
+          });
+        }
+      });
+
+      // selectedIds: המערך שאתה עובר עליו כיום (ייתכן שהוא מכיל playerId-ים)
+      for (const rawId of seeds) {
+        const userId = resolveUserId(rawId);
+        if (!userId) {
+          console.warn(`[manualBracket] Skip id=${rawId} — cannot resolve to users.id`);
+          continue;
+        }
         try {
-          db.prepare(`
-            UPDATE tournament_registrations 
-            SET state = 'selected', updatedAt = ?
-            WHERE tournamentId = ? AND userId = ?
-          `).run(nowISO(), tid, userId);
-          
-          // אם אין registration קיים, צור אחד חדש עם state='selected'
-          const existing = db.prepare(`
-            SELECT id FROM tournament_registrations WHERE tournamentId = ? AND userId = ?
-          `).get(tid, userId);
-          
-          if (!existing) {
-            db.prepare(`
-              INSERT INTO tournament_registrations (id, tournamentId, userId, state, createdAt, updatedAt)
-              VALUES (?, ?, ?, 'selected', ?, ?)
-            `).run(uuid(), tid, userId, nowISO(), nowISO());
-          }
-        } catch (e) {
-          console.error(`Failed to update registration for user ${userId}:`, e);
+          ensureRegistrationTx(userId, String(tid));
+        } catch (e: any) {
+          console.error(`[manualBracket] Failed to upsert registration for user ${userId}:`, e?.message || e);
         }
       }
     }
