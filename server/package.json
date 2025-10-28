@@ -7,11 +7,7 @@
   },
   "scripts": {
     "clean": "rimraf dist && tsc -b ../tsconfig.server.json --clean || exit 0",
-    "build": "npm run clean && tsc -p ../tsconfig.server.json",
-    "dev": "concurrently -k \"tsc -p ../tsconfig.server.json --watch\" \"wait-on dist/index.js && powershell -Command \\\"$env:DOTENV_CONFIG_PATH='../.env'; node --watch -r dotenv/config dist/index.js\\\"\"",
-    "start": "powershell -Command \"$env:DOTENV_CONFIG_PATH='../.env'; node -r dotenv/config dist/index.js\"",
-    "test": "vitest run",
-    "backup": "node backup-db.mjs"
+    "build": "npm run clean && tsc -p ../tsconfig.server.json"
   },
   "dependencies": {
     "@types/cookie-parser": "^1.4.9",
