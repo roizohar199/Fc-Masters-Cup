@@ -317,13 +317,18 @@ app.use("/api/settings", requireAuth, settings);
 app.use(manualBracketRouter);
 
 // Early register routes (public)
-app.use("/api", earlyRegisterRouter);
+app.use("/api/early-register", earlyRegisterRouter);
 
 // ✅ פינג מהיר לאבחון
 app.get("/api/early-register/ping", (_req, res) => res.json({ ok: true, pong: true }));
 
 // ✅ בדיקת חיים
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
+
+// ✅ 404 JSON לסגירה בטוחה של בקשות שלא תואמות שום נתיב API
+app.use("/api", (req, res) => {
+  return res.status(404).json({ ok: false, error: "NOT_FOUND", path: req.originalUrl });
+});
 
 // ✅ API 404 handler - must come AFTER all API routes but BEFORE SPA fallback
 app.use(apiNotFoundHandler);

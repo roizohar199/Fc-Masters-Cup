@@ -4,7 +4,7 @@ import Database from "better-sqlite3";
 const router = Router();
 
 // טיפול ממוקד ב-OPTIONS לנתיב הזה (ליתר בטחון)
-router.options("/early-register", (_req, res) => res.sendStatus(204));
+router.options("/", (_req, res) => res.sendStatus(204));
 
 type AppDb = Database.Database;
 type RegistrationRow = { id: number; status: string };
@@ -15,7 +15,7 @@ function getDb(req: any): AppDb {
   return db;
 }
 
-router.post("/early-register", (req, res) => {
+router.post("/", (req, res) => {
   const { tournamentId, userId } = req.body || {};
   if (!tournamentId || !userId) {
     return res.status(400).json({ ok: false, error: "MISSING_PARAMS" });
