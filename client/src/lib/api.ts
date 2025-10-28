@@ -110,6 +110,15 @@ export type EarlyRegisterRes =
   | { ok: true; registrationId: number; status: string; updated?: boolean }
   | { ok: false; error: string };
 
-export function earlyRegister(payload: EarlyRegisterReq) {
-  return apiPost<EarlyRegisterReq, EarlyRegisterRes>("/early-register", payload);
+let inFlightEarlyRegister = false;
+export async function earlyRegister(payload: EarlyRegisterReq): Promise<EarlyRegisterRes> {
+  if (inFlightEarlyRegister) {
+    return Promise.reject(new Error("Early-register already in progress"));
+  }
+  inFlightEarlyRegister = true;
+  try {
+    return await apiPost<EarlyRegisterReq, EarlyRegisterRes>("/early-register", payload);
+  } finally {
+    inFlightEarlyRegister = false;
+  }
 }

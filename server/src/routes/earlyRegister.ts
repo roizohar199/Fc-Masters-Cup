@@ -3,6 +3,9 @@ import Database from "better-sqlite3";
 
 const router = Router();
 
+// טיפול ממוקד ב-OPTIONS לנתיב הזה (ליתר בטחון)
+router.options("/early-register", (_req, res) => res.sendStatus(204));
+
 type AppDb = Database.Database;
 type RegistrationRow = { id: number; status: string };
 

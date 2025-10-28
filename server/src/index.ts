@@ -207,6 +207,15 @@ app.use(
 
 app.use(withCookies());
 
+// ✅ לסגור כל OPTIONS באופן מיידי כדי למנוע Pending בפריפלייט
+app.options("*", (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", process.env.CORS_ORIGIN ?? "https://www.fcmasterscup.com");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,PUT,DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+  return res.sendStatus(204);
+});
+
 // ── Body parsers ─────────────────────────────────────────
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
@@ -312,6 +321,9 @@ app.use("/api", earlyRegisterRouter);
 
 // ✅ פינג מהיר לאבחון
 app.get("/api/early-register/ping", (_req, res) => res.json({ ok: true, pong: true }));
+
+// ✅ בדיקת חיים
+app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
 // ✅ API 404 handler - must come AFTER all API routes but BEFORE SPA fallback
 app.use(apiNotFoundHandler);
