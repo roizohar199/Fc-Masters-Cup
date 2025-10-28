@@ -1,7 +1,7 @@
 // server/src/services/selectionService.ts
 import Database from "better-sqlite3";
 import crypto from "crypto";
-import { sendEmail } from "../utils/sendEmail.js";
+import { sendTournamentSelectionEmail } from "../email.js";
 import { insertNotification } from "../utils/notify.js";
 import { createDbConnection } from "../db.js";
 
@@ -111,16 +111,14 @@ export async function selectPlayersManually(opts: {
   const emailPromises = [];
   for (const player of players) {
     if (opts.sendEmails !== false) {
-      const link = `${process.env.SITE_URL || "https://www.fcmasterscup.com"}/tournaments/${opts.tournamentId}`;
-      const subject = `נבחרת לטורניר – שלב ${stage} | FC Masters Cup`;
-      const html = `
-        <p>שלום ${player.display_name},</p>
-        <p>נבחרת להשתתף בטורניר <b>FC Masters Cup</b> לשלב <b>${stage}</b>.</p>
-        <p>לפרטים ולעדכונים:<br><a href="${link}">${link}</a></p>
-        <p>בהצלחה! ⚽</p>
-      `;
       emailPromises.push(
-        sendEmail({ to: player.email, subject, html })
+        sendTournamentSelectionEmail({
+          userEmail: player.email,
+          userName: player.display_name,
+          tournamentTitle: `FC Masters Cup - שלב ${stage}`,
+          prizeFirst: 500, // תוכל לשנות לפרס האמיתי
+          prizeSecond: 0
+        })
           .then(() => console.log(`📧 Email sent to: ${player.email}`))
           .catch((e) => console.error(`❌ Email error for ${player.email}:`, e))
       );
@@ -240,16 +238,14 @@ export async function selectPlayersForStage(opts: {
   const emailPromises = [];
   for (const s of selected) {
     if (opts.sendEmails !== false) {
-      const link = `${process.env.SITE_URL || "https://www.fcmasterscup.com"}/tournaments/${opts.tournamentId}`;
-      const subject = `נבחרת לטורניר – שלב ${stage} | FC Masters Cup`;
-      const html = `
-        <p>שלום ${s.display_name},</p>
-        <p>נבחרת להשתתף בטורניר <b>FC Masters Cup</b> לשלב <b>${stage}</b>.</p>
-        <p>לפרטים ולעדכונים:<br><a href="${link}">${link}</a></p>
-        <p>בהצלחה! ⚽</p>
-      `;
       emailPromises.push(
-        sendEmail({ to: s.email, subject, html })
+        sendTournamentSelectionEmail({
+          userEmail: s.email,
+          userName: s.display_name,
+          tournamentTitle: `FC Masters Cup - שלב ${stage}`,
+          prizeFirst: 500, // תוכל לשנות לפרס האמיתי
+          prizeSecond: 0
+        })
           .then(() => console.log(`📧 Email sent to: ${s.email}`))
           .catch((e) => console.error(`❌ Email error for ${s.email}:`, e))
       );
@@ -329,16 +325,14 @@ export async function selectSpecificPlayers(opts: {
   const emailPromises = [];
   for (const s of newSelections) {
     if (opts.sendEmails !== false) {
-      const link = `${process.env.SITE_URL || "https://www.fcmasterscup.com"}/tournaments/${opts.tournamentId}`;
-      const subject = `נבחרת לטורניר – שלב ${stage} | FC Masters Cup`;
-      const html = `
-        <p>שלום ${s.display_name},</p>
-        <p>נבחרת להשתתף בטורניר <b>FC Masters Cup</b> לשלב <b>${stage}</b>.</p>
-        <p>לפרטים ולעדכונים:<br><a href="${link}">${link}</a></p>
-        <p>בהצלחה! ⚽</p>
-      `;
       emailPromises.push(
-        sendEmail({ to: s.email, subject, html })
+        sendTournamentSelectionEmail({
+          userEmail: s.email,
+          userName: s.display_name,
+          tournamentTitle: `FC Masters Cup - שלב ${stage}`,
+          prizeFirst: 500, // תוכל לשנות לפרס האמיתי
+          prizeSecond: 0
+        })
           .then(() => console.log(`📧 Email sent to: ${s.email}`))
           .catch((e) => console.error(`❌ Email error for ${s.email}:`, e))
       );
