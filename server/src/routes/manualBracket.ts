@@ -429,7 +429,7 @@ router.post("/api/admin/tournaments/create", requireAuth, async (req, res) => {
 });
 
 // ----- helper: לזהות מזהה טורניר מכל צורה -----
-function coerceTournamentId(req: any): number | null {
+function coerceTournamentId(req: any): string | null {
   // נסה ישירות מה-body (אם הוא אובייקט כבר):
   let raw =
     req?.body?.tournamentId ??
@@ -450,8 +450,17 @@ function coerceTournamentId(req: any): number | null {
   // אם קיבלנו מערך – נקח את הראשון
   if (Array.isArray(raw)) raw = raw[0];
 
-  const n = Number(raw);
-  return Number.isFinite(n) ? n : null;
+  // בדוק אם זה UUID string תקין או מספר
+  if (typeof raw === 'string' && raw.trim()) {
+    return raw.trim();
+  }
+  
+  // אם זה מספר, נמיר למחרוזת (למקרה של rowid)
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    return String(raw);
+  }
+  
+  return null;
 }
 
 // ----- advance stage -----
@@ -472,13 +481,17 @@ router.post("/api/admin/advance-stage", requireAuth, async (req, res) => {
       } catch { return false; }
     })();
 
-    let t: { id?: number; name?: string; current_stage?: string } | undefined;
+    let t: { id?: string; name?: string; current_stage?: string } | undefined;
 
     if (hasIdCol) {
       t = db.prepare(`SELECT id, name, current_stage FROM tournaments WHERE id = ?`).get(tournamentId) as any;
     }
     if (!t) {
-      t = db.prepare(`SELECT rowid as id, name, current_stage FROM tournaments WHERE rowid = ?`).get(tournamentId) as any;
+      // נסה גם לפי rowid אם זה מספר
+      const numericId = Number(tournamentId);
+      if (Number.isFinite(numericId)) {
+        t = db.prepare(`SELECT rowid as id, name, current_stage FROM tournaments WHERE rowid = ?`).get(numericId) as any;
+      }
     }
 
     if (!t) {
@@ -498,8 +511,15 @@ router.post("/api/admin/advance-stage", requireAuth, async (req, res) => {
     try {
       const cols = db.prepare(`PRAGMA table_info(tournaments)`).all() as Array<{ name: string }>;
       if (cols.some(c => c.name === "current_stage")) {
-        const whereCol = hasIdCol ? "id" : "rowid";
-        db.prepare(`UPDATE tournaments SET current_stage = ? WHERE ${whereCol} = ?`).run(to, tournamentId);
+        if (hasIdCol) {
+          db.prepare(`UPDATE tournaments SET current_stage = ? WHERE id = ?`).run(to, tournamentId);
+        } else {
+          // נסה לפי rowid אם זה מספר
+          const numericId = Number(tournamentId);
+          if (Number.isFinite(numericId)) {
+            db.prepare(`UPDATE tournaments SET current_stage = ? WHERE rowid = ?`).run(to, numericId);
+          }
+        }
       }
     } catch (e) {
       console.warn("[advance-stage] stage update warning:", (e as Error).message);
