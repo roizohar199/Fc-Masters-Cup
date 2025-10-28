@@ -3,6 +3,7 @@ import Database from "better-sqlite3";
 import crypto from "crypto";
 import { sendEmail } from "../utils/sendEmail.js";
 import { insertNotification } from "../utils/notify.js";
+import { createDbConnection } from "../db.js";
 
 export type Stage = "R16" | "QF" | "SF" | "F";
 
@@ -16,8 +17,7 @@ export interface SelectionResult {
 let db: Database.Database | null = null;
 function getDb(): Database.Database {
   if (!db) {
-    db = new Database(process.env.DB_PATH || "./server/tournaments.sqlite");
-    db.pragma("journal_mode = WAL");
+    db = createDbConnection();
     db.exec(`
       PRAGMA foreign_keys = ON;
 

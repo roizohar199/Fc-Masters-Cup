@@ -1,8 +1,7 @@
 import nodemailer from "nodemailer";
-import Database from "better-sqlite3";
+import { createDbConnection } from "../../db.js";
 
-const DB_PATH = process.env.DB_PATH || "./server/tournaments.sqlite";
-const db = new Database(DB_PATH);
+const db = createDbConnection();
 
 function getBool(v: any, def=false) {
   if (v === undefined || v === null) return def;

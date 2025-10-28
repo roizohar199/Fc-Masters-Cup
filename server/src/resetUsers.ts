@@ -7,6 +7,7 @@ import Database from "better-sqlite3";
 import { resolve } from "node:path";
 import { existsSync } from "node:fs";
 import { config } from "dotenv";
+import { createDbConnection } from "./db.js";
 
 // טען .env
 const envPath = resolve(process.cwd(), "../.env");
@@ -14,8 +15,7 @@ if (existsSync(envPath)) {
   config({ path: envPath });
 }
 
-const DB_PATH = process.env.DB_PATH || "./tournaments.sqlite";
-const db = new Database(DB_PATH);
+const db = createDbConnection();
 
 console.log("🔍 בודק מבנה טבלת users...");
 

@@ -1,14 +1,14 @@
 // server/src/routes/adminSelection.ts
 import { Router } from "express";
 import { selectPlayersForStage, selectSpecificPlayers } from "../services/selectionService.js";
-import Database from "better-sqlite3";
+import { createDbConnection } from "../db.js";
 
 const router = Router();
 
 // קבלת כל השחקנים (לבחירה)
 router.get("/players", (req: any, res) => {
   try {
-    const db = new Database(process.env.DB_PATH || "./server/tournaments.sqlite");
+    const db = createDbConnection();
     
     const players = db.prepare(`
       SELECT id, email, display_name, psnUsername, status, payment_status
@@ -28,7 +28,7 @@ router.get("/players", (req: any, res) => {
 router.get("/paid-players/:tournamentId", (req: any, res) => {
   try {
     const tournamentId = req.params.tournamentId;
-    const db = new Database(process.env.DB_PATH || "./server/tournaments.sqlite");
+    const db = createDbConnection();
     
     // בדיקה אם יש טבלת registrations
     const hasRegistrations = db
@@ -75,7 +75,7 @@ router.post("/players/:playerId/payment-status", (req: any, res) => {
       return res.status(400).json({ ok: false, error: "Invalid payment status" });
     }
     
-    const db = new Database(process.env.DB_PATH || "./server/tournaments.sqlite");
+    const db = createDbConnection();
     const result = db.prepare(`
       UPDATE users 
       SET payment_status = ? 

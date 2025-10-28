@@ -1,5 +1,5 @@
 import { Router } from "express";
-import Database from "better-sqlite3";
+import { createDbConnection } from "../../db.js";
 import { sendMailSafe } from "../mail/mailer.js";
 
 export const adminRouter = Router();
@@ -12,10 +12,7 @@ type DbUser = {
 };
 
 function getDb() {
-  const DB_PATH = process.env.DB_PATH || "./server/tournaments.sqlite";
-  const db = new Database(DB_PATH);
-  db.pragma("foreign_keys = ON");
-  return db;
+  return createDbConnection();
 }
 
 /**

@@ -19,10 +19,24 @@ console.log(`🔧 Server directory: ${serverDir}`);
 const db = new Database(dbPath);
 console.log(`📂 Database path: ${dbPath}`);
 
+// חשוב: לאכוף FK בכל חיבור
+db.pragma("foreign_keys = ON");
 db.pragma("journal_mode = WAL");
 
 // וידוא סכמת מסד הנתונים
 ensureSchema(db);
+
+// פונקציה מרכזית ליצירת חיבור DB עם הגדרות נכונות
+export function createDbConnection(dbPath?: string): Database.Database {
+  const path = dbPath || process.env.DB_PATH || defaultDbPath;
+  const connection = new Database(path);
+  
+  // חשוב: לאכוף FK בכל חיבור
+  connection.pragma("foreign_keys = ON");
+  connection.pragma("journal_mode = WAL");
+  
+  return connection;
+}
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS players (
@@ -153,6 +167,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_tr_unique ON tournament_registrations (tou
 CREATE INDEX IF NOT EXISTS idx_tr_tournament ON tournament_registrations (tournamentId);
 CREATE INDEX IF NOT EXISTS idx_tr_user ON tournament_registrations (userId);
 CREATE INDEX IF NOT EXISTS idx_tr_state ON tournament_registrations (state);
+
+-- אינדקסים לביצועים טובים בבדיקות/ג׳וינים (כפי שהומלץ)
+CREATE INDEX IF NOT EXISTS idx_tr_userId ON tournament_registrations(userId);
+CREATE INDEX IF NOT EXISTS idx_tr_tournamentId ON tournament_registrations(tournamentId);
 
 -- Notifications table
 CREATE TABLE IF NOT EXISTS notifications (

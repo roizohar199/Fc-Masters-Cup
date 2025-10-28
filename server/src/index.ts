@@ -70,6 +70,8 @@ function ensureColumn(
   }
 
   const db = new Database(DB_PATH);
+  // חשוב: לאכוף FK בכל חיבור
+  db.pragma("foreign_keys = ON");
   db.exec("BEGIN;");
   try {
     // בסיס טבלאות (איידמפוטנטי)

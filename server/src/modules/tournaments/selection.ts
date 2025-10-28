@@ -3,13 +3,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createNotification } from "../notifications/model.js";
 import { sendMailSafe, tournamentSelectionTemplate } from "../mail/mailer.js";
+import { createDbConnection } from "../../db.js";
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, "../../tournaments.sqlite");
-const db = new Database(DB_PATH);
+const db = createDbConnection();
 
 export function selectParticipants(tournamentId: string, userIds: string[]) {
   const now = new Date().toISOString();

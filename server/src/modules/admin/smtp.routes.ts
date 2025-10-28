@@ -1,5 +1,5 @@
 import { Router } from "express";
-import Database from "better-sqlite3";
+import { createDbConnection } from "../../db.js";
 import { sendMailSafe, verifySmtp } from "../mail/mailer.js";
 
 export const smtpAdminRouter = Router();
@@ -26,7 +26,7 @@ smtpAdminRouter.post("/test", async (req:any, res) => {
 
 smtpAdminRouter.get("/email-logs", (req:any, res) => {
   if (!isAdmin(req)) return res.status(403).json({ error: "forbidden" });
-  const db = new Database(process.env.DB_PATH || "./server/tournaments.sqlite");
+  const db = createDbConnection();
   try {
     const rows = db.prepare(
       "SELECT id,to_email,subject,status,substr(error,1,140) AS error,created_at FROM email_logs ORDER BY id DESC LIMIT 50"
@@ -41,7 +41,7 @@ smtpAdminRouter.get("/diag", async (req:any, res) => {
   if (!isAdmin(req)) return res.status(403).json({ error: "forbidden" });
 
   const to = String(req.query.to || "").trim();
-  const db = new Database(process.env.DB_PATH || "./server/tournaments.sqlite");
+  const db = createDbConnection();
 
   const verify = await verifySmtp();
 
