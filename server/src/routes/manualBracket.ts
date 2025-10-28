@@ -154,63 +154,65 @@ router.post("/api/admin/tournaments/create", requireAuth, async (req, res) => {
       let params: any[];
       let tournamentId: string;
 
+      // יצירת UUID עבור הטורניר החדש
+      tournamentId = uuid();
+      
       // התמודדות עם הסכמות השונות
       if (hasTitleCol && hasPlatformCol && hasTimezoneCol && hasCreatedAtCol) {
         // Old schema with all required fields
         const cols = hasRegistrationStatus && hasRegistrationCapacity && hasRegistrationMinPlayers 
-          ? "title, game, platform, timezone, createdAt, prizeFirst, prizeSecond, nextTournamentDate, telegramLink, registrationStatus, registrationCapacity, registrationMinPlayers"
-          : "title, game, platform, timezone, createdAt, prizeFirst, prizeSecond, nextTournamentDate, telegramLink";
+          ? "id, title, game, platform, timezone, createdAt, prizeFirst, prizeSecond, nextTournamentDate, telegramLink, registrationStatus, registrationCapacity, registrationMinPlayers"
+          : "id, title, game, platform, timezone, createdAt, prizeFirst, prizeSecond, nextTournamentDate, telegramLink";
         const vals = hasRegistrationStatus && hasRegistrationCapacity && hasRegistrationMinPlayers 
-          ? "?,?,?,?,?,?,?,?,?,'collecting',?,?"
-          : "?,?,?,?,?,?,?,?,?";
+          ? "?,?,?,?,?,?,?,?,?,?,'collecting',?,?"
+          : "?,?,?,?,?,?,?,?,?,?";
         insertSql = `INSERT INTO tournaments (${cols}) VALUES (${vals})`;
-        params = hasRegistrationStatus ? [name, game, platformVal, timezoneVal, new Date().toISOString(), 500, 0, startsAt, null, 100, 16]
-                                       : [name, game, platformVal, timezoneVal, new Date().toISOString(), 500, 0, startsAt, null];
+        params = hasRegistrationStatus ? [tournamentId, name, game, platformVal, timezoneVal, new Date().toISOString(), 500, 0, startsAt, null, 100, 16]
+                                       : [tournamentId, name, game, platformVal, timezoneVal, new Date().toISOString(), 500, 0, startsAt, null];
       } else if (hasTitleCol && hasNameCol && hasPlatformCol && hasTimezoneCol) {
         // Both new and old schema fields
         const cols = hasRegistrationStatus && hasRegistrationCapacity && hasRegistrationMinPlayers
-          ? "name, title, game, platform, timezone, starts_at, current_stage, is_active, registrationStatus, registrationCapacity, registrationMinPlayers"
-          : "name, title, game, platform, timezone, starts_at, current_stage, is_active";
-        const vals = hasRegistrationStatus ? "?,?,?,?,?,?,?,1,'collecting',100,16" : "?,?,?,?,?,?,?,1";
+          ? "id, name, title, game, platform, timezone, starts_at, current_stage, is_active, registrationStatus, registrationCapacity, registrationMinPlayers"
+          : "id, name, title, game, platform, timezone, starts_at, current_stage, is_active";
+        const vals = hasRegistrationStatus ? "?,?,?,?,?,?,?,?,1,'collecting',100,16" : "?,?,?,?,?,?,?,?,1";
         insertSql = `INSERT INTO tournaments (${cols}) VALUES (${vals})`;
-        params = hasRegistrationStatus ? [name, name, game, platformVal, timezoneVal, startsAtISO, "R16"] 
-                                       : [name, name, game, platformVal, timezoneVal, startsAtISO, "R16"];
+        params = hasRegistrationStatus ? [tournamentId, name, name, game, platformVal, timezoneVal, startsAtISO, "R16"] 
+                                       : [tournamentId, name, name, game, platformVal, timezoneVal, startsAtISO, "R16"];
       } else if (hasTitleCol && hasNameCol) {
         // Both name and title exist - no platform/timezone
         const cols = hasRegistrationStatus && hasRegistrationCapacity && hasRegistrationMinPlayers
-          ? "name, title, game, starts_at, current_stage, is_active, registrationStatus, registrationCapacity, registrationMinPlayers"
-          : "name, title, game, starts_at, current_stage, is_active";
-        const vals = hasRegistrationStatus ? "?,?,?,?,?,1,'collecting',100,16" : "?,?,?,?,?,1";
+          ? "id, name, title, game, starts_at, current_stage, is_active, registrationStatus, registrationCapacity, registrationMinPlayers"
+          : "id, name, title, game, starts_at, current_stage, is_active";
+        const vals = hasRegistrationStatus ? "?,?,?,?,?,?,1,'collecting',100,16" : "?,?,?,?,?,?,1";
         insertSql = `INSERT INTO tournaments (${cols}) VALUES (${vals})`;
-        params = [name, name, game, startsAtISO, "R16"];
+        params = [tournamentId, name, name, game, startsAtISO, "R16"];
       } else if (hasPlatformCol && hasTimezoneCol) {
         // Only platform and timezone exist
         const cols = hasRegistrationStatus && hasRegistrationCapacity && hasRegistrationMinPlayers
-          ? "name, game, platform, timezone, starts_at, current_stage, is_active, registrationStatus, registrationCapacity, registrationMinPlayers"
-          : "name, game, platform, timezone, starts_at, current_stage, is_active";
-        const vals = hasRegistrationStatus ? "?,?,?,?,?,?,1,'collecting',100,16" : "?,?,?,?,?,?,1";
+          ? "id, name, game, platform, timezone, starts_at, current_stage, is_active, registrationStatus, registrationCapacity, registrationMinPlayers"
+          : "id, name, game, platform, timezone, starts_at, current_stage, is_active";
+        const vals = hasRegistrationStatus ? "?,?,?,?,?,?,?,1,'collecting',100,16" : "?,?,?,?,?,?,?,1";
         insertSql = `INSERT INTO tournaments (${cols}) VALUES (${vals})`;
-        params = [name, game, platformVal, timezoneVal, startsAtISO, "R16"];
+        params = [tournamentId, name, game, platformVal, timezoneVal, startsAtISO, "R16"];
       } else if (hasPlatformCol) {
         // Only platform exists with name
         const cols = hasRegistrationStatus && hasRegistrationCapacity && hasRegistrationMinPlayers
-          ? "name, game, platform, starts_at, current_stage, is_active, registrationStatus, registrationCapacity, registrationMinPlayers"
-          : "name, game, platform, starts_at, current_stage, is_active";
-        const vals = hasRegistrationStatus ? "?,?,?,?,?,1,'collecting',100,16" : "?,?,?,?,?,1";
+          ? "id, name, game, platform, starts_at, current_stage, is_active, registrationStatus, registrationCapacity, registrationMinPlayers"
+          : "id, name, game, platform, starts_at, current_stage, is_active";
+        const vals = hasRegistrationStatus ? "?,?,?,?,?,?,1,'collecting',100,16" : "?,?,?,?,?,?,1";
         insertSql = `INSERT INTO tournaments (${cols}) VALUES (${vals})`;
-        params = [name, game, platformVal, startsAtISO, "R16"];
+        params = [tournamentId, name, game, platformVal, startsAtISO, "R16"];
       } else {
         // Only name exists (new schema)
         const cols = hasRegistrationStatus && hasRegistrationCapacity && hasRegistrationMinPlayers
-          ? "name, game, starts_at, current_stage, is_active, registrationStatus, registrationCapacity, registrationMinPlayers"
-          : "name, game, starts_at, current_stage, is_active";
-        const vals = hasRegistrationStatus ? "?,?,?,?,1,'collecting',100,16" : "?,?,?,?,1";
+          ? "id, name, game, starts_at, current_stage, is_active, registrationStatus, registrationCapacity, registrationMinPlayers"
+          : "id, name, game, starts_at, current_stage, is_active";
+        const vals = hasRegistrationStatus ? "?,?,?,?,?,1,'collecting',100,16" : "?,?,?,?,?,1";
         insertSql = `INSERT INTO tournaments (${cols}) VALUES (${vals})`;
-        params = [name, game, startsAtISO, "R16"];
+        params = [tournamentId, name, game, startsAtISO, "R16"];
       }
 
       const info = db.prepare(insertSql).run(...params);
-      tournamentId = String(info.lastInsertRowid);
       
       console.log(where, "Created tournament with ID:", tournamentId);
 
