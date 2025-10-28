@@ -6,9 +6,7 @@ const smtpPort = Number(process.env.SMTP_PORT || 465);
 const smtpSecure = true; // ✅ חשוב! עבור Hostinger משתמשים ב-SSL על פורט 465
 const smtpUser = process.env.SMTP_USER || "";
 const smtpPass = process.env.SMTP_PASS || "";
-const from =
-  process.env.EMAIL_FROM ||
-  (smtpUser ? `FC Masters Cup <${smtpUser}>` : "FC Masters Cup <no-reply@fcmasterscup.com>");
+const from = process.env.EMAIL_FROM;
 
 // ✅ תיקון מלא ל־SMTP ב־Hostinger
 const transporter: Transporter = nodemailer.createTransport({

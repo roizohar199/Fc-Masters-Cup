@@ -379,7 +379,7 @@ async function startServer(port: number, retries = 0): Promise<void> {
       logger.info("server", `  - Host: ${process.env.SMTP_HOST || "smtp.gmail.com"}`);
       logger.info("server", `  - Port: ${process.env.SMTP_PORT || 587}`);
       logger.info("server", `  - Secure: ${process.env.SMTP_SECURE || "false"}`);
-      logger.info("server", `  - From: ${process.env.EMAIL_FROM || process.env.SMTP_USER || "NOT_SET"}`);
+      logger.info("server", `  - From: ${process.env.EMAIL_FROM || "NOT_SET"}`);
       logger.info("server", "");
       logger.info("server", "📡 API Routes initialized:");
       logger.info("server", "  - /api/health (public)");

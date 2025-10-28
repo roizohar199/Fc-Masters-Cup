@@ -60,7 +60,7 @@ export async function sendWelcomeEmail(email: string) {
   const transport = getTransporter();
   
   const emailContent = {
-    from: process.env.EMAIL_FROM || process.env.SMTP_FROM || `"FC Masters Cup" <${process.env.SMTP_USER}>`,
+    from: process.env.EMAIL_FROM,
     to: email,
     subject: "ברוכים הבאים ל-FC Masters Cup! ⚽",
     html: `
@@ -144,7 +144,7 @@ export async function sendAdminNotification(adminEmail: string, user: { email: s
   });
   
   const emailContent = {
-    from: process.env.EMAIL_FROM || process.env.SMTP_FROM || `"FC Masters Cup" <${process.env.SMTP_USER}>`,
+    from: process.env.EMAIL_FROM,
     to: adminEmail,
     subject: "משתמש חדש נרשם לאתר! 🎉",
     html: `
@@ -228,7 +228,7 @@ export async function sendPasswordResetEmail(email: string, token: string) {
   const resetUrl = `${process.env.SITE_URL || "https://www.fcmasterscup.com"}/reset-password?token=${token}&email=${encodedEmail}`;
   
   const emailContent = {
-    from: process.env.EMAIL_FROM || process.env.SMTP_FROM || `"FC Masters Cup" <${process.env.SMTP_USER}>`,
+    from: process.env.EMAIL_FROM,
     to: email,
     subject: "איפוס סיסמה - FC Masters Cup 🔑",
     html: `
@@ -294,7 +294,7 @@ export async function sendPasswordResetSuccessEmail(email: string) {
   const transport = getTransporter();
   
   const emailContent = {
-    from: process.env.EMAIL_FROM || process.env.SMTP_FROM || `"FC Masters Cup" <${process.env.SMTP_USER}>`,
+    from: process.env.EMAIL_FROM,
     to: email,
     subject: "הסיסמה שלך אופסה בהצלחה - FC Masters Cup ✅",
     html: `
@@ -366,7 +366,7 @@ export async function sendTournamentRegistrationEmail(params: {
 
   const subject = `נרשם חדש לטורניר: ${tournamentTitle} (${count}/${capacity})`;
   const emailContent = {
-    from: process.env.EMAIL_FROM || process.env.SMTP_FROM || `"FC Masters Cup" <${process.env.SMTP_USER}>`,
+    from: process.env.EMAIL_FROM,
     to: adminEmail,
     subject,
     html: `
@@ -545,7 +545,7 @@ export async function sendUserRejectedEmail(email: string) {
   const transport = getTransporter();
   
   const emailContent = {
-    from: process.env.EMAIL_FROM || process.env.SMTP_FROM || `"FC Masters Cup" <${process.env.SMTP_USER}>`,
+    from: process.env.EMAIL_FROM,
     to: email,
     subject: "החשבון שלך נדחה - FC Masters Cup",
     html: `
@@ -591,7 +591,7 @@ export async function sendUserApprovedEmail(email: string) {
   const transport = getTransporter();
   
   const emailContent = {
-    from: process.env.EMAIL_FROM || process.env.SMTP_FROM || `"FC Masters Cup" <${process.env.SMTP_USER}>`,
+    from: process.env.EMAIL_FROM,
     to: email,
     subject: "החשבון שלך אושר! ברוכים הבאים ל-FC Masters Cup! 🎉⚽",
     html: `
@@ -679,7 +679,7 @@ export async function sendEarlyRegistrationEmail({ userEmail, userPsn, tournamen
   }
 
   const emailContent = {
-    from: process.env.EMAIL_FROM || process.env.SMTP_FROM || `"FC Masters Cup" <${process.env.SMTP_USER}>`,
+    from: process.env.EMAIL_FROM,
     to: adminEmail,
     subject: "🎮 משתמש חדש מביע עניין בטורניר!",
     html: `
@@ -744,7 +744,7 @@ export async function sendPendingApprovalEmail(email: string) {
   const transport = getTransporter();
   
   const emailContent = {
-    from: process.env.EMAIL_FROM || process.env.SMTP_FROM || `"FC Masters Cup" <${process.env.SMTP_USER}>`,
+    from: process.env.EMAIL_FROM,
     to: email,
     subject: "שמתך התקבלה - ממתין לאישור המנהל ⏳",
     html: `
@@ -819,7 +819,7 @@ export async function sendAdminApprovalRequest(adminEmail: string, user: { email
   });
   
   const emailContent = {
-    from: process.env.EMAIL_FROM || process.env.SMTP_FROM || `"FC Masters Cup" <${process.env.SMTP_USER}>`,
+    from: process.env.EMAIL_FROM,
     to: adminEmail,
     subject: "🔔 בקשה חדשה לאישור משתמש - FC Masters Cup",
     html: `

@@ -90,7 +90,7 @@ function logEmail(to: string, subject: string, status: "SENT"|"ERROR", extra: {e
 }
 
 export async function sendMailSafe(to: string, subject: string, html: string) {
-  const from = process.env.EMAIL_FROM || process.env.SMTP_FROM || process.env.SMTP_USER!;
+  const from = process.env.EMAIL_FROM;
   try {
     const info = await transporter.sendMail({ from, to, subject, html });
     const response = (info as any)?.response || "";
@@ -119,7 +119,7 @@ export async function sendToAdmins(subject: string, html: string) {
 
 /** שליחת מייל בסיסית (מיושן - השתמש ב-sendMailSafe) */
 export async function sendMail(to: string, subject: string, html: string) {
-  const from = process.env.EMAIL_FROM || process.env.SMTP_FROM || process.env.SMTP_USER!;
+  const from = process.env.EMAIL_FROM;
   const info = await transporter.sendMail({ from, to, subject, html });
   return info.messageId;
 }

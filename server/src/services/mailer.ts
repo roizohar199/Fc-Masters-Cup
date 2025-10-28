@@ -34,7 +34,7 @@ export async function verifySmtp(): Promise<boolean> {
 
 export async function sendMail(opts: SendMailOptions) {
   const info = await transporter.sendMail({
-    from: process.env.EMAIL_FROM || process.env.SMTP_USER, // חייב להיות מאותו דומיין!
+    from: process.env.EMAIL_FROM,
     ...opts,
   });
 

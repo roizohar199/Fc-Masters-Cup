@@ -65,7 +65,7 @@ smtpAdminRouter.get("/diag", async (req:any, res) => {
       port: process.env.SMTP_PORT,
       secure: process.env.SMTP_SECURE,
       user: process.env.SMTP_USER,
-      from: process.env.EMAIL_FROM || process.env.SMTP_FROM,
+      from: process.env.EMAIL_FROM,
       admins: process.env.ADMIN_EMAILS,
     },
     verify,

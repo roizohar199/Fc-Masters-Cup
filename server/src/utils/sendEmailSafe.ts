@@ -21,7 +21,7 @@ export async function sendEmailSafe({ to, subject, html }: Args) {
     });
 
     await transporter.sendMail({
-      from: process.env.EMAIL_FROM || process.env.SMTP_USER,
+      from: process.env.EMAIL_FROM,
       to,
       subject,
       html,
