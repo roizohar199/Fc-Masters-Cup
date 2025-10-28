@@ -206,7 +206,16 @@ app.use(
 );
 
 app.use(withCookies());
-app.use(express.json());
+
+// ── Body parsers ─────────────────────────────────────────
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true }));
+
+// ── לוג בסיסי לבדיקת בקשות ───────────────────────────────
+app.use((req, _res, next) => {
+  console.log(`[REQ] ${req.method} ${req.url}`);
+  next();
+});
 
 // ✅ בריאות ציבורית – לפני כל ה-auth
 app.get("/api/health", (_req, res) => {
