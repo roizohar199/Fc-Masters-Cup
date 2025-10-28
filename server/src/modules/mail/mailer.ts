@@ -9,9 +9,9 @@ function getBool(v: any, def=false) {
   return s === "1" || s === "true" || s === "yes";
 }
 
-const BASE_HOST = process.env.SMTP_HOST || "smtp.gmail.com";
-const ENV_PORT = Number(process.env.SMTP_PORT || 587);
-const ENV_SECURE = getBool(process.env.SMTP_SECURE, ENV_PORT === 465);
+const BASE_HOST = process.env.SMTP_HOST || "smtp.hostinger.com";
+const ENV_PORT = Number(process.env.SMTP_PORT || 465);
+const ENV_SECURE = true; // ✅ חשוב! עבור Hostinger משתמשים ב-SSL על פורט 465
 
 function createTx({ host, port, secure }: { host: string; port: number; secure: boolean; }) {
   // ✅ תיקון מלא ל־SMTP ב־Hostinger
@@ -26,16 +26,11 @@ function createTx({ host, port, secure }: { host: string; port: number; secure: 
   return nodemailer.createTransport({
     host,
     port,
-    secure,                // 587=false (STARTTLS), 465=true (SSL)
+    secure, // ✅ חשוב! עבור Hostinger משתמשים ב-SSL על פורט 465
     auth: { user: process.env.SMTP_USER!, pass: process.env.SMTP_PASS! },
     pool: true,
     maxConnections: 1,
     maxMessages: 50,
-    tls: {
-      minVersion: "TLSv1.2",
-      servername: host,
-      rejectUnauthorized: false, // מונע שגיאות SSL אפשריות
-    },
   });
 }
 

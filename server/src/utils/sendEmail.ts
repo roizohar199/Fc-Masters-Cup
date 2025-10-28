@@ -1,9 +1,9 @@
 // server/src/utils/sendEmail.ts
 import nodemailer, { Transporter } from "nodemailer";
 
-const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
-const smtpPort = Number(process.env.SMTP_PORT || 587);
-const smtpSecure = String(process.env.SMTP_SECURE || "false") === "true";
+const smtpHost = process.env.SMTP_HOST || "smtp.hostinger.com";
+const smtpPort = Number(process.env.SMTP_PORT || 465);
+const smtpSecure = true; // ✅ חשוב! עבור Hostinger משתמשים ב-SSL על פורט 465
 const smtpUser = process.env.SMTP_USER || "";
 const smtpPass = process.env.SMTP_PASS || "";
 const from =
@@ -16,9 +16,6 @@ const transporter: Transporter = nodemailer.createTransport({
   port: smtpPort,
   secure: smtpSecure,
   auth: smtpUser && smtpPass ? { user: smtpUser, pass: smtpPass } : undefined,
-  tls: {
-    rejectUnauthorized: false, // מונע שגיאות SSL אפשריות
-  },
 });
 
 export async function sendEmail(opts: { to: string; subject: string; html: string }) {
