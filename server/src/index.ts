@@ -239,6 +239,9 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
+// ✅ תחבר את early-register לפני כל requireAuth/guards אחרים
+app.use("/api/early-register", earlyRegisterRouter);
+
 // Apply rate limiting to all API routes
 app.use("/api/", apiLimiter);
 
@@ -315,9 +318,6 @@ app.use("/api/settings", requireAuth, settings);
 
 // Manual bracket routes (mixed auth - public views, admin creation)
 app.use(manualBracketRouter);
-
-// Early register routes (public)
-app.use("/api/early-register", earlyRegisterRouter);
 
 // ✅ פינג מהיר לאבחון
 app.get("/api/early-register/ping", (_req, res) => res.json({ ok: true, pong: true }));

@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { earlyRegister } from "../api/earlyRegister";
+import { earlyRegister } from "../lib/api";
 
-export function RegisterButton({ tournamentId, userId }: { tournamentId: string; userId: string }) {
+export function RegisterButton({ tournamentId, userId }: { tournamentId: number; userId: number }) {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -10,9 +10,13 @@ export function RegisterButton({ tournamentId, userId }: { tournamentId: string;
     setLoading(true);
     setMsg(null);
     try {
-      const data = await earlyRegister(tournamentId, userId);
-      if (data.already) setMsg("כבר נרשמת לטורניר ✔");
-      else setMsg("נרשמת בהצלחה ✔");
+      const data = await earlyRegister({ tournamentId, userId });
+      if (data.ok) {
+        if (data.updated) setMsg("כבר נרשמת לטורניר ✔");
+        else setMsg("נרשמת בהצלחה ✔");
+      } else {
+        throw new Error(data.error || "שגיאה בהרשמה");
+      }
     } catch (e: any) {
       setMsg(e?.message || "שגיאה בשליחה");
     } finally {
