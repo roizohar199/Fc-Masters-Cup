@@ -2,6 +2,8 @@ import { Router } from "express";
 import Database from "better-sqlite3";
 import db from "../db.js";
 import { decodeToken } from "../auth.js";
+import { uuid } from "../utils/ids.js";
+import { nowISO } from "../lib/util.js";
 
 const router = Router();
 
@@ -9,14 +11,14 @@ const router = Router();
 router.options("/", (_req, res) => res.sendStatus(204));
 
 type AppDb = Database.Database;
-type RegistrationRow = { id: number; status: string };
+type RegistrationRow = { id: string; state: string };
 
-// מנסה לגזור userId ממקורות נפוצים של auth
-function deriveUserId(req: any): number | null {
+// מנסה לגזור userId ממקורות נפוצים של auth (מחזיר string - כפי שבדאטאבייס)
+function deriveUserId(req: any): string | null {
   // ✅ ניסיון ראשון: req.user (מ-middleware)
-  if (req.user?.id) {
-    const n = Number(req.user.id);
-    if (Number.isFinite(n) && n > 0) return n;
+  if (req.user?.id || req.user?.uid) {
+    const userId = String(req.user.id || req.user.uid);
+    if (userId && userId.trim()) return userId.trim();
   }
 
   // ✅ ניסיון שני: JWT מ-cookie/header
@@ -33,11 +35,9 @@ function deriveUserId(req: any): number | null {
         // שליפת user id מהדאטאבייס לפי email
         const user = db.prepare(`SELECT id FROM users WHERE email=?`).get(decoded.email) as any;
         if (user && user.id) {
-          const n = Number(user.id);
-          if (Number.isFinite(n) && n > 0) {
-            console.log("[early-register] Found userId from JWT:", n);
-            return n;
-          }
+          const userId = String(user.id);
+          console.log("[early-register] Found userId from JWT:", userId);
+          return userId;
         }
       }
     }
@@ -53,8 +53,10 @@ function deriveUserId(req: any): number | null {
     req.headers["x-user-id"]
   ];
   for (const v of candidates) {
-    const n = Number(v);
-    if (Number.isFinite(n) && n > 0) return n;
+    if (v) {
+      const userId = String(v);
+      if (userId && userId.trim()) return userId.trim();
+    }
   }
 
   return null;
@@ -70,8 +72,9 @@ router.post("/", (req, res) => {
   const derivedUserId = deriveUserId(req);
   const rawUserId = (req.body?.userId ?? req.body?.user_id ?? derivedUserId);
 
-  const tournamentId = Number(rawTournamentId);
-  const userId = Number(rawUserId);
+  // המרה ל-string (כפי שבדאטאבייס)
+  const tournamentId = rawTournamentId ? String(rawTournamentId).trim() : null;
+  const userId = rawUserId ? String(rawUserId).trim() : null;
 
   // לוג אבחוני מינימלי
   console.log("[early-register] incoming:", {
@@ -81,18 +84,18 @@ router.post("/", (req, res) => {
     finalTournamentId: tournamentId
   });
 
-  if (!Number.isFinite(tournamentId) || tournamentId <= 0) {
+  if (!tournamentId || tournamentId.length === 0) {
     return res.status(400).json({ ok: false, error: "INVALID_TOURNAMENT_ID" });
   }
-  if (!Number.isFinite(userId) || userId <= 0) {
+  if (!userId || userId.length === 0) {
     return res.status(401).json({ ok: false, error: "USER_NOT_AUTHENTICATED" });
   }
 
   try {
-    // ⬅️ שים לב: שם הטבלה לפי ה־DB שלך
+    // ✅ חיפוש רישום קיים (משתמש ב-state ולא status)
     const existing = db
-      .prepare<[number, number], RegistrationRow | undefined>(
-        `SELECT id, status
+      .prepare<[string, string], RegistrationRow | undefined>(
+        `SELECT id, state
          FROM tournament_registrations
          WHERE userId = ? AND tournamentId = ?
          LIMIT 1`
@@ -100,29 +103,32 @@ router.post("/", (req, res) => {
       .get(userId, tournamentId);
 
     if (existing) {
-      db.prepare<[number, number]>(`UPDATE tournament_registrations SET updatedAt=? WHERE id=?`)
-        .run(Date.now(), existing.id);
+      // עדכון תאריך עדכון
+      db.prepare<[string, string]>(`UPDATE tournament_registrations SET updatedAt=? WHERE id=?`)
+        .run(nowISO(), existing.id);
 
       return res.json({
         ok: true,
         registrationId: existing.id,
-        status: existing.status,
+        status: existing.state, // מחזירים כקומפיטביליות
+        state: existing.state,
         updated: true,
       });
     }
 
-    const now = Date.now();
-    const info = db
-      .prepare<[number, number, string, number, number]>(
-        `INSERT INTO tournament_registrations (userId, tournamentId, status, createdAt, updatedAt)
-         VALUES (?, ?, ?, ?, ?)`
-      )
-      .run(userId, tournamentId, "pending", now, now);
+    // ✅ יצירת רישום חדש
+    const registrationId = uuid();
+    const now = nowISO();
+    db.prepare<[string, string, string, string, string, string]>(
+      `INSERT INTO tournament_registrations (id, userId, tournamentId, state, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    ).run(registrationId, userId, tournamentId, "registered", now, now);
 
     return res.status(201).json({
       ok: true,
-      registrationId: Number(info.lastInsertRowid),
-      status: "pending",
+      registrationId: registrationId,
+      status: "registered", // מחזירים כקומפיטביליות
+      state: "registered",
     });
   } catch (err) {
     console.error("early-register error:", err);

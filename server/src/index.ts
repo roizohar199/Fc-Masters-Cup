@@ -181,21 +181,22 @@ app.options("*", (_req, res) => res.sendStatus(204));
 // --- JSON parser ---
 app.use(express.json({ limit: "1mb" }));
 
+// ✅ Cookie parser - חייב להיות מוקדם כדי ש-cookies יהיו זמינים בכל ה-handlers
+app.use(withCookies());
+
 // ===== EARLY-REGISTER HOTFIX (בלתי-ניתן-לעקיפה) =====
 // פינג לאימות שבאמת רצים על הקוד החדש
 app.get("/api/early-register/ping", (_req, res) => {
   res.json({ ok: true, route: "early-register", file: __filename, ts: Date.now() });
 });
 
-// ⚠️ זמני: תופס את POST לפני כולם ומחזיר 200 כדי לאמת שהנתיב נתפס בפרודקשן
-app.post("/api/early-register", (req, res /*, next */) => {
-  console.log("[EARLY-FIRST] hit /api/early-register (hotfix handler)");
+// לוכד את ה-POST לפני כולם כדי לאבחן נתיב
+app.post("/api/early-register", (req, res, next) => {
+  console.log("[EARLY-FIRST] hit /api/early-register (early handler)");
   console.log("[EARLY-FIRST] body:", JSON.stringify(req.body));
   console.log("[EARLY-FIRST] cookies:", req.cookies ? Object.keys(req.cookies) : "none");
-  console.log("[EARLY-FIRST] headers:", req.headers.authorization ? "has auth header" : "no auth header");
-  return res.json({ ok: true, note: "early handler hotfix - route working!", cookieCount: req.cookies ? Object.keys(req.cookies).length : 0 });
-  // אחרי שראית שזה נתפס (200 OK), תבטל את ה-return למעלה ותשאיר next() כדי שיעבור לראוטר:
-  // next();
+  console.log("[EARLY-FIRST] session cookie:", req.cookies?.session ? "present" : "missing");
+  next(); // מעביר לראוטר
 });
 
 // --- לוגים לאבחון ---
@@ -241,9 +242,7 @@ app.use(
   })
 );
 
-app.use(withCookies());
-
-// ✅ חיבור הראוטר המדויק - מוקדם ככל האפשר
+// ✅ חיבור הראוטר המדויק - מוקדם ככל האפשר (withCookies() כבר הופעל קודם)
 app.use("/api/early-register", earlyRegisterRouter);
 
 // ✅ אליאס לנתיב הישן (אם עדיין יש קליינטים ישנים)
