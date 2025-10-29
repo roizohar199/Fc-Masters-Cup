@@ -691,10 +691,7 @@ export async function sendEarlyRegistrationEmail({ userEmail, userPsn, tournamen
           
           <div style="background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-right: 4px solid #667eea;">
             <p style="font-size: 18px; color: #333; line-height: 1.8; margin: 0;">
-              משתמש חדש לחץ על "אני בפנים!" בטורניר:
-            </p>
-            <p style="font-size: 24px; font-weight: 700; color: #667eea; margin: 15px 0;">
-              ${tournamentTitle}
+              משתמש חדש לחץ על "אני בפנים!" והביע עניין בפתיחת טורניר!
             </p>
           </div>
 
@@ -708,10 +705,13 @@ export async function sendEarlyRegistrationEmail({ userEmail, userPsn, tournamen
           <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); padding: 20px; border-radius: 10px; margin: 20px 0; text-align: center;">
             <h3 style="color: white; margin: 0 0 10px 0; font-size: 20px;">📊 אינדיקציה לפתיחת טורניר</h3>
             <p style="color: white; margin: 0; font-size: 16px;">
-              זהו רישום מוקדם - המשתמש מביע עניין להשתתף בטורניר
+              המשתמש מביע עניין להשתתף בטורניר (לא קשור לטורניר ספציפי)
             </p>
             <p style="color: white; margin: 10px 0 0 0; font-size: 18px; font-weight: 700;">
-              ככל שיותר משתמשים ילחצו "אני בפנים!", כך תוכל להבין אם כדאי לפתוח טורניר חדש!
+              סה"כ מביעים עניין: ${totalCount} שחקנים
+            </p>
+            <p style="color: white; margin: 10px 0 0 0; font-size: 16px;">
+              לאחר 16 שחקנים לפחות - תוכל לפתוח טורניר חדש!
             </p>
           </div>
 

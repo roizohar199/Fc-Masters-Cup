@@ -10,8 +10,27 @@ const router = Router();
 // סוגרים OPTIONS מייד
 router.options("/", (_req, res) => res.sendStatus(204));
 
+// ✅ יצירת טבלת הבעות עניין (אם לא קיימת)
+// טבלה זו תשמור הבעות עניין כלליות - לא קשורות לטורניר ספציפי
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS tournament_interests (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL UNIQUE,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_interests_user ON tournament_interests(userId);
+    CREATE INDEX IF NOT EXISTS idx_interests_created ON tournament_interests(createdAt);
+  `);
+  console.log("[early-register] ✅ Tournament interests table ready");
+} catch (e) {
+  console.error("[early-register] ⚠️ Error creating interests table:", e);
+}
+
 type AppDb = Database.Database;
-type RegistrationRow = { id: string; state: string };
+type InterestRow = { id: string; userId: string; createdAt: string; updatedAt: string };
 
 // ====== עזר: גזירת userId בצורה עמידה (JWT/email/headers) - עובד עם UUID/TEXT ======
 function deriveUserId(req: any): string | null {
@@ -75,65 +94,17 @@ function deriveUserId(req: any): string | null {
   return null;
 }
 
-// ====== עזר: פתרון tournamentId אם חסר ======
-function resolveTournamentId(req: any): string | null {
-  // 1) נסה מה-body/query (מספר או UUID)
-  const rawTournamentId = req.body?.tournamentId ?? req.body?.tournament_id ?? req.query?.tournamentId;
-  if (rawTournamentId) {
-    const tid = String(rawTournamentId).trim();
-    if (tid && tid.length > 0) {
-      // ודא שהטורניר קיים
-      const exists = db.prepare(`SELECT id FROM tournaments WHERE id=? LIMIT 1`).get(tid) as any;
-      if (exists && exists.id) {
-        console.log("[early-register] Resolved tournamentId from body/query:", tid);
-        return tid;
-      }
-    }
-  }
-
-  // 2) נסה לפי slug מהנתיב/גוף/שאילתה (אם יש עמודת slug בעתיד)
-  const slug = req.params?.slug ?? req.body?.slug ?? req.query?.slug;
-  if (slug && slug !== "default") {
-    // אם יהיה slug בטבלה בעתיד, אפשר לחפש כאן
-    // for now, skip this
-  }
-
-  // 3) נסה "הטורניר הפתוח האחרון" (registrationStatus = 'open')
+// ====== עזר: ספירת כל המביעים עניין (כללי, לא לטורניר ספציפי) ======
+function getTotalInterestsCount(): number {
   try {
-    const open = db.prepare<[], { id: string } | undefined>(
-      `SELECT id
-       FROM tournaments
-       WHERE registrationStatus IN ('open', 'upcoming')
-       ORDER BY createdAt DESC
-       LIMIT 1`
-    ).get() as { id: string } | undefined;
-    
-    if (open && open.id) {
-      console.log("[early-register] Resolved tournamentId from open tournament:", open.id);
-      return String(open.id);
-    }
+    const countRow = db.prepare<[], { n: number } | undefined>(
+      `SELECT COUNT(*) AS n FROM tournament_interests`
+    ).get() as { n: number } | undefined;
+    return Number(countRow?.n || 0);
   } catch (e) {
-    console.log("[early-register] Failed to find open tournament:", e);
+    console.error("[early-register] Error counting interests:", e);
+    return 0;
   }
-
-  // 4) נסה "default" - הטורניר האחרון שנוצר
-  try {
-    const latest = db.prepare<[], { id: string } | undefined>(
-      `SELECT id
-       FROM tournaments
-       ORDER BY createdAt DESC
-       LIMIT 1`
-    ).get() as { id: string } | undefined;
-    
-    if (latest && latest.id) {
-      console.log("[early-register] Resolved tournamentId from latest tournament:", latest.id);
-      return String(latest.id);
-    }
-  } catch (e) {
-    console.log("[early-register] Failed to find latest tournament:", e);
-  }
-
-  return null;
 }
 
 function resLocalUser(req: any) {
@@ -142,9 +113,8 @@ function resLocalUser(req: any) {
 }
 
 router.post("/", async (req, res) => {
-  // ✅ פתרון אוטומטי של tournamentId אם חסר
-  const tournamentId = resolveTournamentId(req);
   // ✅ גזירת userId מה-JWT/cookies (עובד עם UUID)
+  // ❌ לא צריך tournamentId - זו הבעת עניין כללית!
   const userId = deriveUserId(req);
 
   // לוג אבחוני מפורט
@@ -153,94 +123,103 @@ router.post("/", async (req, res) => {
     query: req.query,
     cookies: req.cookies ? Object.keys(req.cookies) : [],
     finalUserId: userId,
-    finalTournamentId: tournamentId
+    note: "General interest registration (no specific tournament)"
   });
 
-  if (!tournamentId || tournamentId.length === 0) {
-    console.warn("[early-register] INVALID_TOURNAMENT_ID - could not resolve tournament");
-    return res.status(400).json({ ok: false, error: "INVALID_TOURNAMENT_ID" });
-  }
   if (!userId || userId.length === 0) {
     console.warn("[early-register] USER_NOT_AUTHENTICATED - could not derive userId");
     return res.status(401).json({ ok: false, error: "USER_NOT_AUTHENTICATED" });
   }
 
   try {
-    // ✅ חיפוש רישום קיים (משתמש ב-state ולא status)
+    // ✅ חיפוש הבעת עניין קיימת (לא קשורה לטורניר ספציפי)
     const existing = db
-      .prepare<[string, string], RegistrationRow | undefined>(
-        `SELECT id, state
-         FROM tournament_registrations
-         WHERE userId = ? AND tournamentId = ?
+      .prepare<[string], InterestRow | undefined>(
+        `SELECT id, userId, createdAt, updatedAt
+         FROM tournament_interests
+         WHERE userId = ?
          LIMIT 1`
       )
-      .get(userId, tournamentId);
+      .get(userId) as InterestRow | undefined;
 
-    if (existing) {
-      // עדכון תאריך עדכון
-      db.prepare<[string, string]>(`UPDATE tournament_registrations SET updatedAt=? WHERE id=?`)
-        .run(nowISO(), existing.id);
+    // ✅ פונקציה עזר לשליחת מייל למנהל
+    const sendNotificationEmail = async (isNew: boolean) => {
+      try {
+        console.log(`[early-register] Preparing to send email (isNew: ${isNew})...`);
+        
+        // איסוף מידע על המשתמש (בלי טורניר!)
+        const user = db.prepare<[string], { email: string; psnUsername: string | null } | undefined>(
+          `SELECT email, psnUsername FROM users WHERE id=? LIMIT 1`
+        ).get(userId) as { email: string; psnUsername: string | null } | undefined;
 
-      return res.json({
-        ok: true,
-        registrationId: existing.id,
-        status: existing.state, // מחזירים כקומפיטביליות
-        state: existing.state,
-        updated: true,
-      });
-    }
+        if (!user) {
+          console.warn('[early-register] ⚠️ Could not find user for email notification:', userId);
+          return;
+        }
 
-    // ✅ יצירת רישום חדש
-    const registrationId = uuid();
-    const now = nowISO();
-    db.prepare<[string, string, string, string, string, string]>(
-      `INSERT INTO tournament_registrations (id, userId, tournamentId, state, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    ).run(registrationId, userId, tournamentId, "registered", now, now);
+        // ספירת כל המביעים עניין (כללי)
+        const totalCount = getTotalInterestsCount();
 
-    // ✅ שליחת מייל למנהל על הבעת עניין חדשה
-    try {
-      // איסוף מידע על המשתמש והטורניר
-      const user = db.prepare<[string], { email: string; psnUsername: string | null } | undefined>(
-        `SELECT email, psnUsername FROM users WHERE id=? LIMIT 1`
-      ).get(userId) as { email: string; psnUsername: string | null } | undefined;
-
-      const tournament = db.prepare<[string], { title: string } | undefined>(
-        `SELECT title FROM tournaments WHERE id=? LIMIT 1`
-      ).get(tournamentId) as { title: string } | undefined;
-
-      if (user && tournament) {
-        // ספירת כל הרישומים לטורניר זה
-        const countRow = db.prepare<[string], { n: number } | undefined>(
-          `SELECT COUNT(*) AS n FROM tournament_registrations WHERE tournamentId=? AND state='registered'`
-        ).get(tournamentId) as { n: number } | undefined;
-        const totalCount = Number(countRow?.n || 0);
+        console.log(`[early-register] 📧 Sending interest notification to admin for user: ${user.email}, total interested: ${totalCount}`);
 
         // שליחת המייל (לא חוסם את התשובה)
         const { sendEarlyRegistrationEmail } = await import("../email.js");
-        sendEarlyRegistrationEmail({
+        const result = await sendEarlyRegistrationEmail({
           userEmail: user.email,
           userPsn: user.psnUsername || user.email.split('@')[0],
-          tournamentTitle: tournament.title,
+          tournamentTitle: "טורניר כללי", // לא טורניר ספציפי
           totalCount: totalCount,
-        }).then(() => {
-          console.log('[early-register] ✅ Early registration email sent successfully');
-        }).catch((e: any) => {
-          console.error('[early-register] ❌ Failed to send early registration email:', e?.message || e);
         });
-      } else {
-        console.warn('[early-register] Could not find user or tournament for email notification');
+        
+        if (result) {
+          console.log('[early-register] ✅ Interest notification email sent successfully to admin');
+        } else {
+          console.warn('[early-register] ⚠️ Email send returned false (check SMTP config)');
+        }
+      } catch (error) {
+        console.error('[early-register] ❌ Error sending interest notification email:', error);
+        // לא נכשיל את הבקשה אם המייל נכשל
       }
-    } catch (error) {
-      console.error('[early-register] Error preparing early registration email:', error);
-      // לא נכשיל את הבקשה אם המייל נכשל
+    };
+
+    if (existing) {
+      // עדכון תאריך עדכון (המשתמש לחץ שוב על "אני בפנים")
+      db.prepare<[string, string]>(`UPDATE tournament_interests SET updatedAt=? WHERE id=?`)
+        .run(nowISO(), existing.id);
+
+      // ✅ שליחת מייל גם בעדכון (אם רוצים - אפשר להסיר)
+      sendNotificationEmail(false).catch(e => {
+        console.error('[early-register] Failed to send email for existing interest:', e);
+      });
+
+      return res.json({
+        ok: true,
+        interestId: existing.id,
+        updated: true,
+        totalCount: getTotalInterestsCount(),
+      });
     }
+
+    // ✅ יצירת הבעת עניין חדשה (לא קשורה לטורניר)
+    const interestId = uuid();
+    const now = nowISO();
+    db.prepare<[string, string, string, string]>(
+      `INSERT INTO tournament_interests (id, userId, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?)`
+    ).run(interestId, userId, now, now);
+
+    // ✅ שליחת מייל למנהל על הבעת עניין חדשה
+    sendNotificationEmail(true).catch(e => {
+      console.error('[early-register] Failed to send email for new interest:', e);
+    });
+
+    const totalCount = getTotalInterestsCount();
 
     return res.status(201).json({
       ok: true,
-      registrationId: registrationId,
-      status: "registered", // מחזירים כקומפיטביליות
-      state: "registered",
+      interestId: interestId,
+      totalCount: totalCount,
+      message: "הבעת עניין נרשמה בהצלחה",
     });
   } catch (err) {
     console.error("early-register error:", err);
