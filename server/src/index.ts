@@ -181,6 +181,23 @@ app.options("*", (_req, res) => res.sendStatus(204));
 // --- JSON parser ---
 app.use(express.json({ limit: "1mb" }));
 
+// ===== EARLY-REGISTER HOTFIX (בלתי-ניתן-לעקיפה) =====
+// פינג לאימות שבאמת רצים על הקוד החדש
+app.get("/api/early-register/ping", (_req, res) => {
+  res.json({ ok: true, route: "early-register", file: __filename, ts: Date.now() });
+});
+
+// לוכד את ה-POST לפני כולם כדי לאבחן נתיב
+app.post("/api/early-register", (req, res, next) => {
+  console.log("[EARLY-FIRST] hit /api/early-register (early handler)");
+  console.log("[EARLY-FIRST] body:", req.body);
+  console.log("[EARLY-FIRST] query:", req.query);
+  // 🔁 בשלב ראשון אפשר להחזיר 200 כדי לוודא שאי אפשר לקבל NOT_FOUND:
+  // return res.json({ ok: true, note: "early handler hotfix" });
+  // אחרי שראית שזה נתפס, תבטל שורה למעלה ותשאיר next() כדי שיעבור לראוטר:
+  next();
+});
+
 // --- לוגים לאבחון ---
 app.use((req, res, next) => {
   const t0 = Date.now();
@@ -226,20 +243,14 @@ app.use(
 
 app.use(withCookies());
 
-// ── Body parsers נוספים ─────────────────────────────────────────
-app.use(express.urlencoded({ extended: true }));
-
-// 🔎 לוג דיאגנוסטי לראות שהגענו לנתיב הזה לפני אחרים
-app.all("/api/early-register", (req, _res, next) => {
-  console.log("[HIT] /api/early-register (pre-route) →", req.method);
-  next();
-});
-
-// ✅ חיבור הראוטר המדויק
+// ✅ חיבור הראוטר המדויק - מוקדם ככל האפשר
 app.use("/api/early-register", earlyRegisterRouter);
 
 // ✅ אליאס לנתיב הישן (אם עדיין יש קליינטים ישנים)
 app.use("/api/tournament-registrations/:slug/early-register", earlyRegisterRouter);
+
+// ── Body parsers נוספים ─────────────────────────────────────────
+app.use(express.urlencoded({ extended: true }));
 
 // ✅ בריאות ציבורית – לפני כל ה-auth
 app.get("/api/health", (_req, res) => {
@@ -328,14 +339,7 @@ app.use("/api/settings", requireAuth, settings);
 // Manual bracket routes (mixed auth - public views, admin creation)
 app.use(manualBracketRouter);
 
-// ✅ פינג דיאגנוסטי שיבטיח שהקוד החדש הגיע ל־dist
-app.get("/api/early-register/ping", (_req, res) => {
-  // מזהה בילד קצר שיאפשר לך לדעת שזו הגרסה החדשה
-  res.json({ ok: true, route: "early-register", build: process.env.NODE_ENV, file: __filename });
-});
-
-// ✅ בדיקת חיים
-app.get("/api/health", (_req, res) => res.json({ ok: true }));
+// ✅ בדיקת חיים (health שנשכפל נמחק, יש אחד קודם)
 
 // ❗️זה חייב להיות האחרון:
 app.use("/api", (req, res) => {
