@@ -168,9 +168,40 @@ router.delete("/", async (req, res) => {
       });
     }
 
+    // ✅ איסוף פרטי המשתמש לפני המחיקה (לצורך שליחת מייל)
+    const user = db.prepare<[string], { email: string; psnUsername: string | null } | undefined>(
+      `SELECT email, psnUsername FROM users WHERE id=? LIMIT 1`
+    ).get(userId) as { email: string; psnUsername: string | null } | undefined;
+
+    // מחיקת הבעת העניין
     db.prepare<[string]>(`DELETE FROM tournament_interests WHERE id=?`).run(existing.id);
 
     const totalCount = getTotalInterestsCount();
+
+    // ✅ שליחת מייל למנהל על ביטול הבעת עניין
+    if (user) {
+      try {
+        console.log(`[early-register] 📧 Sending cancellation notification to admin for user: ${user.email}, total interested: ${totalCount}`);
+        
+        const { sendEarlyCancellationEmail } = await import("../email.js");
+        const result = await sendEarlyCancellationEmail({
+          userEmail: user.email,
+          userPsn: user.psnUsername || user.email.split('@')[0],
+          totalCount: totalCount,
+        });
+        
+        if (result) {
+          console.log('[early-register] ✅ Cancellation notification email sent successfully to admin');
+        } else {
+          console.warn('[early-register] ⚠️ Email send returned false (check SMTP config)');
+        }
+      } catch (error) {
+        console.error('[early-register] ❌ Error sending cancellation notification email:', error);
+        // לא נכשיל את הבקשה אם המייל נכשל
+      }
+    } else {
+      console.warn('[early-register] ⚠️ Could not find user for cancellation email notification:', userId);
+    }
 
     return res.json({
       ok: true,

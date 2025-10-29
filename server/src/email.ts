@@ -664,6 +664,91 @@ export async function sendUserApprovedEmail(email: string) {
   }
 }
 
+// ✅ פונקציה לשליחת מייל על ביטול הבעת עניין
+export async function sendEarlyCancellationEmail({ userEmail, userPsn, totalCount }: {
+  userEmail: string;
+  userPsn: string;
+  totalCount: number;
+}) {
+  const transport = getTransporter();
+  const adminEmail = process.env.ADMIN_EMAIL;
+  
+  if (!adminEmail) {
+    console.log("[email] No admin email configured, skipping early cancellation notification");
+    return true;
+  }
+
+  const emailContent = {
+    from: process.env.EMAIL_FROM,
+    to: adminEmail,
+    subject: "❌ משתמש ביטל הבעת עניין בטורניר",
+    html: `
+      <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); border-radius: 16px;">
+        <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+          <h1 style="color: #e74c3c; text-align: center; font-size: 32px; margin-bottom: 20px;">
+            ❌ משתמש ביטל הבעת עניין
+          </h1>
+          
+          <div style="background: linear-gradient(135deg, #e74c3c15 0%, #c0392b15 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-right: 4px solid #e74c3c;">
+            <p style="font-size: 18px; color: #333; line-height: 1.8; margin: 0;">
+              משתמש לחץ על "בטל רישום" והסיר את עצמו מרשימת המעוניינים בטורניר.
+            </p>
+          </div>
+
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0;">
+            <h3 style="color: #333; margin: 0 0 15px 0; font-size: 20px;">פרטי המשתמש שביטל:</h3>
+            <div style="display: flex; align-items: center; margin: 12px 0;">
+              <span style="margin-left: 8px; font-size: 20px;">👤</span>
+              <p style="margin: 0; font-size: 16px;"><strong>אימייל:</strong> ${userEmail}</p>
+            </div>
+            <div style="display: flex; align-items: center; margin: 12px 0; background: linear-gradient(135deg, #e74c3c15 0%, #c0392b15 100%); padding: 12px; border-radius: 8px; border-right: 3px solid #e74c3c;">
+              <span style="margin-left: 8px; font-size: 20px;">🎮</span>
+              <p style="margin: 0; font-size: 17px; font-weight: 700; color: #e74c3c;"><strong>שם PSN:</strong> ${userPsn || 'לא הוזן'}</p>
+            </div>
+            <div style="display: flex; align-items: center; margin: 12px 0;">
+              <span style="margin-left: 8px; font-size: 20px;">⏰</span>
+              <p style="margin: 0; font-size: 16px;"><strong>זמן:</strong> ${new Date().toLocaleString("he-IL")}</p>
+            </div>
+          </div>
+
+          <div style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); padding: 20px; border-radius: 10px; margin: 20px 0; text-align: center;">
+            <h3 style="color: white; margin: 0 0 10px 0; font-size: 20px;">📊 עדכון ספירה</h3>
+            <p style="color: white; margin: 0; font-size: 16px;">
+              הספירה ירדה במשתמש אחד
+            </p>
+            <p style="color: white; margin: 10px 0 0 0; font-size: 18px; font-weight: 700;">
+              סה"כ מביעים עניין עכשיו: ${totalCount} שחקנים
+            </p>
+            <p style="color: white; margin: 10px 0 0 0; font-size: 16px;">
+              ${totalCount >= 16 ? '✅ יש לך מספיק שחקנים לפתיחת טורניר!' : `עוד ${16 - totalCount} שחקנים נדרשים לפתיחת טורניר`}
+            </p>
+          </div>
+
+          <div style="text-align: center; margin-top: 30px;">
+            <p style="color: #666; font-size: 14px; margin: 0;">
+              FC Masters Cup - מערכת ניהול טורנירים
+            </p>
+          </div>
+        </div>
+      </div>
+    `,
+  };
+  
+  if (!transport) {
+    console.log("[email] 📧 Early cancellation email (dev mode):", emailContent);
+    return true;
+  }
+  
+  try {
+    await transport.sendMail(emailContent);
+    console.log(`[email] ✅ Early cancellation email sent to: ${adminEmail}`);
+    return true;
+  } catch (error) {
+    console.error(`[email] ❌ Failed to send early cancellation email:`, error);
+    return false;
+  }
+}
+
 export async function sendEarlyRegistrationEmail({ userEmail, userPsn, tournamentTitle, totalCount }: {
   userEmail: string;
   userPsn: string;
@@ -697,9 +782,18 @@ export async function sendEarlyRegistrationEmail({ userEmail, userPsn, tournamen
 
           <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0;">
             <h3 style="color: #333; margin: 0 0 15px 0; font-size: 20px;">פרטי המשתמש:</h3>
-            <p style="margin: 8px 0; font-size: 16px;"><strong>אימייל:</strong> ${userEmail}</p>
-            <p style="margin: 8px 0; font-size: 16px;"><strong>שם PSN:</strong> ${userPsn}</p>
-            <p style="margin: 8px 0; font-size: 16px;"><strong>זמן:</strong> ${new Date().toLocaleString("he-IL")}</p>
+            <div style="display: flex; align-items: center; margin: 12px 0;">
+              <span style="margin-left: 8px; font-size: 20px;">👤</span>
+              <p style="margin: 0; font-size: 16px;"><strong>אימייל:</strong> ${userEmail}</p>
+            </div>
+            <div style="display: flex; align-items: center; margin: 12px 0; background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%); padding: 12px; border-radius: 8px; border-right: 3px solid #667eea;">
+              <span style="margin-left: 8px; font-size: 20px;">🎮</span>
+              <p style="margin: 0; font-size: 17px; font-weight: 700; color: #667eea;"><strong>שם PSN:</strong> ${userPsn || 'לא הוזן'}</p>
+            </div>
+            <div style="display: flex; align-items: center; margin: 12px 0;">
+              <span style="margin-left: 8px; font-size: 20px;">⏰</span>
+              <p style="margin: 0; font-size: 16px;"><strong>זמן:</strong> ${new Date().toLocaleString("he-IL")}</p>
+            </div>
           </div>
 
           <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); padding: 20px; border-radius: 10px; margin: 20px 0; text-align: center;">
