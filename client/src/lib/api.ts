@@ -28,17 +28,19 @@ export async function postJSON<T>(
 }
 
 export async function apiGet<T>(
-  url: string,
+  path: string,
   { timeoutMs = 12000 }: { timeoutMs?: number } = {}
 ): Promise<T> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
 
   try {
+    // ✅ מוסיף API_BASE לנתיב (כמו apiPost)
+    const url = path.startsWith('http') ? path : `${API_BASE}${path}`;
     const res = await fetch(url, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
-      credentials: "same-origin",
+      credentials: "include", // ✅ צריך להיות include כמו apiPost
       signal: ctrl.signal,
     });
 
