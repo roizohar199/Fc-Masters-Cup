@@ -141,7 +141,7 @@ function resLocalUser(req: any) {
   try { return req.res?.locals?.user || req.app?.locals?.currentUser; } catch { return null; }
 }
 
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
   // ✅ פתרון אוטומטי של tournamentId אם חסר
   const tournamentId = resolveTournamentId(req);
   // ✅ גזירת userId מה-JWT/cookies (עובד עם UUID)
@@ -197,6 +197,44 @@ router.post("/", (req, res) => {
       `INSERT INTO tournament_registrations (id, userId, tournamentId, state, createdAt, updatedAt)
        VALUES (?, ?, ?, ?, ?, ?)`
     ).run(registrationId, userId, tournamentId, "registered", now, now);
+
+    // ✅ שליחת מייל למנהל על הבעת עניין חדשה
+    try {
+      // איסוף מידע על המשתמש והטורניר
+      const user = db.prepare<[string], { email: string; psnUsername: string | null } | undefined>(
+        `SELECT email, psnUsername FROM users WHERE id=? LIMIT 1`
+      ).get(userId) as { email: string; psnUsername: string | null } | undefined;
+
+      const tournament = db.prepare<[string], { title: string } | undefined>(
+        `SELECT title FROM tournaments WHERE id=? LIMIT 1`
+      ).get(tournamentId) as { title: string } | undefined;
+
+      if (user && tournament) {
+        // ספירת כל הרישומים לטורניר זה
+        const countRow = db.prepare<[string], { n: number } | undefined>(
+          `SELECT COUNT(*) AS n FROM tournament_registrations WHERE tournamentId=? AND state='registered'`
+        ).get(tournamentId) as { n: number } | undefined;
+        const totalCount = Number(countRow?.n || 0);
+
+        // שליחת המייל (לא חוסם את התשובה)
+        const { sendEarlyRegistrationEmail } = await import("../email.js");
+        sendEarlyRegistrationEmail({
+          userEmail: user.email,
+          userPsn: user.psnUsername || user.email.split('@')[0],
+          tournamentTitle: tournament.title,
+          totalCount: totalCount,
+        }).then(() => {
+          console.log('[early-register] ✅ Early registration email sent successfully');
+        }).catch((e: any) => {
+          console.error('[early-register] ❌ Failed to send early registration email:', e?.message || e);
+        });
+      } else {
+        console.warn('[early-register] Could not find user or tournament for email notification');
+      }
+    } catch (error) {
+      console.error('[early-register] Error preparing early registration email:', error);
+      // לא נכשיל את הבקשה אם המייל נכשל
+    }
 
     return res.status(201).json({
       ok: true,
