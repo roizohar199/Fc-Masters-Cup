@@ -112,6 +112,77 @@ function resLocalUser(req: any) {
   try { return req.res?.locals?.user || req.app?.locals?.currentUser; } catch { return null; }
 }
 
+// ✅ GET /api/early-register/status - בדיקת סטטוס (האם המשתמש כבר הביע עניין)
+router.get("/status", async (req, res) => {
+  const userId = deriveUserId(req);
+
+  if (!userId || userId.length === 0) {
+    return res.status(401).json({ ok: false, error: "USER_NOT_AUTHENTICATED" });
+  }
+
+  try {
+    const existing = db
+      .prepare<[string], InterestRow | undefined>(
+        `SELECT id, userId, createdAt, updatedAt
+         FROM tournament_interests
+         WHERE userId = ?
+         LIMIT 1`
+      )
+      .get(userId) as InterestRow | undefined;
+
+    const totalCount = getTotalInterestsCount();
+
+    return res.json({
+      ok: true,
+      hasInterest: !!existing,
+      interestId: existing?.id || null,
+      createdAt: existing?.createdAt || null,
+      totalCount: totalCount,
+    });
+  } catch (err) {
+    console.error("early-register status error:", err);
+    return res.status(500).json({ ok: false, error: "INTERNAL_ERROR" });
+  }
+});
+
+// ✅ DELETE /api/early-register - ביטול הבעת עניין
+router.delete("/", async (req, res) => {
+  const userId = deriveUserId(req);
+
+  if (!userId || userId.length === 0) {
+    return res.status(401).json({ ok: false, error: "USER_NOT_AUTHENTICATED" });
+  }
+
+  try {
+    const existing = db
+      .prepare<[string], InterestRow | undefined>(
+        `SELECT id FROM tournament_interests WHERE userId = ? LIMIT 1`
+      )
+      .get(userId) as InterestRow | undefined;
+
+    if (!existing) {
+      return res.json({
+        ok: true,
+        message: "לא הייתה הבעת עניין קיימת",
+        totalCount: getTotalInterestsCount(),
+      });
+    }
+
+    db.prepare<[string]>(`DELETE FROM tournament_interests WHERE id=?`).run(existing.id);
+
+    const totalCount = getTotalInterestsCount();
+
+    return res.json({
+      ok: true,
+      message: "הבעת העניין בוטלה בהצלחה",
+      totalCount: totalCount,
+    });
+  } catch (err) {
+    console.error("early-register cancel error:", err);
+    return res.status(500).json({ ok: false, error: "INTERNAL_ERROR" });
+  }
+});
+
 router.post("/", async (req, res) => {
   // ✅ גזירת userId מה-JWT/cookies (עובד עם UUID)
   // ❌ לא צריך tournamentId - זו הבעת עניין כללית!

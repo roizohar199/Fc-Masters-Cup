@@ -129,3 +129,31 @@ export async function earlyRegister(payload: EarlyRegisterReq): Promise<EarlyReg
     inFlightEarlyRegister = false;
   }
 }
+
+// ✅ בדיקת סטטוס הבעת עניין
+export type EarlyRegisterStatusRes =
+  | { ok: true; hasInterest: boolean; interestId: string | null; createdAt: string | null; totalCount: number }
+  | { ok: false; error: string };
+
+export async function getEarlyRegisterStatus(): Promise<EarlyRegisterStatusRes> {
+  return await apiGet<EarlyRegisterStatusRes>("/early-register/status");
+}
+
+// ✅ ביטול הבעת עניין
+export type EarlyRegisterCancelRes =
+  | { ok: true; message: string; totalCount: number }
+  | { ok: false; error: string };
+
+export async function cancelEarlyRegister(): Promise<EarlyRegisterCancelRes> {
+  const res = await withTimeout(fetch(`${API_BASE}/early-register`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+  }));
+  if (!res.ok) {
+    let msg = `DELETE /early-register failed: ${res.status}`;
+    try { const j = await res.json(); msg += ` ${JSON.stringify(j)}`; } catch {}
+    throw new Error(msg);
+  }
+  return res.json() as Promise<EarlyRegisterCancelRes>;
+}

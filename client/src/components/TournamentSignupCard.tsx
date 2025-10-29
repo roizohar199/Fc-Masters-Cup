@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { api } from "../api";
-import { earlyRegister } from "../lib/api";
+import { earlyRegister, getEarlyRegisterStatus, cancelEarlyRegister } from "../lib/api";
 
 type Status = "collecting" | "closed" | "running" | "finished";
 type MyState = "registered" | "cancelled" | "selected" | null;
@@ -13,6 +13,8 @@ interface TournamentSignupCardProps {
 export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
+  const [hasInterest, setHasInterest] = useState(false); // ✅ סטטוס הבעת עניין (כללי, לא טורניר ספציפי)
+  const [loadingInterest, setLoadingInterest] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   // זיהוי מובייל
@@ -37,8 +39,21 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
     }
   }
 
+  // ✅ טעינת סטטוס הבעת עניין (כללי, לא טורניר ספציפי)
+  async function refreshInterestStatus() {
+    try {
+      const status = await getEarlyRegisterStatus();
+      if (status.ok) {
+        setHasInterest(status.hasInterest);
+      }
+    } catch (error) {
+      console.error("Error fetching interest status:", error);
+    }
+  }
+
   useEffect(() => {
     refresh();
+    refreshInterestStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tournamentId]);
 
@@ -49,11 +64,13 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
   const isFull = data?.isFull ?? false;
   const myState = data?.myState as MyState;
 
-  // מערכת רישום מוקדם - תמיד פעילה
-  const canJoinEarly = !isFull && myState !== "registered" && myState !== "selected";
-  const canLeaveEarly = myState === "registered";
+  // ✅ מערכת הבעת עניין כללית - תמיד פעילה (לא קשורה לטורניר ספציפי)
+  // הכפתור "אני בפנים" disabled אם כבר הביע עניין או בטעינה
+  const canJoinEarly = !hasInterest && !loadingInterest;
+  // הכפתור "בטל רישום" enabled רק אם כבר הביע עניין
+  const canLeaveEarly = hasInterest && !loadingInterest;
   
-  // המערכת הישנה - רק כשהטורניר פעיל
+  // המערכת הישנה - רק כשהטורניר פעיל (לשימור תאימות)
   const canJoin = t?.status === "collecting" && !isFull && myState !== "registered" && myState !== "selected";
   const canLeave = t?.status === "collecting" && myState === "registered";
 
@@ -78,15 +95,17 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
   }
 
   async function joinEarly() {
+    if (loadingInterest || hasInterest) return;
+    setLoadingInterest(true);
     const tId = toast.loading("מביע עניין...");
     try {
-      const result = await earlyRegister({ 
-        tournamentId: parseInt(tournamentId)
-      });
+      // ✅ הבעת עניין כללית - לא צריך tournamentId!
+      const result = await earlyRegister({});
       toast.dismiss(tId);
       if (result.ok) {
         toast.success("✅ הוספת את עצמך לרשימת המעוניינים בטורניר!");
-        refresh();
+        setHasInterest(true); // ✅ מעדכן מיד את הסטטוס
+        refreshInterestStatus(); // רענון מידע נוסף
       } else {
         toast.error(result.error || "שגיאה בהבעת עניין");
       }
@@ -94,6 +113,8 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
       toast.dismiss(tId);
       toast.error("שגיאה בהבעת עניין");
       console.error(error);
+    } finally {
+      setLoadingInterest(false);
     }
   }
 
@@ -118,15 +139,17 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
   }
 
   async function leaveEarly() {
+    if (loadingInterest || !hasInterest) return;
+    setLoadingInterest(true);
     const tId = toast.loading("מסיר עניין...");
     try {
-      const result = await api(`/api/tournament-registrations/${tournamentId}/early-unregister`, {
-        method: "POST",
-      });
+      // ✅ ביטול הבעת עניין כללית
+      const result = await cancelEarlyRegister();
       toast.dismiss(tId);
       if (result.ok) {
         toast.success("הסרת את עצמך מרשימת המעוניינים בטורניר");
-        refresh();
+        setHasInterest(false); // ✅ מעדכן מיד את הסטטוס
+        refreshInterestStatus(); // רענון מידע נוסף
       } else {
         toast.error(result.error || "שגיאה בהסרת עניין");
       }
@@ -134,6 +157,8 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
       toast.dismiss(tId);
       toast.error("שגיאה בהסרת עניין");
       console.error(error);
+    } finally {
+      setLoadingInterest(false);
     }
   }
 
@@ -475,68 +500,70 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
         }}
       >
         <button
-          onClick={canJoinEarly ? joinEarly : join}
-          disabled={!canJoinEarly && !canJoin}
+          onClick={canJoinEarly ? joinEarly : canJoin ? join : undefined}
+          disabled={!canJoinEarly && !canJoin || loadingInterest}
           style={{
             padding: isMobile ? "12px 24px" : "16px 40px",
             borderRadius: 12,
             fontSize: isMobile ? 15 : 18,
             fontWeight: 700,
             border: "none",
-            cursor: (canJoinEarly || canJoin) ? "pointer" : "not-allowed",
-            background: (canJoinEarly || canJoin)
+            cursor: (canJoinEarly || canJoin) && !loadingInterest ? "pointer" : "not-allowed",
+            background: (canJoinEarly || canJoin) && !loadingInterest
               ? "linear-gradient(135deg, #28a745 0%, #20c997 100%)"
               : "#e9ecef",
-            color: (canJoinEarly || canJoin) ? "#fff" : "#adb5bd",
-            boxShadow: (canJoinEarly || canJoin) ? "0 4px 15px rgba(40, 167, 69, 0.4)" : "none",
+            color: (canJoinEarly || canJoin) && !loadingInterest ? "#fff" : "#adb5bd",
+            boxShadow: (canJoinEarly || canJoin) && !loadingInterest ? "0 4px 15px rgba(40, 167, 69, 0.4)" : "none",
+            opacity: loadingInterest ? 0.6 : 1,
             transition: "all 0.3s ease",
             flex: isMobile ? "1 1 45%" : "0 0 auto",
           }}
           onMouseEnter={(e) => {
-            if (canJoinEarly || canJoin) {
+            if ((canJoinEarly || canJoin) && !loadingInterest) {
               e.currentTarget.style.transform = "translateY(-2px)";
               e.currentTarget.style.boxShadow = "0 6px 20px rgba(40, 167, 69, 0.5)";
             }
           }}
           onMouseLeave={(e) => {
-            if (canJoinEarly || canJoin) {
+            if ((canJoinEarly || canJoin) && !loadingInterest) {
               e.currentTarget.style.transform = "translateY(0)";
               e.currentTarget.style.boxShadow = "0 4px 15px rgba(40, 167, 69, 0.4)";
             }
           }}
         >
-          🎮 אני בפנים!
+          {loadingInterest ? "⏳ שולח..." : "🎮 אני בפנים!"}
         </button>
         <button
-          onClick={canLeaveEarly ? leaveEarly : leave}
-          disabled={!canLeaveEarly && !canLeave}
+          onClick={canLeaveEarly ? leaveEarly : canLeave ? leave : undefined}
+          disabled={!canLeaveEarly && !canLeave || loadingInterest}
           style={{
             padding: isMobile ? "12px 24px" : "16px 40px",
             borderRadius: 12,
             fontSize: isMobile ? 15 : 18,
             fontWeight: 700,
-            cursor: (canLeaveEarly || canLeave) ? "pointer" : "not-allowed",
-            background: (canLeaveEarly || canLeave) ? "#fff" : "#f8f9fa",
-            color: (canLeaveEarly || canLeave) ? "#e74c3c" : "#adb5bd",
-            border: (canLeaveEarly || canLeave) ? "2px solid #e74c3c" : "2px solid #dee2e6",
-            boxShadow: (canLeaveEarly || canLeave) ? "0 2px 8px rgba(231, 76, 60, 0.2)" : "none",
+            cursor: (canLeaveEarly || canLeave) && !loadingInterest ? "pointer" : "not-allowed",
+            background: (canLeaveEarly || canLeave) && !loadingInterest ? "#fff" : "#f8f9fa",
+            color: (canLeaveEarly || canLeave) && !loadingInterest ? "#e74c3c" : "#adb5bd",
+            border: (canLeaveEarly || canLeave) && !loadingInterest ? "2px solid #e74c3c" : "2px solid #dee2e6",
+            boxShadow: (canLeaveEarly || canLeave) && !loadingInterest ? "0 2px 8px rgba(231, 76, 60, 0.2)" : "none",
+            opacity: loadingInterest ? 0.6 : 1,
             transition: "all 0.3s ease",
             flex: isMobile ? "1 1 45%" : "0 0 auto",
           }}
           onMouseEnter={(e) => {
-            if (canLeaveEarly || canLeave) {
+            if ((canLeaveEarly || canLeave) && !loadingInterest) {
               e.currentTarget.style.background = "#ffe0e0";
               e.currentTarget.style.transform = "translateY(-2px)";
             }
           }}
           onMouseLeave={(e) => {
-            if (canLeaveEarly || canLeave) {
+            if ((canLeaveEarly || canLeave) && !loadingInterest) {
               e.currentTarget.style.background = "#fff";
               e.currentTarget.style.transform = "translateY(0)";
             }
           }}
         >
-          ❌ בטל רישום
+          {loadingInterest ? "⏳ מבטל..." : "❌ בטל רישום"}
         </button>
       </div>
 
