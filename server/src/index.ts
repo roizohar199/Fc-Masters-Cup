@@ -152,7 +152,7 @@ import { logger } from "./logger.js";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 import { attachPresence, presenceRest } from "./presence.js";
-import { apiErrorHandler, apiNotFoundHandler } from "./errorHandler.js";
+import { apiErrorHandler } from "./errorHandler.js";
 import { presenceApi } from "./routes/presenceApi.js";
 import { initPresence } from "./presence/index.js";
 import adminSelection from "./routes/adminSelection.js";
@@ -188,10 +188,16 @@ app.use((req, res, next) => {
   next();
 });
 
-// ✅ זה הנתיב שצריך להיות — לפני כל דבר אחר
+// 🔎 לוג דיאגנוסטי לראות שהגענו לנתיב הזה לפני אחרים
+app.all("/api/early-register", (req, _res, next) => {
+  console.log("[HIT] /api/early-register (pre-route) →", req.method);
+  next();
+});
+
+// ✅ חיבור הראוטר המדויק
 app.use("/api/early-register", earlyRegisterRouter);
 
-// ✅ הוספת אליאס לנתיב שהקליינט שלך משתמש בו כרגע:
+// ✅ אליאס לנתיב הישן (אם עדיין יש קליינטים ישנים)
 app.use("/api/tournament-registrations/:slug/early-register", earlyRegisterRouter);
 
 // Rate Limiting - prevent abuse
@@ -328,13 +334,10 @@ app.get("/api/early-register/ping", (_req, res) => res.json({ ok: true, pong: tr
 // ✅ בדיקת חיים
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
-// ✅ 404 JSON לסגירה בטוחה של בקשות שלא תואמות שום נתיב API
+// ❗️זה חייב להיות האחרון:
 app.use("/api", (req, res) => {
   return res.status(404).json({ ok: false, error: "NOT_FOUND", path: req.originalUrl });
 });
-
-// ✅ API 404 handler - must come AFTER all API routes but BEFORE SPA fallback
-app.use(apiNotFoundHandler);
 
 // ✅ Serve static files from client build (production)
 const clientDistPath = path.join(__dirname, "../../client/dist");
