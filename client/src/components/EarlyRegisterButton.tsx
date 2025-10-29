@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { earlyRegister } from "../lib/api";
 
-export function EarlyRegisterButton({ tournamentId, userId }: { tournamentId: number; userId: number }) {
+export function EarlyRegisterButton({ tournamentId }: { tournamentId: number }) {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -10,7 +10,8 @@ export function EarlyRegisterButton({ tournamentId, userId }: { tournamentId: nu
     setLoading(true);
     setErr(null);
     try {
-      const res = await earlyRegister({ tournamentId, userId });
+      // ✅ userId לא נשלח - מגיע אוטומטית מה-cookie session
+      const res = await earlyRegister({ tournamentId });
       if (!res.ok) throw new Error(res?.error || "early-register failed");
       // success UX...
       console.log("registered", res.registrationId, res.status);
