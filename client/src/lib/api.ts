@@ -109,9 +109,12 @@ export async function apiPost<TReq, TRes>(path: string, body: TReq): Promise<TRe
 }
 
 // שימוש ייעודי למסלול:
-export type EarlyRegisterReq = { tournamentId: number }; // ⬅️ userId לא נדרש מצד הלקוח
+export type EarlyRegisterReq = { 
+  tournamentId?: string | number; // ⬅️ אופציונלי - אם חסר, השרת יפתור אוטומטית
+  slug?: string; // ⬅️ אופציונלי - אם יש slug
+}; // ⬅️ userId לא נדרש מצד הלקוח - מגיע אוטומטית מה-cookie
 export type EarlyRegisterRes =
-  | { ok: true; registrationId: number; status: string; updated?: boolean }
+  | { ok: true; registrationId: string; status: string; state?: string; updated?: boolean }
   | { ok: false; error: string };
 
 let inFlightEarlyRegister = false;
