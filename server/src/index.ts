@@ -328,8 +328,11 @@ app.use("/api/settings", requireAuth, settings);
 // Manual bracket routes (mixed auth - public views, admin creation)
 app.use(manualBracketRouter);
 
-// ✅ פינג מהיר לאבחון
-app.get("/api/early-register/ping", (_req, res) => res.json({ ok: true, pong: true }));
+// ✅ פינג דיאגנוסטי שיבטיח שהקוד החדש הגיע ל־dist
+app.get("/api/early-register/ping", (_req, res) => {
+  // מזהה בילד קצר שיאפשר לך לדעת שזו הגרסה החדשה
+  res.json({ ok: true, route: "early-register", build: process.env.NODE_ENV, file: __filename });
+});
 
 // ✅ בדיקת חיים
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
