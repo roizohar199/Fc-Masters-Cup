@@ -43,17 +43,23 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
   // ✅ טעינת סטטוס הבעת עניין (כללי, לא טורניר ספציפי)
   async function refreshInterestStatus() {
     try {
+      console.log("[TournamentSignupCard] 🔄 Fetching interest status...");
       const status = await getEarlyRegisterStatus();
+      console.log("[TournamentSignupCard] 📊 Interest status received:", status);
       if (status.ok) {
+        console.log(`[TournamentSignupCard] ✅ Setting hasInterest=${status.hasInterest}, totalCount=${status.totalCount}`);
         setHasInterest(status.hasInterest);
         setTotalInterests(status.totalCount); // ✅ מעדכן את הספירה הכוללת
+      } else {
+        console.warn("[TournamentSignupCard] ⚠️ Status not ok:", status.error);
       }
     } catch (error) {
-      console.error("Error fetching interest status:", error);
+      console.error("[TournamentSignupCard] ❌ Error fetching interest status:", error);
     }
   }
 
   useEffect(() => {
+    console.log("[TournamentSignupCard] 🚀 Component mounted/updated, tournamentId:", tournamentId);
     refresh();
     refreshInterestStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -72,10 +78,17 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
   // הכפתור "בטל רישום" enabled רק אם כבר הביע עניין
   const canLeaveEarly = hasInterest && !loadingInterest;
   
-  // לוגים לאבחון
-  if (typeof window !== 'undefined' && (window as any).__DEBUG_INTEREST) {
-    console.log("[TournamentSignupCard] State:", { hasInterest, loadingInterest, canJoinEarly, canLeaveEarly, totalInterests });
-  }
+  // ✅ לוגים לאבחון - תמיד פעילים בדפדפן
+  useEffect(() => {
+    console.log("[TournamentSignupCard] 📊 Current State:", { 
+      hasInterest, 
+      loadingInterest, 
+      canJoinEarly, 
+      canLeaveEarly, 
+      totalInterests,
+      note: `Button "אני בפנים" should be ${canJoinEarly ? 'ENABLED' : 'DISABLED'}, Button "בטל רישום" should be ${canLeaveEarly ? 'ENABLED' : 'DISABLED'}`
+    });
+  }, [hasInterest, loadingInterest, canJoinEarly, canLeaveEarly, totalInterests]);
   
   // המערכת הישנה - רק כשהטורניר פעיל (לשימור תאימות)
   const canJoin = t?.status === "collecting" && !isFull && myState !== "registered" && myState !== "selected";
@@ -102,28 +115,39 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
   }
 
   async function joinEarly() {
-    if (loadingInterest || hasInterest) return;
+    if (loadingInterest || hasInterest) {
+      console.log("[joinEarly] ⚠️ Blocked - already has interest or loading:", { hasInterest, loadingInterest });
+      return;
+    }
     
-    console.log("[joinEarly] לפני עדכון:", { hasInterest, loadingInterest });
+    console.log("[joinEarly] 🚀 Starting - לפני עדכון:", { hasInterest, loadingInterest });
     
     // ✅ עדכון אופטימי מיד - לפני ה-API call
     setHasInterest(true);
-    setTotalInterests(prev => prev + 1);
+    setTotalInterests(prev => {
+      const newVal = prev + 1;
+      console.log(`[joinEarly] 📈 Total interests: ${prev} → ${newVal}`);
+      return newVal;
+    });
     setLoadingInterest(true);
     
-    console.log("[joinEarly] אחרי עדכון - hasInterest אמור להיות true");
+    console.log("[joinEarly] ✅ אחרי עדכון אופטימי - hasInterest=true, loadingInterest=true");
     
     const tId = toast.loading("מביע עניין...");
     try {
       // ✅ הבעת עניין כללית - לא צריך tournamentId!
+      console.log("[joinEarly] 📤 Sending API request...");
       const result = await earlyRegister({});
+      console.log("[joinEarly] 📥 API response:", result);
       toast.dismiss(tId);
       if (result.ok) {
         toast.success("✅ הוספת את עצמך לרשימת המעוניינים בטורניר!");
+        console.log("[joinEarly] ✅ Success! Refreshing status from server...");
         // רענון מידע מדויק מהשרת (אחרי העדכון האופטימי)
         await refreshInterestStatus();
       } else {
         toast.error(result.error || "שגיאה בהבעת עניין");
+        console.error("[joinEarly] ❌ API returned error:", result.error);
         // ✅ ביטול העדכון האופטימי אם נכשל
         setHasInterest(false);
         setTotalInterests(prev => Math.max(0, prev - 1));
@@ -131,11 +155,12 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
     } catch (error) {
       toast.dismiss(tId);
       toast.error("שגיאה בהבעת עניין");
-      console.error(error);
+      console.error("[joinEarly] ❌ Exception:", error);
       // ✅ ביטול העדכון האופטימי אם נכשל
       setHasInterest(false);
       setTotalInterests(prev => Math.max(0, prev - 1));
     } finally {
+      console.log("[joinEarly] 🏁 Finished - setting loadingInterest=false");
       setLoadingInterest(false);
     }
   }
@@ -161,28 +186,39 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
   }
 
   async function leaveEarly() {
-    if (loadingInterest || !hasInterest) return;
+    if (loadingInterest || !hasInterest) {
+      console.log("[leaveEarly] ⚠️ Blocked - no interest or loading:", { hasInterest, loadingInterest });
+      return;
+    }
     
-    console.log("[leaveEarly] לפני עדכון:", { hasInterest, loadingInterest });
+    console.log("[leaveEarly] 🚀 Starting - לפני עדכון:", { hasInterest, loadingInterest });
     
     // ✅ עדכון אופטימי מיד - לפני ה-API call
     setHasInterest(false);
-    setTotalInterests(prev => Math.max(0, prev - 1));
+    setTotalInterests(prev => {
+      const newVal = Math.max(0, prev - 1);
+      console.log(`[leaveEarly] 📉 Total interests: ${prev} → ${newVal}`);
+      return newVal;
+    });
     setLoadingInterest(true);
     
-    console.log("[leaveEarly] אחרי עדכון - hasInterest אמור להיות false");
+    console.log("[leaveEarly] ✅ אחרי עדכון אופטימי - hasInterest=false, loadingInterest=true");
     
     const tId = toast.loading("מסיר עניין...");
     try {
       // ✅ ביטול הבעת עניין כללית
+      console.log("[leaveEarly] 📤 Sending DELETE API request...");
       const result = await cancelEarlyRegister();
+      console.log("[leaveEarly] 📥 API response:", result);
       toast.dismiss(tId);
       if (result.ok) {
         toast.success("הסרת את עצמך מרשימת המעוניינים בטורניר");
+        console.log("[leaveEarly] ✅ Success! Refreshing status from server...");
         // רענון מידע מדויק מהשרת (אחרי העדכון האופטימי)
         await refreshInterestStatus();
       } else {
         toast.error(result.error || "שגיאה בהסרת עניין");
+        console.error("[leaveEarly] ❌ API returned error:", result.error);
         // ✅ ביטול העדכון האופטימי אם נכשל
         setHasInterest(true);
         setTotalInterests(prev => prev + 1);
@@ -190,11 +226,12 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
     } catch (error) {
       toast.dismiss(tId);
       toast.error("שגיאה בהסרת עניין");
-      console.error(error);
+      console.error("[leaveEarly] ❌ Exception:", error);
       // ✅ ביטול העדכון האופטימי אם נכשל
       setHasInterest(true);
       setTotalInterests(prev => prev + 1);
     } finally {
+      console.log("[leaveEarly] 🏁 Finished - setting loadingInterest=false");
       setLoadingInterest(false);
     }
   }

@@ -116,7 +116,10 @@ function resLocalUser(req: any) {
 router.get("/status", async (req, res) => {
   const userId = deriveUserId(req);
 
+  console.log("[early-register] GET /status - userId:", userId ? "present" : "missing");
+
   if (!userId || userId.length === 0) {
+    console.warn("[early-register] GET /status - USER_NOT_AUTHENTICATED");
     return res.status(401).json({ ok: false, error: "USER_NOT_AUTHENTICATED" });
   }
 
@@ -132,15 +135,23 @@ router.get("/status", async (req, res) => {
 
     const totalCount = getTotalInterestsCount();
 
-    return res.json({
+    const response = {
       ok: true,
       hasInterest: !!existing,
       interestId: existing?.id || null,
       createdAt: existing?.createdAt || null,
       totalCount: totalCount,
+    };
+
+    console.log(`[early-register] GET /status - Response for userId ${userId}:`, {
+      hasInterest: response.hasInterest,
+      totalCount: response.totalCount,
+      interestId: response.interestId ? "present" : "null"
     });
+
+    return res.json(response);
   } catch (err) {
-    console.error("early-register status error:", err);
+    console.error("[early-register] GET /status - Error:", err);
     return res.status(500).json({ ok: false, error: "INTERNAL_ERROR" });
   }
 });
