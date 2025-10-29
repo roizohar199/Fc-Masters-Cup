@@ -100,12 +100,16 @@ export async function apiPost<TReq, TRes>(path: string, body: TReq): Promise<TRe
     credentials: "include",
     body: JSON.stringify(body),
   }));
-  if (!res.ok) throw new Error(`POST ${path} failed: ${res.status}`);
+  if (!res.ok) {
+    let msg = `POST ${path} failed: ${res.status}`;
+    try { const j = await res.json(); msg += ` ${JSON.stringify(j)}`; } catch {}
+    throw new Error(msg);
+  }
   return res.json() as Promise<TRes>;
 }
 
 // שימוש ייעודי למסלול:
-export type EarlyRegisterReq = { tournamentId: number; userId: number };
+export type EarlyRegisterReq = { tournamentId: number }; // ⬅️ userId לא נדרש מצד הלקוח
 export type EarlyRegisterRes =
   | { ok: true; registrationId: number; status: string; updated?: boolean }
   | { ok: false; error: string };

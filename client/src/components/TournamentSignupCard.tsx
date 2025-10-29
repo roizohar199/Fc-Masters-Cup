@@ -81,8 +81,7 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
     const tId = toast.loading("מביע עניין...");
     try {
       const result = await earlyRegister({ 
-        tournamentId: parseInt(tournamentId), 
-        userId: 0 // זה יוחלף על ידי השרת עם המשתמש המחובר
+        tournamentId: parseInt(tournamentId)
       });
       toast.dismiss(tId);
       if (result.ok) {
