@@ -188,18 +188,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// 🔎 לוג דיאגנוסטי לראות שהגענו לנתיב הזה לפני אחרים
-app.all("/api/early-register", (req, _res, next) => {
-  console.log("[HIT] /api/early-register (pre-route) →", req.method);
-  next();
-});
-
-// ✅ חיבור הראוטר המדויק
-app.use("/api/early-register", earlyRegisterRouter);
-
-// ✅ אליאס לנתיב הישן (אם עדיין יש קליינטים ישנים)
-app.use("/api/tournament-registrations/:slug/early-register", earlyRegisterRouter);
-
 // Rate Limiting - prevent abuse
 // בפיתוח: מקל, בפרודקשן: חמור
 const isProduction = process.env.NODE_ENV === "production";
@@ -240,6 +228,18 @@ app.use(withCookies());
 
 // ── Body parsers נוספים ─────────────────────────────────────────
 app.use(express.urlencoded({ extended: true }));
+
+// 🔎 לוג דיאגנוסטי לראות שהגענו לנתיב הזה לפני אחרים
+app.all("/api/early-register", (req, _res, next) => {
+  console.log("[HIT] /api/early-register (pre-route) →", req.method);
+  next();
+});
+
+// ✅ חיבור הראוטר המדויק
+app.use("/api/early-register", earlyRegisterRouter);
+
+// ✅ אליאס לנתיב הישן (אם עדיין יש קליינטים ישנים)
+app.use("/api/tournament-registrations/:slug/early-register", earlyRegisterRouter);
 
 // ✅ בריאות ציבורית – לפני כל ה-auth
 app.get("/api/health", (_req, res) => {
