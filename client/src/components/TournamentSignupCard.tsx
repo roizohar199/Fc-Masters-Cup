@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { api } from "../api";
+import { earlyRegister } from "../lib/api";
 
 type Status = "collecting" | "closed" | "running" | "finished";
 type MyState = "registered" | "cancelled" | "selected" | null;
@@ -79,8 +80,9 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
   async function joinEarly() {
     const tId = toast.loading("מביע עניין...");
     try {
-      const result = await api(`/api/tournament-registrations/${tournamentId}/early-register`, {
-        method: "POST",
+      const result = await earlyRegister({ 
+        tournamentId: parseInt(tournamentId), 
+        userId: 0 // זה יוחלף על ידי השרת עם המשתמש המחובר
       });
       toast.dismiss(tId);
       if (result.ok) {

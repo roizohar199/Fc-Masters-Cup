@@ -7,7 +7,8 @@
   },
   "scripts": {
     "clean": "rimraf dist && tsc -b ../tsconfig.server.json --clean || exit 0",
-    "build": "npm run clean && tsc -p ../tsconfig.server.json"
+    "build": "npm run clean && tsc -p ../tsconfig.server.json",
+    "start": "node dist/index.js"
   },
   "dependencies": {
     "@types/cookie-parser": "^1.4.9",

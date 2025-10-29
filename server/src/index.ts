@@ -191,6 +191,9 @@ app.use((req, res, next) => {
 // ✅ זה הנתיב שצריך להיות — לפני כל דבר אחר
 app.use("/api/early-register", earlyRegisterRouter);
 
+// ✅ הוספת אליאס לנתיב שהקליינט שלך משתמש בו כרגע:
+app.use("/api/tournament-registrations/:slug/early-register", earlyRegisterRouter);
+
 // Rate Limiting - prevent abuse
 // בפיתוח: מקל, בפרודקשן: חמור
 const isProduction = process.env.NODE_ENV === "production";
