@@ -361,66 +361,55 @@ admin.post("/users/add-admin", async (req, res) => {
 // Get tournament registration status (admin only)
 admin.get("/tournament-registrations", async (req, res) => {
   try {
-    // מצא טורניר פעיל או ברירת מחדל
-    let tournament = db.prepare(`
-      SELECT * FROM tournaments 
-      WHERE registrationStatus = 'collecting' 
-      ORDER BY createdAt DESC 
-      LIMIT 1
-    `).get() as any;
-
-    if (!tournament) {
-      // אם אין טורניר פעיל, נחפש את טורניר ברירת המחדל
-      tournament = db.prepare(`
-        SELECT * FROM tournaments 
-        WHERE id = 'default-tournament'
-        ORDER BY createdAt DESC 
-        LIMIT 1
-      `).get() as any;
+    // ✅ הבעות עניין כלליות - לא קשורות לטורניר ספציפי
+    // נשתמש בטבלת tournament_interests החדשה
+    
+    // וודא שהטבלה קיימת
+    try {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS tournament_interests (
+          id TEXT PRIMARY KEY,
+          userId TEXT NOT NULL UNIQUE,
+          createdAt TEXT NOT NULL,
+          updatedAt TEXT NOT NULL,
+          FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_interests_user ON tournament_interests(userId);
+        CREATE INDEX IF NOT EXISTS idx_interests_created ON tournament_interests(createdAt);
+      `);
+    } catch (e) {
+      console.log("[admin] Tournament interests table already exists or error:", e);
     }
 
-    if (!tournament) {
-      // אם עדיין לא נמצא, מצא את הטורניר האחרון
-      tournament = db.prepare(`
-        SELECT * FROM tournaments 
-        ORDER BY createdAt DESC 
-        LIMIT 1
-      `).get() as any;
-    }
+    // קבל את כל המביעים עניין (כללי, לא טורניר ספציפי)
+    const interests = db.prepare(`
+      SELECT ti.*, u.email, u.psnUsername, u.role, u.createdAt as userCreatedAt
+      FROM tournament_interests ti
+      JOIN users u ON u.id = ti.userId
+      ORDER BY ti.createdAt DESC
+    `).all() as any[];
 
-    if (!tournament) {
-      return res.json({
-        ok: true,
-        tournament: null,
-        registrations: [],
-        totalRegistrations: 0,
-        message: "אין טורניר פעיל"
-      });
-    }
+    const totalInterests = interests.length;
 
-    // קבל את כל הרישומים לטורניר
-    const registrations = db.prepare(`
-      SELECT tr.*, u.email, u.psnUsername, u.role, u.createdAt as userCreatedAt
-      FROM tournament_registrations tr
-      JOIN users u ON u.id = tr.userId
-      WHERE tr.tournamentId = ? AND tr.state = 'registered'
-      ORDER BY tr.createdAt DESC
-    `).all(tournament.id);
+    // פרמטרים ברירת מחדל (מההגדרות או קבועים)
+    const DEFAULT_CAPACITY = 100;
+    const DEFAULT_MIN_PLAYERS = 16;
 
     res.json({
       ok: true,
       tournament: {
-        id: tournament.id,
-        title: tournament.title,
-        registrationStatus: tournament.registrationStatus,
-        registrationCapacity: tournament.registrationCapacity,
-        registrationMinPlayers: tournament.registrationMinPlayers
+        id: "general-interests", // לא טורניר ספציפי
+        title: "הבעות עניין בפתיחת טורניר",
+        registrationStatus: "collecting",
+        registrationCapacity: DEFAULT_CAPACITY,
+        registrationMinPlayers: DEFAULT_MIN_PLAYERS
       },
-      registrations: registrations,
-      totalRegistrations: registrations.length
+      registrations: interests, // למעשה אלו הבעות עניין
+      totalRegistrations: totalInterests, // מספר המביעים עניין
+      note: "זהו מספר המביעים עניין בפתיחת טורניר (לא קשור לטורניר ספציפי)"
     });
   } catch (error) {
-    console.error("❌ שגיאה בטעינת רישומים לטורניר:", error);
-    res.status(500).json({ error: "שגיאה בטעינת רישומים לטורניר" });
+    console.error("❌ שגיאה בטעינת הבעות עניין:", error);
+    res.status(500).json({ error: "שגיאה בטעינת הבעות עניין" });
   }
 });
