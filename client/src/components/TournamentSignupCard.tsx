@@ -72,6 +72,11 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
   // הכפתור "בטל רישום" enabled רק אם כבר הביע עניין
   const canLeaveEarly = hasInterest && !loadingInterest;
   
+  // לוגים לאבחון
+  if (typeof window !== 'undefined' && (window as any).__DEBUG_INTEREST) {
+    console.log("[TournamentSignupCard] State:", { hasInterest, loadingInterest, canJoinEarly, canLeaveEarly, totalInterests });
+  }
+  
   // המערכת הישנה - רק כשהטורניר פעיל (לשימור תאימות)
   const canJoin = t?.status === "collecting" && !isFull && myState !== "registered" && myState !== "selected";
   const canLeave = t?.status === "collecting" && myState === "registered";
@@ -98,7 +103,16 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
 
   async function joinEarly() {
     if (loadingInterest || hasInterest) return;
+    
+    console.log("[joinEarly] לפני עדכון:", { hasInterest, loadingInterest });
+    
+    // ✅ עדכון אופטימי מיד - לפני ה-API call
+    setHasInterest(true);
+    setTotalInterests(prev => prev + 1);
     setLoadingInterest(true);
+    
+    console.log("[joinEarly] אחרי עדכון - hasInterest אמור להיות true");
+    
     const tId = toast.loading("מביע עניין...");
     try {
       // ✅ הבעת עניין כללית - לא צריך tournamentId!
@@ -106,17 +120,21 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
       toast.dismiss(tId);
       if (result.ok) {
         toast.success("✅ הוספת את עצמך לרשימת המעוניינים בטורניר!");
-        setHasInterest(true); // ✅ מעדכן מיד את הסטטוס
-        // ✅ עדכון אופטימי של הספירה (מוסיף 1)
-        setTotalInterests(prev => prev + 1);
-        refreshInterestStatus(); // רענון מידע מדויק מהשרת
+        // רענון מידע מדויק מהשרת (אחרי העדכון האופטימי)
+        await refreshInterestStatus();
       } else {
         toast.error(result.error || "שגיאה בהבעת עניין");
+        // ✅ ביטול העדכון האופטימי אם נכשל
+        setHasInterest(false);
+        setTotalInterests(prev => Math.max(0, prev - 1));
       }
     } catch (error) {
       toast.dismiss(tId);
       toast.error("שגיאה בהבעת עניין");
       console.error(error);
+      // ✅ ביטול העדכון האופטימי אם נכשל
+      setHasInterest(false);
+      setTotalInterests(prev => Math.max(0, prev - 1));
     } finally {
       setLoadingInterest(false);
     }
@@ -144,7 +162,16 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
 
   async function leaveEarly() {
     if (loadingInterest || !hasInterest) return;
+    
+    console.log("[leaveEarly] לפני עדכון:", { hasInterest, loadingInterest });
+    
+    // ✅ עדכון אופטימי מיד - לפני ה-API call
+    setHasInterest(false);
+    setTotalInterests(prev => Math.max(0, prev - 1));
     setLoadingInterest(true);
+    
+    console.log("[leaveEarly] אחרי עדכון - hasInterest אמור להיות false");
+    
     const tId = toast.loading("מסיר עניין...");
     try {
       // ✅ ביטול הבעת עניין כללית
@@ -152,17 +179,21 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
       toast.dismiss(tId);
       if (result.ok) {
         toast.success("הסרת את עצמך מרשימת המעוניינים בטורניר");
-        setHasInterest(false); // ✅ מעדכן מיד את הסטטוס
-        // ✅ עדכון אופטימי של הספירה (מוריד 1)
-        setTotalInterests(prev => Math.max(0, prev - 1));
-        refreshInterestStatus(); // רענון מידע מדויק מהשרת
+        // רענון מידע מדויק מהשרת (אחרי העדכון האופטימי)
+        await refreshInterestStatus();
       } else {
         toast.error(result.error || "שגיאה בהסרת עניין");
+        // ✅ ביטול העדכון האופטימי אם נכשל
+        setHasInterest(true);
+        setTotalInterests(prev => prev + 1);
       }
     } catch (error) {
       toast.dismiss(tId);
       toast.error("שגיאה בהסרת עניין");
       console.error(error);
+      // ✅ ביטול העדכון האופטימי אם נכשל
+      setHasInterest(true);
+      setTotalInterests(prev => prev + 1);
     } finally {
       setLoadingInterest(false);
     }
@@ -510,69 +541,69 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
       >
         <button
           onClick={canJoinEarly ? joinEarly : canJoin ? join : undefined}
-          disabled={!canJoinEarly && !canJoin || loadingInterest}
+          disabled={!canJoinEarly && !canJoin}
           style={{
             padding: isMobile ? "12px 24px" : "16px 40px",
             borderRadius: 12,
             fontSize: isMobile ? 15 : 18,
             fontWeight: 700,
             border: "none",
-            cursor: (canJoinEarly || canJoin) && !loadingInterest ? "pointer" : "not-allowed",
-            background: (canJoinEarly || canJoin) && !loadingInterest
+            cursor: canJoinEarly || canJoin ? "pointer" : "not-allowed",
+            background: canJoinEarly || canJoin
               ? "linear-gradient(135deg, #28a745 0%, #20c997 100%)"
               : "#e9ecef",
-            color: (canJoinEarly || canJoin) && !loadingInterest ? "#fff" : "#adb5bd",
-            boxShadow: (canJoinEarly || canJoin) && !loadingInterest ? "0 4px 15px rgba(40, 167, 69, 0.4)" : "none",
+            color: canJoinEarly || canJoin ? "#fff" : "#adb5bd",
+            boxShadow: canJoinEarly || canJoin ? "0 4px 15px rgba(40, 167, 69, 0.4)" : "none",
             opacity: loadingInterest ? 0.6 : 1,
             transition: "all 0.3s ease",
             flex: isMobile ? "1 1 45%" : "0 0 auto",
           }}
           onMouseEnter={(e) => {
-            if ((canJoinEarly || canJoin) && !loadingInterest) {
+            if (canJoinEarly || canJoin) {
               e.currentTarget.style.transform = "translateY(-2px)";
               e.currentTarget.style.boxShadow = "0 6px 20px rgba(40, 167, 69, 0.5)";
             }
           }}
           onMouseLeave={(e) => {
-            if ((canJoinEarly || canJoin) && !loadingInterest) {
+            if (canJoinEarly || canJoin) {
               e.currentTarget.style.transform = "translateY(0)";
               e.currentTarget.style.boxShadow = "0 4px 15px rgba(40, 167, 69, 0.4)";
             }
           }}
         >
-          {loadingInterest ? "⏳ שולח..." : "🎮 אני בפנים!"}
+          {loadingInterest && canJoinEarly ? "⏳ שולח..." : "🎮 אני בפנים!"}
         </button>
         <button
           onClick={canLeaveEarly ? leaveEarly : canLeave ? leave : undefined}
-          disabled={!canLeaveEarly && !canLeave || loadingInterest}
+          disabled={!canLeaveEarly && !canLeave}
           style={{
             padding: isMobile ? "12px 24px" : "16px 40px",
             borderRadius: 12,
             fontSize: isMobile ? 15 : 18,
             fontWeight: 700,
-            cursor: (canLeaveEarly || canLeave) && !loadingInterest ? "pointer" : "not-allowed",
-            background: (canLeaveEarly || canLeave) && !loadingInterest ? "#fff" : "#f8f9fa",
-            color: (canLeaveEarly || canLeave) && !loadingInterest ? "#e74c3c" : "#adb5bd",
-            border: (canLeaveEarly || canLeave) && !loadingInterest ? "2px solid #e74c3c" : "2px solid #dee2e6",
-            boxShadow: (canLeaveEarly || canLeave) && !loadingInterest ? "0 2px 8px rgba(231, 76, 60, 0.2)" : "none",
+            cursor: canLeaveEarly || canLeave ? "pointer" : "not-allowed",
+            background: canLeaveEarly || canLeave ? "#fff" : "#f8f9fa",
+            color: canLeaveEarly || canLeave ? "#e74c3c" : "#adb5bd",
+            border: canLeaveEarly || canLeave ? "2px solid #e74c3c" : "2px solid #dee2e6",
+            boxShadow: canLeaveEarly || canLeave ? "0 2px 8px rgba(231, 76, 60, 0.2)" : "none",
             opacity: loadingInterest ? 0.6 : 1,
             transition: "all 0.3s ease",
             flex: isMobile ? "1 1 45%" : "0 0 auto",
           }}
           onMouseEnter={(e) => {
-            if ((canLeaveEarly || canLeave) && !loadingInterest) {
+            if (canLeaveEarly || canLeave) {
               e.currentTarget.style.background = "#ffe0e0";
               e.currentTarget.style.transform = "translateY(-2px)";
             }
           }}
           onMouseLeave={(e) => {
-            if ((canLeaveEarly || canLeave) && !loadingInterest) {
+            if (canLeaveEarly || canLeave) {
               e.currentTarget.style.background = "#fff";
               e.currentTarget.style.transform = "translateY(0)";
             }
           }}
         >
-          {loadingInterest ? "⏳ מבטל..." : "❌ בטל רישום"}
+          {loadingInterest && canLeaveEarly ? "⏳ מבטל..." : "❌ בטל רישום"}
         </button>
       </div>
 
