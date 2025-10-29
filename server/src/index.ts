@@ -187,15 +187,15 @@ app.get("/api/early-register/ping", (_req, res) => {
   res.json({ ok: true, route: "early-register", file: __filename, ts: Date.now() });
 });
 
-// לוכד את ה-POST לפני כולם כדי לאבחן נתיב
-app.post("/api/early-register", (req, res, next) => {
-  console.log("[EARLY-FIRST] hit /api/early-register (early handler)");
-  console.log("[EARLY-FIRST] body:", req.body);
-  console.log("[EARLY-FIRST] query:", req.query);
-  // 🔁 בשלב ראשון אפשר להחזיר 200 כדי לוודא שאי אפשר לקבל NOT_FOUND:
-  // return res.json({ ok: true, note: "early handler hotfix" });
-  // אחרי שראית שזה נתפס, תבטל שורה למעלה ותשאיר next() כדי שיעבור לראוטר:
-  next();
+// ⚠️ זמני: תופס את POST לפני כולם ומחזיר 200 כדי לאמת שהנתיב נתפס בפרודקשן
+app.post("/api/early-register", (req, res /*, next */) => {
+  console.log("[EARLY-FIRST] hit /api/early-register (hotfix handler)");
+  console.log("[EARLY-FIRST] body:", JSON.stringify(req.body));
+  console.log("[EARLY-FIRST] cookies:", req.cookies ? Object.keys(req.cookies) : "none");
+  console.log("[EARLY-FIRST] headers:", req.headers.authorization ? "has auth header" : "no auth header");
+  return res.json({ ok: true, note: "early handler hotfix - route working!", cookieCount: req.cookies ? Object.keys(req.cookies).length : 0 });
+  // אחרי שראית שזה נתפס (200 OK), תבטל את ה-return למעלה ותשאיר next() כדי שיעבור לראוטר:
+  // next();
 });
 
 // --- לוגים לאבחון ---
