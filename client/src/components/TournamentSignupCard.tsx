@@ -14,6 +14,7 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   const [hasInterest, setHasInterest] = useState(false); // ✅ סטטוס הבעת עניין (כללי, לא טורניר ספציפי)
+  const [totalInterests, setTotalInterests] = useState(0); // ✅ מספר כולל של מביעי עניין
   const [loadingInterest, setLoadingInterest] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
@@ -45,6 +46,7 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
       const status = await getEarlyRegisterStatus();
       if (status.ok) {
         setHasInterest(status.hasInterest);
+        setTotalInterests(status.totalCount); // ✅ מעדכן את הספירה הכוללת
       }
     } catch (error) {
       console.error("Error fetching interest status:", error);
@@ -105,7 +107,9 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
       if (result.ok) {
         toast.success("✅ הוספת את עצמך לרשימת המעוניינים בטורניר!");
         setHasInterest(true); // ✅ מעדכן מיד את הסטטוס
-        refreshInterestStatus(); // רענון מידע נוסף
+        // ✅ עדכון אופטימי של הספירה (מוסיף 1)
+        setTotalInterests(prev => prev + 1);
+        refreshInterestStatus(); // רענון מידע מדויק מהשרת
       } else {
         toast.error(result.error || "שגיאה בהבעת עניין");
       }
@@ -149,7 +153,9 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
       if (result.ok) {
         toast.success("הסרת את עצמך מרשימת המעוניינים בטורניר");
         setHasInterest(false); // ✅ מעדכן מיד את הסטטוס
-        refreshInterestStatus(); // רענון מידע נוסף
+        // ✅ עדכון אופטימי של הספירה (מוריד 1)
+        setTotalInterests(prev => Math.max(0, prev - 1));
+        refreshInterestStatus(); // רענון מידע מדויק מהשרת
       } else {
         toast.error(result.error || "שגיאה בהסרת עניין");
       }
@@ -279,7 +285,8 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
     );
   }
 
-  const pct = Math.min(100, Math.round((count / (t.capacity || 100)) * 100));
+  // ✅ חישוב אחוז לפי מספר המביעי עניין (מקסימום 16)
+  const pct = Math.min(100, Math.round((totalInterests / 16) * 100));
 
   return (
     <div
@@ -319,13 +326,13 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
           style={{
             fontSize: isMobile ? 16 : 18,
             fontWeight: 700,
-            color: isFull ? "#e74c3c" : "#27ae60",
+            color: totalInterests >= 16 ? "#27ae60" : totalInterests >= 10 ? "#ff9800" : "#667eea",
             padding: "8px 16px",
             borderRadius: 20,
-            background: isFull ? "#ffe0e0" : "#e8f8f0",
+            background: totalInterests >= 16 ? "#e8f8f0" : totalInterests >= 10 ? "#fff3e0" : "#e3f2fd",
           }}
         >
-          {count}/{t.capacity ?? 100} נרשמו
+          {totalInterests}/16 מביעים עניין {/* ✅ מציג את מספר הבעות העניין הכלליות */}
         </span>
       </div>
 
@@ -344,8 +351,10 @@ export function TournamentSignupCard({ tournamentId }: TournamentSignupCardProps
         <div
           style={{
             height: "100%",
-            background: isFull
-              ? "linear-gradient(90deg, #e74c3c 0%, #c0392b 100%)"
+            background: totalInterests >= 16
+              ? "linear-gradient(90deg, #27ae60 0%, #20c997 100%)"
+              : totalInterests >= 10
+              ? "linear-gradient(90deg, #ff9800 0%, #f57c00 100%)"
               : "linear-gradient(90deg, #667eea 0%, #764ba2 100%)",
             width: `${pct}%`,
             transition: "width 0.5s ease-in-out",
