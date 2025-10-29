@@ -1,6 +1,7 @@
 import { Router } from "express";
 import Database from "better-sqlite3";
 import db from "../db.js";
+import { decodeToken } from "../auth.js";
 
 const router = Router();
 
@@ -12,8 +13,40 @@ type RegistrationRow = { id: number; status: string };
 
 // מנסה לגזור userId ממקורות נפוצים של auth
 function deriveUserId(req: any): number | null {
+  // ✅ ניסיון ראשון: req.user (מ-middleware)
+  if (req.user?.id) {
+    const n = Number(req.user.id);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+
+  // ✅ ניסיון שני: JWT מ-cookie/header
+  try {
+    const COOKIE_NAME = "session";
+    const token = req.cookies?.[COOKIE_NAME] || 
+                  req.headers.authorization?.replace(/^Bearer\s+/i, "") ||
+                  req.headers["x-auth-token"];
+    
+    if (token) {
+      console.log("[early-register] Found token in cookies/headers");
+      const decoded = decodeToken(token);
+      if (decoded && decoded.email) {
+        // שליפת user id מהדאטאבייס לפי email
+        const user = db.prepare(`SELECT id FROM users WHERE email=?`).get(decoded.email) as any;
+        if (user && user.id) {
+          const n = Number(user.id);
+          if (Number.isFinite(n) && n > 0) {
+            console.log("[early-register] Found userId from JWT:", n);
+            return n;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.log("[early-register] JWT decode failed:", e);
+  }
+
+  // ✅ ניסיון שלישי: משתנים אחרים
   const candidates = [
-    req.user?.id,
     resLocalUser(req)?.id,
     req.session?.user?.id,
     req.auth?.user?.id,
@@ -23,6 +56,7 @@ function deriveUserId(req: any): number | null {
     const n = Number(v);
     if (Number.isFinite(n) && n > 0) return n;
   }
+
   return null;
 }
 
