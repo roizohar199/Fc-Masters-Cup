@@ -23,7 +23,7 @@ export default function Rules() {
           </h1>
           <div style={{ fontSize: 16, color: "#666", marginTop: 12, lineHeight: 1.6 }}>
             <p style={{ margin: "8px 0" }}><strong>המארגן:</strong> FC Masters Cup</p>
-            <p style={{ margin: "8px 0" }}><strong>כתובת האתר:</strong> www.k-rstudio.com</p>
+            <p style={{ margin: "8px 0" }}><strong>כתובת האתר:</strong> www.fcmasterscup.com</p>
             <p style={{ margin: "8px 0" }}><strong>שם האירוע:</strong> טורניר FC25/26 לסוני 5</p>
           </div>
         </div>
