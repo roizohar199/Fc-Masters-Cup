@@ -98,25 +98,9 @@ export default function PlayerDashboard() {
         console.log("🎯 הטורניר שנבחר:", selectedTournament);
         setTournament(selectedTournament);
 
-        // טעינת משחקים
-        const bracket = await api(`/api/tournaments/${selectedTournament.id}/bracket`);
-        if (bracket && bracket.matches) {
-          const email = me.email;
-          const matches = bracket.matches.map((m: any) => ({
-            id: m.id,
-            round: m.round,
-            homePsn: m.homePsn,
-            awayPsn: m.awayPsn,
-            homeScore: m.homeScore,
-            awayScore: m.awayScore,
-            status: m.status,
-            isMyMatch: m.homePsn === email || m.awayPsn === email,
-            myRole: m.homePsn === email ? "home" : m.awayPsn === email ? "away" : undefined
-          }));
-
-          setAllMatches(matches);
-          setMyMatches(matches.filter((m: Match) => m.isMyMatch));
-        }
+        // טעינת משחקים בוטלה עם הסרת מערכת הברקט
+        setAllMatches([]);
+        setMyMatches([]);
       }
     } catch (error) {
       console.error("Failed to load data:", error);
@@ -740,53 +724,7 @@ export default function PlayerDashboard() {
         </div>
       )}
 
-      {/* קישור להגשת תוצאות */}
-      <div style={{
-        backgroundColor: "#fff3e0",
-        padding: isMobile ? 12 : 20,
-        borderRadius: isMobile ? 12 : 16,
-        border: "2px solid #ff9800",
-        textAlign: "center",
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center"
-      }}>
-        <p style={{ 
-          fontSize: isMobile ? 13 : 16, 
-          color: "#e65100", 
-          marginBottom: isMobile ? 10 : 16,
-          lineHeight: 1.4,
-          wordBreak: "break-word",
-          textAlign: "center",
-          margin: "0 0 10px 0"
-        }}>
-          רוצה להגיש תוצאת משחק?
-        </p>
-        <Link
-          to="/bracket"
-          style={{
-            display: "inline-block",
-            padding: isMobile ? "10px 16px" : "14px 32px",
-            background: "linear-gradient(135deg, #ff9800 0%, #f57c00 100%)",
-            color: "#fff",
-            textDecoration: "none",
-            borderRadius: isMobile ? 6 : 10,
-            fontWeight: 700,
-            fontSize: isMobile ? 13 : 16,
-            boxShadow: "0 4px 15px rgba(255, 152, 0, 0.4)",
-            maxWidth: isMobile ? "90%" : "100%",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            textAlign: "center",
-            width: isMobile ? "auto" : "auto"
-          }}
-        >
-          {isMobile ? "תוצאות 📊" : "צפה בתוצאות 📊"}
-        </Link>
-      </div>
+      {/* קישור תוצאות הוסר */}
     </div>
       </div>
     </div>

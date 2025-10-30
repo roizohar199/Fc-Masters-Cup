@@ -8,17 +8,14 @@ import App from "./App";
 import Login from "./pages/Login";
 
 // Lazy load secondary pages for better performance
-const BracketView = lazy(() => import("./pages/BracketView"));
-const DisputesView = lazy(() => import("./pages/DisputesView"));
+// Removed DisputesView
 const MatchSubmit = lazy(() => import("./pages/MatchSubmit"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Rules = lazy(() => import("./pages/Rules"));
 const AdminPanel = lazy(() => import("./pages/AdminPanel"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
-// New tournament bracket management pages
-const ManualBracketManager = lazy(() => import("./pages/admin/ManualBracketManager"));
-const TournamentBracketLive = lazy(() => import("./pages/public/TournamentBracketLive"));
+// Removed bracket-related pages/components
 
 // Loading component
 const LoadingFallback = () => (
@@ -47,22 +44,7 @@ const router = createBrowserRouter([
       </Suspense>
     )
   },
-  { 
-    path: "/bracket", 
-    element: (
-      <Suspense fallback={<LoadingFallback />}>
-        <BracketView />
-      </Suspense>
-    )
-  },
-  { 
-    path: "/disputes", 
-    element: (
-      <Suspense fallback={<LoadingFallback />}>
-        <DisputesView />
-      </Suspense>
-    )
-  },
+  // Removed disputes route
   { 
     path: "/submit/:matchId", 
     element: (
@@ -95,22 +77,7 @@ const router = createBrowserRouter([
       </Suspense>
     )
   },
-  { 
-    path: "/admin/tournaments/manual", 
-    element: (
-      <Suspense fallback={<LoadingFallback />}>
-        <ManualBracketManager />
-      </Suspense>
-    )
-  },
-  { 
-    path: "/tournaments/:id/live", 
-    element: (
-      <Suspense fallback={<LoadingFallback />}>
-        <TournamentBracketLive />
-      </Suspense>
-    )
-  },
+  // Removed public/live bracket routes
 ]);
 
 createRoot(document.getElementById("root")!).render(

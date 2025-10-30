@@ -179,33 +179,7 @@ export default function App() {
               <span style={{ fontSize: isMobile ? 12 : 18 }}>{isAdmin ? "⚙️" : "🏠"}</span>
               {isMobile ? (isAdmin ? "ניהול" : "בית") : (isAdmin ? "ניהול" : "דף הבית")}
             </Link>
-            <Link 
-              to="/bracket" 
-              style={{
-                padding: isMobile ? "8px 4px" : "14px 24px",
-                textDecoration: "none",
-                background: "rgba(255, 255, 255, 0.9)",
-                color: "#333",
-                borderRadius: isMobile ? 4 : 12,
-                fontWeight: 500,
-                fontSize: isMobile ? 11 : 15,
-                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: isMobile ? 2 : 8,
-                textAlign: "center",
-                minHeight: isMobile ? "40px" : "auto",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                flex: "1 1 auto"
-              }}
-            >
-              <span style={{ fontSize: isMobile ? 12 : 18 }}>📊</span>
-              {isMobile ? "תוצאות" : "צפה בתוצאות"}
-            </Link>
+            {/* קישור תוצאות הוסר */}
             {isAdmin && (
               <Link 
                 to="/admin" 
@@ -235,35 +209,7 @@ export default function App() {
                 {isMobile ? "פאנל" : "פאנל ניהול"}
               </Link>
             )}
-            {isAdmin && (
-              <Link 
-                to="/disputes" 
-                style={{
-                  padding: isMobile ? "8px 4px" : "14px 24px",
-                  textDecoration: "none",
-                  background: "rgba(255, 255, 255, 0.9)",
-                  color: "#333",
-                  borderRadius: isMobile ? 4 : 12,
-                  fontWeight: 500,
-                  fontSize: isMobile ? 11 : 15,
-                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: isMobile ? 2 : 8,
-                  textAlign: "center",
-                  minHeight: isMobile ? "40px" : "auto",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  flex: "1 1 auto"
-                }}
-              >
-                <span style={{ fontSize: isMobile ? 12 : 18 }}>⚠️</span>
-                מחלוקות
-              </Link>
-            )}
+            {/* קישור מחלוקות הוסר */}
             <Link 
               to="/rules" 
               style={{

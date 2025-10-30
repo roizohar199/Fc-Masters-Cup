@@ -34,8 +34,8 @@ export async function selectParticipants(tournamentId: string, userIds: string[]
         "tournament"
       );
       
-      // שליחת מייל
-      const ctaUrl = `${process.env.SITE_URL || 'https://www.fcmasterscup.com'}/bracket`;
+      // שליחת מייל - קישור כללי במקום עמוד ברקט שהוסר
+      const ctaUrl = `${process.env.SITE_URL || 'https://www.fcmasterscup.com'}`;
       const html = tournamentSelectionTemplate({
         userName: u?.psnUsername || undefined,
         tournamentName: tRow?.title ?? "FC Masters Cup",

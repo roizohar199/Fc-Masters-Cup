@@ -133,7 +133,7 @@ import http from "node:http";
 import rateLimit from "express-rate-limit";
 import { tournaments } from "./routes/tournaments.js";
 import { matches } from "./routes/matches.js";
-import { disputes } from "./routes/disputes.js";
+// Removed disputes router
 import { auth } from "./routes/auth.js";
 import { userSettings } from "./routes/userSettings.js";
 import { admin } from "./routes/admin.js";
@@ -157,7 +157,6 @@ import { presenceApi } from "./routes/presenceApi.js";
 import { initPresence } from "./presence/index.js";
 import adminSelection from "./routes/adminSelection.js";
 import meNotifications from "./routes/meNotifications.js";
-import manualBracketRouter from "./routes/manualBracket.js";
 import earlyRegisterRouter from "./routes/earlyRegister.js";
 
 // ESM equivalent of __dirname
@@ -306,8 +305,7 @@ app.use("/api/matches", (req, res, next) => {
   return matches(req, res, next);
 });
 
-// Disputes - admin only
-app.use("/api/disputes", requireAuth, disputes);
+// Disputes route removed
 
 // Presence tracking (public - heartbeat/leave)
 app.use("/api/presence", presenceApi);
@@ -335,8 +333,7 @@ app.use("/api/users", usersRouter);
 // Settings routes (requires auth)
 app.use("/api/settings", requireAuth, settings);
 
-// Manual bracket routes (mixed auth - public views, admin creation)
-app.use(manualBracketRouter);
+// Manual bracket routes removed
 
 // ✅ בדיקת חיים (health שנשכפל נמחק, יש אחד קודם)
 
